@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Brews & Chews</title>
+
+    <!-- Google Font CDN: typeface used across the site -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome CDN for icons (if needed) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+
+    <!-- Global stylesheet for layout, colors, and components -->
+    <link rel="stylesheet" href="../style/style.css">
+</head>
+
+<body>
+    <header>
+        <!-- Primary navigation (fixed): brand and key links -->
+        <nav class="navbar">
+             <a href="index.html" class="logo">
+             <img src="../assets/logo.png" class="logo" alt="Logo">
+            </a>
+            <ul class="links-container">
+                <li class="link-items"><a href="index.html" class="links">Home</a></li>
+                <li class="link-items"><a href="#menu" class="links">Menu</a></li>
+                <li class="link-items"><a href="Login.html" class="links">Login</a></li>
+            </ul>
+        </nav>
+        <!-- end of navbar -->
+
+        <!-- Auth container: centers the signup card and allows scrolling -->
+        <main class="auth-main">
+            <section aria-labelledby="signup-title" class="auth-card">
+                <h1 id="signup-title" class="hero-heading" style="font-size: 2rem; line-height: 2.6rem; text-align: center;">Create Account</h1>
+
+                <!-- Basic sign-up form; front-end only for now -->
+                <form action="#" method="post" class="auth-form">
+                    <label for="su-username" class="auth-label">Username</label>
+                    <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Enter your username" class="auth-input">
+
+                    <label for="su-email" class="auth-label">Email</label>
+                    <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input">
+
+                    <label for="su-password" class="auth-label">Password</label>
+                    <input id="su-password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Create a password" class="auth-input">
+
+                    <label for="su-confirm" class="auth-label">Confirm Password</label>
+                    <input id="su-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Re-enter your password" class="auth-input">
+
+                    <button type="submit" class="btn" style="width: 100%;">Sign Up</button>
+                </form>
+
+                <p class="auth-alt">
+                    <em>Already have an account?</em> <a href="Login.html" class="links">Sign In</a>
+                </p>
+            </section>
+        </main>
+    </header>
+</body>
+</html>
+
+

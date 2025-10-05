@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Brews & Chews</title>
+
+    <!-- Google Font CDN: typeface used across the site -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome CDN for icons (if needed) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+
+    <!-- Global stylesheet for layout, colors, and components -->
+    <link rel="stylesheet" href="../style/style.css">
+</head>
+
+<body>
+    <header>
+        <!-- Primary navigation (fixed): brand and key links -->
+        <nav class="navbar">
+            <a href="index.html" class="logo">
+             <img src="../assets/logo.png" class="logo" alt="Logo">
+            </a>
+            <ul class="links-container">
+                <li class="link-items"><a href="index.html" class="links">Home</a></li>
+                <li class="link-items"><a href="Menu.html" class="links">Menu</a></li>
+                <li class="link-items"><a href="Login.html" class="links" aria-current="page">Login</a></li>
+            </ul>
+        </nav>
+        <!-- end of navbar -->
+
+        <!-- Auth container: centers the login card and allows scrolling -->
+        <main class="auth-main">
+            <section aria-labelledby="login-title" class="auth-card">
+                <h1 id="login-title" class="hero-heading" style="font-size: 2rem; line-height: 2.6rem; text-align: center;">Sign In to Your Account</h1>
+
+                <!-- Basic login form; front-end only for now -->
+                <form action="#" method="post" class="auth-form">
+                    <label for="login-identifier" class="auth-label">Username or Email</label>
+                    <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input">
+
+                    <label for="login-password" class="auth-label">Password</label>
+                    <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password" class="auth-input">
+
+                    <button type="submit" class="btn" style="width: 100%;">Sign In</button>
+                </form>
+
+                <p class="auth-alt">
+                    <em>Don’t have an account?</em> <a href="SignUp.html" class="links">Sign Up</a>
+                </p>
+            </section>
+        </main>
+    </header>
+</body>
+</html>
+
+

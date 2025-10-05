@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brews & Chews</title>
+           
+
+        <!-- Google Font CDN: typeface used across the site -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+        
+    <!-- Font Awesome CDN for icons used in cards and footer -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+        <!-- Global stylesheet for layout, colors, and components -->
+    <link rel="stylesheet" href="../style/menu.css">
+    
+</head>
+
+<body>
+    <header>
+        <!-- Primary navigation (fixed): brand and key links -->
+         <nav class="navbar">
+
+            <!-- Brand logo -->
+              <a href="index.html" class="logo">
+             <img src="../assets/logo.png" class="logo" alt="Logo">
+            </a>
+             <!-- ul -->
+              
+            <ul class="links-container">
+                <li class="link-items"><a href="index.html" class="links">Home</a></li>
+                <li class="link-items"><a href="Menu.html" class="links">Menu</a></li>
+                <li class="link-items"><a href="Login.html" class="links">Login</a></li>
+             </ul>
+         </nav>
+            <!-- end of navbar -->
+
+        <main>
+    <!-- Sidebar -->
+      <div class="sidebar">
+    <h3>Drinks</h3>
+    <ul>
+      <li onclick="showCategory('featured-drinks')"><a href="Menu.html"></a>Featured Drinks</li>
+      <li onclick="showCategory('brewed-coffee')"><a href="Menu.html"></a>Brewed Coffee</li>
+      <li onclick="showCategory('espresso')"><a href="Menu.html"></a>Espresso</li>
+      <li onclick="showCategory('blended-beverage')"><a href="Menu.html"></a>Blended Beverage</li>
+      <li onclick="showCategory('teavana-tea')"><a href="Menu.html"></a>Teavana Tea</li>
+      <li onclick="showCategory('refreshers')"><a href="Menu.html"></a>Refreshers</li>
+    </ul>
+
+    <h3>Food</h3>
+    <ul>
+      <li onclick="showCategory('featured-food')">Featured Food</li>
+      <li onclick="showCategory('bakery')">Bakery</li>
+      <li onclick="showCategory('sandwiches')">Sandwiches</li>
+    </ul>
+  </div>
+
+  <!-- Content Area -->
+
+  <div class="content">
+    <!-- Featured Drinks -->
+    <div id="featured-drinks" class="category active">
+      <h2>Featured Drinks</h2>
+      <div class="item">
+        <a href="login.html">
+        <img src="../assets/Product 1.jpg" alt="Maple Cocoa Nibs Oatmilk Shaken Espresso">
+        </a>
+        <p>Maple Cocoa Nibs Oatmilk Shaken Espresso</p>
+      </div>
+      <div class="item">
+        <a href="login.html">
+        <img src="../assets/Product 2.jpg" alt="Frappuccino">
+         </a>
+        <p>Frappuccino</p>
+      </div>
+    </div>
+
+    <div id="brewed-coffee" class="category">
+      <h2>Brewed Coffee</h2>
+      <div class="item">
+        <img src="img/drip.jpg" alt="Drip Coffee">
+        <p>Drip Coffee</p>
+      </div>
+      <div class="item">
+        <img src="img/coldbrew.jpg" alt="Cold Brew">
+        <p>Cold Brew</p>
+      </div>
+    </div>
+    
+    <div id="espresso" class="category">
+      <h2>Espresso</h2>
+      <div class="item">
+        <img src="img/espresso.jpg" alt="Espresso">
+        <p>Espresso Shot</p>
+      </div>
+      <div class="item">
+        <img src="img/cappuccino.jpg" alt="Cappuccino">
+        <p>Cappuccino</p>
+      </div>
+    </div>
+
+    <div id="blended-beverage" class="category">
+      <h2>Blended-beverage</h2>
+      <div class="item">
+        <img src="img/Chai Tea Cream Frappuccino.jpg" alt="Chai Tea Cream Frappuccino">
+        <p>Chai Tea Cream Frappuccino</p>
+      </div>
+      <div class="item">
+        <img src="img/Caramel Cream Frappuccino.jpg" alt="Caramel Cream Frappuccino">
+        <p>Caramel Cream Frappuccino</p>
+      </div>
+    </div>
+
+    <div id="teavana-tea" class="category">
+      <h2>Teavana-tea</h2>
+      <div class="item">
+        <img src="img/Full leaf brewed tea.jpg" alt="Full Leaf Brewed Tea">
+        <p>Full leaf brewed tea</p>
+      </div>
+      <div class="item">
+        <img src="img/Iced Black Tea Latte.jpg" alt="Iced Black Tea Latte">
+        <p>Iced Black Tea Latte</p>
+      </div>
+    </div>
+
+    <div id="refreshers" class="category">
+      <h2>Refreshers</h2>
+      <div class="item">
+        <img src="img/Lemonade.jpg" alt="Lemonade">
+        <p>Lemonade</p>
+      </div>
+      <div class="item">
+        <img src="img/Iced Cucumber.jpg" alt="Iced Cucumber">
+        <p>Iced Cucumber</p>
+      </div>
+    </div>
+
+    <div id="featured-food" class="category">
+      <h2>Featured Food</h2>
+      <div class="item">
+        <img src="img/Glazed Chicken.jpg" alt="Glazed Chicken">
+        <p>Glazed Chicken</p>
+      </div>
+      <div class="item">
+        <img src="img/Buttered Chicken" alt="Buttered Chicken">
+        <p>Buttered Chicken</p>
+      </div>
+    </div>
+
+    <div id="bakery" class="category">
+      <h2>Bakery</h2>
+      <div class="item">
+        <img src="img/ChocolateDippedDoughnut.jpg" alt="ChocolateDippedDoughnut">
+        <p>ChocolateDippedDoughnut</p>
+      </div>
+      <div class="item">
+        <img src="img/Bacon.jpg" alt="Bacon Belgian Waffle">
+        <p>Bacon Belgian Waffle</p>
+      </div>
+    </div>
+
+    <div id="sandwiches" class="category">
+      <h2>Sandwiches</h2>
+      <div class="item">
+        <img src="img/tuna.jpg" alt="Cheesy Tuna Sandwich">
+        <p>Cheesy Tuna Sandwich</p>
+      </div>
+      <div class="item">
+        <img src="img/egg.jpg" alt="Egg Sandwich">
+        <p>Egg Sandwich</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function showCategory(categoryId) {
+      const categories = document.querySelectorAll('.category');
+      categories.forEach(cat => cat.classList.remove('active'));
+
+      document.getElementById(categoryId).classList.add('active');
+    }
+  </script>
+    
+
+
+</body>
+</html>
+

@@ -1,2 +1,2 @@
-# mco-version-2
+# online-cafe-ordering-system
 

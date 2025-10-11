@@ -50,10 +50,11 @@ textarea:focus-visible {
 .site-header {
     position: sticky;
     top: 0;
-    z-index: 100;
-    backdrop-filter: blur(10px);
-    background: rgba(12, 9, 8, 0.7);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    z-index: 40;
+    backdrop-filter: blur(12px);
+    background: rgba(12, 9, 8, 0.62);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base), opacity var(--transition-base);
 }
 
 .navbar {
@@ -62,27 +63,45 @@ textarea:focus-visible {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.2rem clamp(1.5rem, 5vw, 3rem);
-    gap: 1.5rem;
+    padding: 1.65rem clamp(1.1rem, 3vw, 2rem);
+    gap: clamp(0.75rem, 3vw, 1.5rem);
+    transition: padding var(--transition-base);
 }
 
-.logo {
+.site-header.is-condensed .navbar {
+    padding-block: 0.45rem;
+}
+
+.navbar-brand {
     display: inline-flex;
     align-items: center;
-    width: clamp(140px, 18vw, 220px);
-    height: auto;
+    font-weight: 800;
+    font-size: clamp(1.05rem, 2.3vw, 1.45rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-color);
+    gap: 0.35rem;
+    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
+}
+
+.navbar-brand-accent {
+    color: var(--brand-primary);
 }
 
 .links-container {
     list-style: none;
     display: flex;
-    gap: clamp(0.75rem, 2vw, 1.75rem);
+    align-items: center;
+    align-items: center;
+    gap: clamp(0.6rem, 1.6vw, 1.2rem);
 }
 
 .links {
     font-weight: 600;
-    letter-spacing: 0.02em;
-    padding: 0.35rem 0.15rem;
+    letter-spacing: 0.04em;
+    font-size: clamp(0.82rem, 1.6vw, 0.92rem);
+    padding: 0.2rem 0.1rem;
     position: relative;
     color: var(--text-muted);
     transition: color var(--transition-base);
@@ -159,8 +178,9 @@ textarea:focus-visible {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.85rem 1.85rem;
+    padding: 0.75rem 1.6rem;
     font-weight: 700;
+    font-size: 0.95rem;
     letter-spacing: 0.02em;
     border-radius: 999px;
     border: 1px solid transparent;
@@ -214,18 +234,26 @@ textarea:focus-visible {
 .offer-list {
     list-style: none;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1.5rem;
+    grid-auto-rows: 1fr;
+}
+
+.offer-list li {
+    display: flex;
 }
 
 .offer-item {
     display: grid;
     gap: 0.75rem;
-    padding: 1.75rem;
+    padding: 1.6rem;
     border-radius: 0.75rem;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.04);
     transition: transform var(--transition-base), border-color var(--transition-base), background var(--transition-base);
+    height: 100%;
+    align-content: start;
+    width: 100%;
 }
 
 .offer-item i {

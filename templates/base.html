@@ -20,8 +20,8 @@
 <body class="{% block body_class %}{% endblock %}">
     <header class="site-header">
         <nav class="navbar" aria-label="Primary">
-            <a href="{% url 'pages:home' %}" class="logo" aria-label="Brews &amp; Chews home">
-                <img src="{% static 'img/logo.png' %}" class="logo" alt="Brews &amp; Chews logo">
+            <a href="{% url 'pages:home' %}" class="navbar-brand" aria-label="Brews &amp; Chews home">
+                Brews <span class="navbar-brand-accent">&amp; Chews</span>
             </a>
             {% with current=request.resolver_match.url_name %}
             <ul class="links-container">
@@ -36,9 +36,6 @@
                 </li>
                 <li class="link-items">
                     <a href="{% url 'accounts:signup' %}" class="links{% if current == 'signup' %} is-active{% endif %}" {% if current == 'signup' %}aria-current="page"{% endif %}>Sign Up</a>
-                </li>
-                <li class="link-items">
-                    <a href="{% url 'accounts:profile' %}" class="links{% if current == 'profile' %} is-active{% endif %}" {% if current == 'profile' %}aria-current="page"{% endif %}>Profile</a>
                 </li>
             </ul>
             {% endwith %}

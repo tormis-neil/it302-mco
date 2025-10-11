@@ -55,39 +55,8 @@
     </aside>
 
     <section class="menu-content" data-menu-content>
-        {% with featured_drink=drinks_categories|first featured_food=food_categories|first %}
-        {% if featured_drink or featured_food %}
-        <section class="menu-featured" aria-label="Highlighted selections">
-            {% if featured_drink %}
-            <article class="menu-featured__card" aria-labelledby="menu-featured-drinks">
-                <h2 id="menu-featured-drinks" class="menu-featured__title">{{ featured_drink.title }}</h2>
-                <ul class="menu-featured__list">
-                    {% for item in featured_drink.items|slice:':3' %}
-                    <li class="menu-featured__item">
-                        <span class="menu-featured__name">{{ item.name }}</span>
-                        <span class="menu-featured__desc">{{ item.description }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </article>
-            {% endif %}
-            {% if featured_food %}
-            <article class="menu-featured__card" aria-labelledby="menu-featured-food">
-                <h2 id="menu-featured-food" class="menu-featured__title">{{ featured_food.title }}</h2>
-                <ul class="menu-featured__list">
-                    {% for item in featured_food.items|slice:':3' %}
-                    <li class="menu-featured__item">
-                        <span class="menu-featured__name">{{ item.name }}</span>
-                        <span class="menu-featured__desc">{{ item.description }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </article>
-            {% endif %}
-        </section>
-        {% endif %}
-        {% endwith %}
-
+        <!-- FEATURED SECTION REMOVED -->
+        
         <div class="menu-panels" data-menu data-default-category="{{ default_category }}">
             {% for category in all_categories %}
             <section id="{{ category.slug }}"

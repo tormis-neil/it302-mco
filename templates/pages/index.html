@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Brews &amp; Chews — Specialty Coffee Reservations{% endblock %}
+
+{% block main_class %}page-main home-main{% endblock %}
+
+{% block content %}
+<section id="hero-section" class="hero">
+    <div class="hero-content">
+        <h1 class="hero-heading">Your Coffee, Your Way</h1>
+        <p class="hero-line">“Behind every successful person is a substantial amount of coffee.”</p>
+        <div class="hero-action-btn-container">
+            <a href="{% url 'accounts:signup' %}" class="btn" aria-label="Create an account to reserve">Get Started</a>
+            <a href="{% url 'accounts:login' %}" class="btn btn-secondary" aria-label="Sign in to manage reservations">Sign In</a>
+        </div>
+    </div>
+    <img src="{% static 'img/logo.png' %}" alt="Brews &amp; Chews emblem" class="hero-image">
+</section>
+
+<section id="what-we-offer" class="section">
+    <div class="container">
+        <h2 class="section-title">What We Offer</h2>
+        <p class="section-subtitle">Everything you need for the perfect coffee experience</p>
+        <ul class="offer-list" aria-label="Key features">
+            <li>
+                <a href="{% url 'accounts:signup' %}" class="offer-item">
+                    <i class="fa fa-chair" aria-hidden="true"></i>
+                    <h3>Table reservations</h3>
+                    <p>Book your spot ahead for a hassle-free visit.</p>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'pages:menu' %}" class="offer-item">
+                    <i class="fa fa-mug-hot" aria-hidden="true"></i>
+                    <h3>View cafe menu online</h3>
+                    <p>Browse drinks and bites anytime, anywhere.</p>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'accounts:signup' %}" class="offer-item">
+                    <i class="fa fa-credit-card" aria-hidden="true"></i>
+                    <h3>Online payments</h3>
+                    <p>Pay securely with your preferred method.</p>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'accounts:signup' %}" class="offer-item">
+                    <i class="fa fa-lock" aria-hidden="true"></i>
+                    <h3>Secure and easy to use</h3>
+                    <p>Your data stays safe while you enjoy coffee.</p>
+                </a>
+            </li>
+        </ul>
+    </div>
+</section>
+
+<section id="cta" class="section">
+    <div class="container cta-wrap">
+        <h2 class="cta-title">Sign up today to book your coffee!</h2>
+        <p class="cta-text">Join thousands of coffee lovers who trust Brews &amp; Chews for their daily caffeine fix.</p>
+        <a href="{% url 'accounts:signup' %}" class="btn">Get Started</a>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Brews &amp; Chews{% endblock %}</title>
+    {% load static %}
+
+    <!-- Global typography and iconography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+
+    <!-- Base stylesheet -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <header class="site-header">
+        <nav class="navbar" aria-label="Primary">
+            <a href="{% url 'pages:home' %}" class="logo" aria-label="Brews &amp; Chews home">
+                <img src="{% static 'img/logo.png' %}" class="logo" alt="Brews &amp; Chews logo">
+            </a>
+            {% with current=request.resolver_match.url_name %}
+            <ul class="links-container">
+                <li class="link-items">
+                    <a href="{% url 'pages:home' %}" class="links{% if current == 'home' %} is-active{% endif %}" {% if current == 'home' %}aria-current="page"{% endif %}>Home</a>
+                </li>
+                <li class="link-items">
+                    <a href="{% url 'pages:menu' %}" class="links{% if current == 'menu' %} is-active{% endif %}" {% if current == 'menu' %}aria-current="page"{% endif %}>Menu</a>
+                </li>
+                <li class="link-items">
+                    <a href="{% url 'accounts:login' %}" class="links{% if current == 'login' %} is-active{% endif %}" {% if current == 'login' %}aria-current="page"{% endif %}>Sign In</a>
+                </li>
+                <li class="link-items">
+                    <a href="{% url 'accounts:signup' %}" class="links{% if current == 'signup' %} is-active{% endif %}" {% if current == 'signup' %}aria-current="page"{% endif %}>Sign Up</a>
+                </li>
+                <li class="link-items">
+                    <a href="{% url 'accounts:profile' %}" class="links{% if current == 'profile' %} is-active{% endif %}" {% if current == 'profile' %}aria-current="page"{% endif %}>Profile</a>
+                </li>
+            </ul>
+            {% endwith %}
+        </nav>
+    </header>
+
+    <main class="{% block main_class %}page-main{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block footer %}
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-contact" aria-labelledby="footer-contact-title">
+                <h3 id="footer-contact-title">Contact</h3>
+                <ul>
+                    <li><i class="fa fa-envelope" aria-hidden="true"></i> <a class="links" href="mailto:Brew@Chew@gmail.com" aria-label="Email us">Brew&amp;Chew@gmail.com</a></li>
+                    <li><i class="fa fa-phone" aria-hidden="true"></i> <a class="links" href="tel:+639123456789" aria-label="Call us">+63 912 345 6789</a></li>
+                </ul>
+            </div>
+            <p>© 2025 Brews &amp; Chews. All rights reserved.</p>
+        </div>
+    </footer>
+    {% endblock %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

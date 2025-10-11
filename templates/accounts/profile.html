@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Brews &amp; Chews{% endblock %}
+
+{% block main_class %}auth-main profile-main{% endblock %}
+
+{% block content %}
+<section class="auth-card profile-card" aria-labelledby="profile-title">
+    <h1 id="profile-title" class="hero-heading auth-title">Profile</h1>
+    <p>This page will show member details once the backend is implemented.</p>
+    <a class="links" href="{% url 'pages:home' %}">Return to Home</a>
+</section>
+{% endblock %}

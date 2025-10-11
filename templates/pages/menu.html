@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Menu Preview - Brews &amp; Chews{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/menu.css' %}">{% endblock %}
+
+{% block main_class %}menu-main{% endblock %}
+
+{% block content %}
+<aside class="menu-sidebar" data-menu-sidebar>
+    <div class="menu-sidebar__group">
+        <h2 class="menu-sidebar__title">Drinks</h2>
+        <ul class="menu-sidebar__list" role="tablist" aria-label="Drink categories">
+            {% for category in drinks_categories %}
+            <li>
+                <button type="button"
+                        class="menu-sidebar__button"
+                        id="tab-{{ category.slug }}"
+                        data-category-trigger
+                        data-target="{{ category.slug }}"
+                        role="tab"
+                        aria-controls="{{ category.slug }}">
+                    {{ category.title }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="menu-sidebar__group">
+        <h2 class="menu-sidebar__title">Food</h2>
+        <ul class="menu-sidebar__list" role="tablist" aria-label="Food categories">
+            {% for category in food_categories %}
+            <li>
+                <button type="button"
+                        class="menu-sidebar__button"
+                        id="tab-{{ category.slug }}"
+                        data-category-trigger
+                        data-target="{{ category.slug }}"
+                        role="tab"
+                        aria-controls="{{ category.slug }}">
+                    {{ category.title }}
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</aside>
+
+<section class="menu-content" data-menu-content>
+    <header class="menu-intro">
+        <h1 class="menu-intro__title">Menu Preview</h1>
+        <p class="menu-intro__lead">Browse featured beverages and bites before reserving your table. Reserve actions direct you to sign in so you can complete the booking flow.</p>
+        <div class="menu-intro__actions">
+            <a href="{% url 'accounts:signup' %}" class="btn">Create an account</a>
+            <a href="{% url 'accounts:login' %}" class="btn btn-secondary">Reserve a drink</a>
+        </div>
+    </header>
+
+    <div class="menu-panels" data-menu data-default-category="{{ default_category }}">
+        {% for category in all_categories %}
+        <section id="{{ category.slug }}"
+                 class="menu-category"
+                 data-category-panel
+                 role="tabpanel"
+                 aria-labelledby="tab-{{ category.slug }}"
+                 hidden>
+            <header class="menu-category__header">
+                <h2 class="menu-category__title">{{ category.title }}</h2>
+                <p class="menu-category__blurb">{{ category.blurb }}</p>
+            </header>
+            <div class="menu-grid">
+                {% for item in category.items %}
+                <article class="menu-card">
+                    <img src="{% static item.image %}" alt="{{ item.name }}" class="menu-card__image">
+                    <div class="menu-card__body">
+                        <h3 class="menu-card__title">{{ item.name }}</h3>
+                        <p class="menu-card__description">{{ item.description }}</p>
+                        <a href="{% url 'accounts:login' %}" class="menu-card__cta" aria-label="Reserve {{ item.name }}">Reserve this item</a>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/menu.js' %}" defer></script>
+{% endblock %}

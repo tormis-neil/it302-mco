@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Brews &amp; Chews{% endblock %}
+
+{% block main_class %}auth-main{% endblock %}
+
+{% block content %}
+<section aria-labelledby="login-title" class="auth-card">
+    <h1 id="login-title" class="hero-heading auth-title">Sign In to Your Account</h1>
+
+    <div class="auth-alert" role="alert" aria-live="polite" data-auth-alert hidden>
+        Invalid username or password. Please try again.
+    </div>
+
+    <form action="#" method="post" class="auth-form" data-login-form>
+        <div class="auth-field">
+            <label for="login-identifier" class="auth-label">Username or Email</label>
+            <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input">
+        </div>
+
+        <div class="auth-field">
+            <label for="login-password" class="auth-label">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password" class="auth-input">
+        </div>
+
+        <label class="auth-checkbox">
+            <input type="checkbox" name="remember" value="1">
+            <span>Remember me for 2 weeks</span>
+        </label>
+
+        <button type="submit" class="btn" style="width: 100%;">Sign In</button>
+    </form>
+
+    <p class="auth-note">
+        Multiple failed attempts will temporarily lock your account for 1 hour to protect against brute-force attacks. Sessions are encrypted and expire automatically when inactive.
+    </p>
+
+    <p class="auth-alt">
+        <em>Don’t have an account?</em> <a href="{% url 'accounts:signup' %}" class="links">Sign Up</a>
+    </p>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/auth.js' %}" defer></script>
+{% endblock %}

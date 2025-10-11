@@ -1,66 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Brews &amp; Chews{% endblock %}</title>
-    {% load static %}
+{% extends "base.html" %}
 
-    <!-- Global typography and iconography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+{% block title %}Create Account - Brews & Chews{% endblock %}
 
-    <!-- Base stylesheet -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    {% block extra_css %}{% endblock %}
-</head>
-<body class="{% block body_class %}{% endblock %}">
-    <header class="site-header">
-        <nav class="navbar" aria-label="Primary">
-            <a href="{% url 'pages:home' %}" class="navbar-brand" aria-label="Brews &amp; Chews home">
-                Brews <span class="navbar-brand-accent">&amp; Chews</span>
-            </a>
-            {% with current=request.resolver_match.url_name %}
-            <ul class="links-container">
-                <li class="link-items">
-                    <a href="{% url 'pages:home' %}" class="links{% if current == 'home' %} is-active{% endif %}" {% if current == 'home' %}aria-current="page"{% endif %}>Home</a>
-                </li>
-                <li class="link-items">
-                    <a href="{% url 'pages:menu' %}" class="links{% if current == 'menu' %} is-active{% endif %}" {% if current == 'menu' %}aria-current="page"{% endif %}>Menu</a>
-                </li>
-                <li class="link-items">
-                    <a href="{% url 'accounts:login' %}" class="links{% if current == 'login' %} is-active{% endif %}" {% if current == 'login' %}aria-current="page"{% endif %}>Sign In</a>
-                </li>
-                <li class="link-items">
-                    <a href="{% url 'accounts:signup' %}" class="links{% if current == 'signup' %} is-active{% endif %}" {% if current == 'signup' %}aria-current="page"{% endif %}>Sign Up</a>
-                </li>
-            </ul>
-            {% endwith %}
-        </nav>
-    </header>
+{% block main_class %}auth-main{% endblock %}
 
-    <main class="{% block main_class %}page-main{% endblock %}">
-        {% block content %}{% endblock %}
-    </main>
+{% block content %}
+<section aria-labelledby="signup-title" class="auth-card">
+    <h1 id="signup-title" class="hero-heading auth-title">Create your Brews &amp; Chews account</h1>
 
-    {% block footer %}
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-contact" aria-labelledby="footer-contact-title">
-                <h3 id="footer-contact-title">Contact</h3>
-                <ul>
-                    <li><i class="fa fa-envelope" aria-hidden="true"></i> <a class="links" href="mailto:Brew@Chew@gmail.com" aria-label="Email us">Brew&amp;Chew@gmail.com</a></li>
-                    <li><i class="fa fa-phone" aria-hidden="true"></i> <a class="links" href="tel:+639123456789" aria-label="Call us">+63 912 345 6789</a></li>
+    <form action="#" method="post" class="auth-form" novalidate data-signup-form>
+        {% csrf_token %}
+        <div class="auth-field">
+            <label for="su-username" class="auth-label">Username</label>
+            <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Choose a username" class="auth-input">
+            <p class="auth-error" role="alert" data-field-error="username" hidden></p>
+        </div>
+
+        <div class="auth-field">
+            <label for="su-email" class="auth-label">Email</label>
+            <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input">
+            <p class="auth-error" role="alert" data-field-error="email" hidden></p>
+        </div>
+
+        <div class="auth-field">
+            <label for="su-password" class="auth-label">Password</label>
+            <input id="su-password" name="password" type="password" autocomplete="new-password" required placeholder="Create a password" class="auth-input" aria-describedby="password-help">
+            <div class="password-guidance" id="password-help">
+                <div class="password-strength" aria-live="polite">
+                    <div class="password-strength-meter" aria-hidden="true">
+                        <span class="password-strength-bar" data-strength-bar></span>
+                    </div>
+                    <p class="password-strength-label" data-strength-label>Strength: Too weak</p>
+                </div>
+                <ul class="password-requirements" aria-label="Password requirements">
+                    <li data-requirement="length" data-valid="false">At least 8 characters long</li>
+                    <li data-requirement="uppercase" data-valid="false">Contains an uppercase letter</li>
+                    <li data-requirement="number" data-valid="false">Includes a number</li>
+                    <li data-requirement="special" data-valid="false">Includes a special character (!@#$%^&amp;*)</li>
                 </ul>
             </div>
-            <p>© 2025 Brews &amp; Chews. All rights reserved.</p>
+            <p class="auth-error" role="alert" data-field-error="password" hidden></p>
         </div>
-    </footer>
-    {% endblock %}
 
-    {% block extra_js %}{% endblock %}
-</body>
-</html>
+        <div class="auth-field">
+            <label for="su-confirm" class="auth-label">Confirm Password</label>
+            <input id="su-confirm" name="confirm_password" type="password" autocomplete="new-password" required placeholder="Re-enter your password" class="auth-input">
+            <p class="auth-error" role="alert" data-field-error="confirm" hidden></p>
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%;">Create Account</button>
+    </form>
+
+    <p class="auth-alt">
+        <em>Already have an account?</em> <a href="{% url 'accounts:login' %}" class="links">Sign In</a>
+    </p>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/auth.js' %}" defer></script>
+{% endblock %}

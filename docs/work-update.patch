@@ -1,2634 +1,2628 @@
-diff --git a//dev/null b/docs/work-update.patch
-index 0000000000000000000000000000000000000000..9610cc712dcca586435819c1e3edce2ed215cb1b 100644
---- a//dev/null
-+++ b/docs/work-update.patch
-@@ -0,0 +1,2629 @@
-+From 40a6015d582036d6025a18472b222e6649985d02 Mon Sep 17 00:00:00 2001
-+From: Codex <codex@openai.com>
-+Date: Fri, 10 Oct 2025 13:12:33 +0000
-+Subject: [PATCH] Create base layout and dynamic menu preview
+From 40a6015d582036d6025a18472b222e6649985d02 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 10 Oct 2025 13:12:33 +0000
+Subject: [PATCH] Create base layout and dynamic menu preview
+
+## Summary
+- add a reusable base template with unified navigation and footer so landing, menu, and auth pages stay consistent
+- refactor the landing, menu, and authentication templates to extend the base and complete the menu preview with data-driven cards and interactive filtering
+- document the upcoming database schema and seed the menu preview from structured data to prepare for Django migrations
+
+## Testing
+- `python -m pip install -r requirements.txt` *(fails: proxy blocks package download)*
+- `python manage.py check` *(fails: Django not installed in execution environment)*
+---
+ .env.example                         |   5 +
+ README.md                            |  80 +++++++++-
+ accounts/__init__.py                 |   0
+ accounts/admin.py                    |   1 +
+ accounts/apps.py                     |   6 +
+ accounts/forms.py                    |   1 +
+ accounts/migrations/__init__.py      |   0
+ accounts/models.py                   |   1 +
+ accounts/tests.py                    |   1 +
+ accounts/urls.py                     |  12 ++
+ accounts/views.py                    |  21 +++
+ brewschews/__init__.py               |   0
+ brewschews/asgi.py                   |  10 ++
+ brewschews/settings.py               | 100 +++++++++++++
+ brewschews/urls.py                   |   9 ++
+ brewschews/wsgi.py                   |  10 ++
+ docs/database-plan.md                |  36 +++++
+ manage.py                            |  22 +++
+ pages/__init__.py                    |   0
+ pages/admin.py                       |   1 +
+ pages/apps.py                        |   6 +
+ pages/menu_data.py                   | 198 ++++++++++++++++++++++++
+ pages/migrations/__init__.py         |   0
+ pages/models.py                      |   1 +
+ pages/tests.py                       |   1 +
+ pages/urls.py                        |  11 ++
+ pages/views.py                       |  35 +++++
+ requirements.txt                     |   4 +
+ static/css/menu.css                  | 214 ++++++++++++++++++++++++++
+ {style => static/css}/style.css      | 214 ++++++++++++++++++++++++--
+ {assets => static/img}/Product 1.jpg | Bin
+ {assets => static/img}/Product 2.jpg | Bin
+ {assets => static/img}/bg.jpg        | Bin
+ {assets => static/img}/logo.png      | Bin
+ static/js/auth.js                    | 215 +++++++++++++++++++++++++++
+ static/js/menu.js                    |  50 +++++++
+ style/menu.css                       | 162 --------------------
+ templates/Login.html                 |  62 --------
+ templates/Menu.html                  | 194 ------------------------
+ templates/SignUp.html                |  68 ---------
+ templates/accounts/login.html        |  46 ++++++
+ templates/accounts/profile.html      |  13 ++
+ templates/accounts/signup.html       |  62 ++++++++
+ templates/base.html                  |  69 +++++++++
+ templates/index.html                 | 118 ---------------
+ templates/pages/index.html           |  64 ++++++++
+ templates/pages/menu.html            |  91 ++++++++++++
+ 47 files changed, 1596 insertions(+), 618 deletions(-)
+ create mode 100644 .env.example
+ create mode 100644 accounts/__init__.py
+ create mode 100644 accounts/admin.py
+ create mode 100644 accounts/apps.py
+ create mode 100644 accounts/forms.py
+ create mode 100644 accounts/migrations/__init__.py
+ create mode 100644 accounts/models.py
+ create mode 100644 accounts/tests.py
+ create mode 100644 accounts/urls.py
+ create mode 100644 accounts/views.py
+ create mode 100644 brewschews/__init__.py
+ create mode 100644 brewschews/asgi.py
+ create mode 100644 brewschews/settings.py
+ create mode 100644 brewschews/urls.py
+ create mode 100644 brewschews/wsgi.py
+ create mode 100644 docs/database-plan.md
+ create mode 100644 manage.py
+ create mode 100644 pages/__init__.py
+ create mode 100644 pages/admin.py
+ create mode 100644 pages/apps.py
+ create mode 100644 pages/menu_data.py
+ create mode 100644 pages/migrations/__init__.py
+ create mode 100644 pages/models.py
+ create mode 100644 pages/tests.py
+ create mode 100644 pages/urls.py
+ create mode 100644 pages/views.py
+ create mode 100644 requirements.txt
+ create mode 100644 static/css/menu.css
+ rename {style => static/css}/style.css (63%)
+ rename {assets => static/img}/Product 1.jpg (100%)
+ rename {assets => static/img}/Product 2.jpg (100%)
+ rename {assets => static/img}/bg.jpg (100%)
+ rename {assets => static/img}/logo.png (100%)
+ create mode 100644 static/js/auth.js
+ create mode 100644 static/js/menu.js
+ delete mode 100644 style/menu.css
+ delete mode 100644 templates/Login.html
+ delete mode 100644 templates/Menu.html
+ delete mode 100644 templates/SignUp.html
+ create mode 100644 templates/accounts/login.html
+ create mode 100644 templates/accounts/profile.html
+ create mode 100644 templates/accounts/signup.html
+ create mode 100644 templates/base.html
+ delete mode 100644 templates/index.html
+ create mode 100644 templates/pages/index.html
+ create mode 100644 templates/pages/menu.html
+
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..e031702
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,5 @@
++# Django configuration
++DJANGO_SECRET_KEY=changeme
++DJANGO_DEBUG=1
++DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
++DJANGO_DB_NAME=db.sqlite3
+diff --git a/README.md b/README.md
+index 70edbd0..6e8ded0 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,80 @@
+-# online-cafe-ordering-system
++# Brews & Chews – Online Cafe Ordering System
 +
-+## Summary
-+- add a reusable base template with unified navigation and footer so landing, menu, and auth pages stay consistent
-+- refactor the landing, menu, and authentication templates to extend the base and complete the menu preview with data-driven cards and interactive filtering
-+- document the upcoming database schema and seed the menu preview from structured data to prepare for Django migrations
++This repository contains the in-progress implementation of the Brews & Chews web application. The current iteration introduces a Django project structure to support upcoming authentication and profile features while keeping the marketing and menu preview pages available for stakeholders.
 +
-+## Testing
-+- `python -m pip install -r requirements.txt` *(fails: proxy blocks package download)*
-+- `python manage.py check` *(fails: Django not installed in execution environment)*
-+---
-+ .env.example                         |   5 +
-+ README.md                            |  80 +++++++++-
-+ accounts/__init__.py                 |   0
-+ accounts/admin.py                    |   1 +
-+ accounts/apps.py                     |   6 +
-+ accounts/forms.py                    |   1 +
-+ accounts/migrations/__init__.py      |   0
-+ accounts/models.py                   |   1 +
-+ accounts/tests.py                    |   1 +
-+ accounts/urls.py                     |  12 ++
-+ accounts/views.py                    |  21 +++
-+ brewschews/__init__.py               |   0
-+ brewschews/asgi.py                   |  10 ++
-+ brewschews/settings.py               | 100 +++++++++++++
-+ brewschews/urls.py                   |   9 ++
-+ brewschews/wsgi.py                   |  10 ++
-+ docs/database-plan.md                |  36 +++++
-+ manage.py                            |  22 +++
-+ pages/__init__.py                    |   0
-+ pages/admin.py                       |   1 +
-+ pages/apps.py                        |   6 +
-+ pages/menu_data.py                   | 198 ++++++++++++++++++++++++
-+ pages/migrations/__init__.py         |   0
-+ pages/models.py                      |   1 +
-+ pages/tests.py                       |   1 +
-+ pages/urls.py                        |  11 ++
-+ pages/views.py                       |  35 +++++
-+ requirements.txt                     |   4 +
-+ static/css/menu.css                  | 214 ++++++++++++++++++++++++++
-+ {style => static/css}/style.css      | 214 ++++++++++++++++++++++++--
-+ {assets => static/img}/Product 1.jpg | Bin
-+ {assets => static/img}/Product 2.jpg | Bin
-+ {assets => static/img}/bg.jpg        | Bin
-+ {assets => static/img}/logo.png      | Bin
-+ static/js/auth.js                    | 215 +++++++++++++++++++++++++++
-+ static/js/menu.js                    |  50 +++++++
-+ style/menu.css                       | 162 --------------------
-+ templates/Login.html                 |  62 --------
-+ templates/Menu.html                  | 194 ------------------------
-+ templates/SignUp.html                |  68 ---------
-+ templates/accounts/login.html        |  46 ++++++
-+ templates/accounts/profile.html      |  13 ++
-+ templates/accounts/signup.html       |  62 ++++++++
-+ templates/base.html                  |  69 +++++++++
-+ templates/index.html                 | 118 ---------------
-+ templates/pages/index.html           |  64 ++++++++
-+ templates/pages/menu.html            |  91 ++++++++++++
-+ 47 files changed, 1596 insertions(+), 618 deletions(-)
-+ create mode 100644 .env.example
-+ create mode 100644 accounts/__init__.py
-+ create mode 100644 accounts/admin.py
-+ create mode 100644 accounts/apps.py
-+ create mode 100644 accounts/forms.py
-+ create mode 100644 accounts/migrations/__init__.py
-+ create mode 100644 accounts/models.py
-+ create mode 100644 accounts/tests.py
-+ create mode 100644 accounts/urls.py
-+ create mode 100644 accounts/views.py
-+ create mode 100644 brewschews/__init__.py
-+ create mode 100644 brewschews/asgi.py
-+ create mode 100644 brewschews/settings.py
-+ create mode 100644 brewschews/urls.py
-+ create mode 100644 brewschews/wsgi.py
-+ create mode 100644 docs/database-plan.md
-+ create mode 100644 manage.py
-+ create mode 100644 pages/__init__.py
-+ create mode 100644 pages/admin.py
-+ create mode 100644 pages/apps.py
-+ create mode 100644 pages/menu_data.py
-+ create mode 100644 pages/migrations/__init__.py
-+ create mode 100644 pages/models.py
-+ create mode 100644 pages/tests.py
-+ create mode 100644 pages/urls.py
-+ create mode 100644 pages/views.py
-+ create mode 100644 requirements.txt
-+ create mode 100644 static/css/menu.css
-+ rename {style => static/css}/style.css (63%)
-+ rename {assets => static/img}/Product 1.jpg (100%)
-+ rename {assets => static/img}/Product 2.jpg (100%)
-+ rename {assets => static/img}/bg.jpg (100%)
-+ rename {assets => static/img}/logo.png (100%)
-+ create mode 100644 static/js/auth.js
-+ create mode 100644 static/js/menu.js
-+ delete mode 100644 style/menu.css
-+ delete mode 100644 templates/Login.html
-+ delete mode 100644 templates/Menu.html
-+ delete mode 100644 templates/SignUp.html
-+ create mode 100644 templates/accounts/login.html
-+ create mode 100644 templates/accounts/profile.html
-+ create mode 100644 templates/accounts/signup.html
-+ create mode 100644 templates/base.html
-+ delete mode 100644 templates/index.html
-+ create mode 100644 templates/pages/index.html
-+ create mode 100644 templates/pages/menu.html
++## Project layout
 +
-+diff --git a/.env.example b/.env.example
-+new file mode 100644
-+index 0000000..e031702
-+--- /dev/null
-++++ b/.env.example
-+@@ -0,0 +1,5 @@
-++# Django configuration
-++DJANGO_SECRET_KEY=changeme
-++DJANGO_DEBUG=1
-++DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-++DJANGO_DB_NAME=db.sqlite3
-+diff --git a/README.md b/README.md
-+index 70edbd0..6e8ded0 100644
-+--- a/README.md
-++++ b/README.md
-+@@ -1,2 +1,80 @@
-+-# online-cafe-ordering-system
-++# Brews & Chews – Online Cafe Ordering System
-++
-++This repository contains the in-progress implementation of the Brews & Chews web application. The current iteration introduces a Django project structure to support upcoming authentication and profile features while keeping the marketing and menu preview pages available for stakeholders.
-++
-++## Project layout
-++
-++```
-++it302-mco/
-++├── brewschews/           # Django project configuration
-++├── accounts/             # Authentication app (UI-only views for now)
-++├── pages/                # Public marketing and menu views
-++├── templates/            # HTML templates grouped by app
-++├── static/               # Consolidated CSS and image assets
-++├── manage.py             # Django management utility
-++├── requirements.txt      # Python dependencies
-++└── .env.example          # Sample environment configuration
-++```
-++
-++## Getting started
-++
-++1. **Create a virtual environment** (recommended):
-++
-++   ```bash
-++   python -m venv .venv
-++   source .venv/bin/activate  # Linux/macOS
-++   .venv\\Scripts\\activate   # Windows
-++   ```
-++
-++2. **Install dependencies:**
-++
-++   ```bash
-++   pip install -r requirements.txt
-++   ```
-++
-++3. **Configure environment variables:**
-++
-++   - Copy `.env.example` to `.env` and adjust the values as needed (secret key, debug flag, allowed hosts, database name).
-++
-++4. **Run migrations and start the development server:**
-++
-++   ```bash
-++   python manage.py migrate
-++   python manage.py runserver
-++   ```
-++
-++5. **Access the site:**
-++
-++   Visit `http://127.0.0.1:8000/` for the landing page and `http://127.0.0.1:8000/menu/` for the menu preview.
-++
-++## Syncing these updates with your local clone
-++
-++If you still see the previous static-only structure in VS Code or in your GitHub branch, make sure you are looking at the
-++latest commit from the `work` branch (the branch where this reorganisation lives) or merge the forthcoming pull request into
-++your main branch. A quick checklist:
-++
-++1. Fetch the latest branches from GitHub:
-++
-++   ```bash
-++   git fetch origin
-++   ```
-++
-++2. Check out the branch that contains these updates (replace `work` if you publish the branch under a different name):
-++
-++   ```bash
-++   git checkout work
-++   git pull origin work
-++   ```
-++
-++3. Open the project in VS Code. You should now see the Django folders (`brewschews/`, `accounts/`, `pages/`, consolidated
-++   `templates/`, etc.). If you prefer to stay on another branch, merge or cherry-pick the commit `9a1979c` into that branch.
-++
-++4. Only resort to manual copy/paste if you cannot fetch the branch for some reason. Keeping the changes tracked in Git will
-++   make future updates and code reviews significantly easier.
-++
-++## Next steps
-++
-++- Implement full authentication (Argon2 password hashing, encrypted email storage, rate limiting).
-++- Build the dynamic profile page and connect menu data to the database.
-++- Add automated tests to cover the authentication flows and key UX components.
-+ 
-+diff --git a/accounts/__init__.py b/accounts/__init__.py
-+new file mode 100644
-+index 0000000..e69de29
-+diff --git a/accounts/admin.py b/accounts/admin.py
-+new file mode 100644
-+index 0000000..03c1986
-+--- /dev/null
-++++ b/accounts/admin.py
-+@@ -0,0 +1 @@
-++"""Admin customisations for the accounts app (pending implementation)."""
-+diff --git a/accounts/apps.py b/accounts/apps.py
-+new file mode 100644
-+index 0000000..0cb51e6
-+--- /dev/null
-++++ b/accounts/apps.py
-+@@ -0,0 +1,6 @@
-++from django.apps import AppConfig
-++
-++
-++class AccountsConfig(AppConfig):
-++    default_auto_field = "django.db.models.BigAutoField"
-++    name = "accounts"
-+diff --git a/accounts/forms.py b/accounts/forms.py
-+new file mode 100644
-+index 0000000..48c4135
-+--- /dev/null
-++++ b/accounts/forms.py
-+@@ -0,0 +1 @@
-++"""Custom authentication forms will live here once backend work begins."""
-+diff --git a/accounts/migrations/__init__.py b/accounts/migrations/__init__.py
-+new file mode 100644
-+index 0000000..e69de29
-+diff --git a/accounts/models.py b/accounts/models.py
-+new file mode 100644
-+index 0000000..c00e28c
-+--- /dev/null
-++++ b/accounts/models.py
-+@@ -0,0 +1 @@
-++"""Database models for the accounts app will be defined in follow-up work."""
-+diff --git a/accounts/tests.py b/accounts/tests.py
-+new file mode 100644
-+index 0000000..68a9b5f
-+--- /dev/null
-++++ b/accounts/tests.py
-+@@ -0,0 +1 @@
-++"""Placeholder for accounts app tests."""
-+diff --git a/accounts/urls.py b/accounts/urls.py
-+new file mode 100644
-+index 0000000..19e387c
-+--- /dev/null
-++++ b/accounts/urls.py
-+@@ -0,0 +1,12 @@
-++"""URL patterns for the accounts app."""
-++from django.urls import path
-++
-++from . import views
-++
-++app_name = "accounts"
-++
-++urlpatterns = [
-++    path("login/", views.login_view, name="login"),
-++    path("signup/", views.signup_view, name="signup"),
-++    path("profile/", views.profile_view, name="profile"),
-++]
-+diff --git a/accounts/views.py b/accounts/views.py
-+new file mode 100644
-+index 0000000..0ac4e6a
-+--- /dev/null
-++++ b/accounts/views.py
-+@@ -0,0 +1,21 @@
-++"""Views for the accounts app."""
-++from django.shortcuts import render
-++from django.views.decorators.http import require_GET
-++
-++
-++@require_GET
-++def login_view(request):
-++    """Render the sign-in page (UI only for now)."""
-++    return render(request, "accounts/login.html")
-++
-++
-++@require_GET
-++def signup_view(request):
-++    """Render the sign-up page (UI only for now)."""
-++    return render(request, "accounts/signup.html")
-++
-++
-++@require_GET
-++def profile_view(request):
-++    """Render the placeholder profile page until functionality is implemented."""
-++    return render(request, "accounts/profile.html")
-+diff --git a/brewschews/__init__.py b/brewschews/__init__.py
-+new file mode 100644
-+index 0000000..e69de29
-+diff --git a/brewschews/asgi.py b/brewschews/asgi.py
-+new file mode 100644
-+index 0000000..8dae554
-+--- /dev/null
-++++ b/brewschews/asgi.py
-+@@ -0,0 +1,10 @@
-++"""ASGI config for Brews & Chews."""
-++from __future__ import annotations
-++
-++import os
-++
-++from django.core.asgi import get_asgi_application
-++
-++os.environ.setdefault("DJANGO_SETTINGS_MODULE", "brewschews.settings")
-++
-++application = get_asgi_application()
-+diff --git a/brewschews/settings.py b/brewschews/settings.py
-+new file mode 100644
-+index 0000000..60d3004
-+--- /dev/null
-++++ b/brewschews/settings.py
-+@@ -0,0 +1,100 @@
-++"""Django settings for the Brews & Chews project."""
-++from __future__ import annotations
-++
-++import os
-++from pathlib import Path
-++
-++try:
-++    from dotenv import load_dotenv
-++except ModuleNotFoundError:  # pragma: no cover - optional dependency for local dev
-++    def load_dotenv(*_args, **_kwargs):  # type: ignore[override]
-++        """Fallback load_dotenv if python-dotenv is unavailable."""
-++        return False
-++
-++BASE_DIR = Path(__file__).resolve().parent.parent
-++
-++load_dotenv(BASE_DIR / ".env")
-++
-++SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-change-me")
-++DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
-++ALLOWED_HOSTS = [host.strip() for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
-++
-++INSTALLED_APPS = [
-++    "django.contrib.admin",
-++    "django.contrib.auth",
-++    "django.contrib.contenttypes",
-++    "django.contrib.sessions",
-++    "django.contrib.messages",
-++    "django.contrib.staticfiles",
-++    "accounts",
-++    "pages",
-++]
-++
-++MIDDLEWARE = [
-++    "django.middleware.security.SecurityMiddleware",
-++    "django.contrib.sessions.middleware.SessionMiddleware",
-++    "django.middleware.common.CommonMiddleware",
-++    "django.middleware.csrf.CsrfViewMiddleware",
-++    "django.contrib.auth.middleware.AuthenticationMiddleware",
-++    "django.contrib.messages.middleware.MessageMiddleware",
-++    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-++]
-++
-++ROOT_URLCONF = "brewschews.urls"
-++
-++TEMPLATES = [
-++    {
-++        "BACKEND": "django.template.backends.django.DjangoTemplates",
-++        "DIRS": [BASE_DIR / "templates"],
-++        "APP_DIRS": True,
-++        "OPTIONS": {
-++            "context_processors": [
-++                "django.template.context_processors.debug",
-++                "django.template.context_processors.request",
-++                "django.contrib.auth.context_processors.auth",
-++                "django.contrib.messages.context_processors.messages",
-++            ],
-++        },
-++    }
-++]
-++
-++WSGI_APPLICATION = "brewschews.wsgi.application"
-++ASGI_APPLICATION = "brewschews.asgi.application"
-++
-++DATABASES = {
-++    "default": {
-++        "ENGINE": "django.db.backends.sqlite3",
-++        "NAME": BASE_DIR / os.environ.get("DJANGO_DB_NAME", "db.sqlite3"),
-++    }
-++}
-++
-++AUTH_PASSWORD_VALIDATORS = [
-++    {
-++        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-++    },
-++    {
-++        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-++        "OPTIONS": {"min_length": 12},
-++    },
-++    {
-++        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-++    },
-++    {
-++        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-++    },
-++]
-++
-++LANGUAGE_CODE = "en-us"
-++TIME_ZONE = "UTC"
-++USE_I18N = True
-++USE_TZ = True
-++
-++STATIC_URL = "/static/"
-++STATICFILES_DIRS = [BASE_DIR / "static"]
-++STATIC_ROOT = BASE_DIR / "staticfiles"
-++
-++DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-++
-++LOGIN_URL = "accounts:login"
-++LOGIN_REDIRECT_URL = "accounts:profile"
-++LOGOUT_REDIRECT_URL = "pages:home"
-+diff --git a/brewschews/urls.py b/brewschews/urls.py
-+new file mode 100644
-+index 0000000..8dbdde6
-+--- /dev/null
-++++ b/brewschews/urls.py
-+@@ -0,0 +1,9 @@
-++"""Root URL configuration for the Brews & Chews project."""
-++from django.contrib import admin
-++from django.urls import include, path
-++
-++urlpatterns = [
-++    path("admin/", admin.site.urls),
-++    path("accounts/", include("accounts.urls", namespace="accounts")),
-++    path("", include("pages.urls", namespace="pages")),
-++]
-+diff --git a/brewschews/wsgi.py b/brewschews/wsgi.py
-+new file mode 100644
-+index 0000000..346ad17
-+--- /dev/null
-++++ b/brewschews/wsgi.py
-+@@ -0,0 +1,10 @@
-++"""WSGI config for Brews & Chews."""
-++from __future__ import annotations
-++
-++import os
-++
-++from django.core.wsgi import get_wsgi_application
-++
-++os.environ.setdefault("DJANGO_SETTINGS_MODULE", "brewschews.settings")
-++
-++application = get_wsgi_application()
-+diff --git a/docs/database-plan.md b/docs/database-plan.md
-+new file mode 100644
-+index 0000000..bc527cd
-+--- /dev/null
-++++ b/docs/database-plan.md
-+@@ -0,0 +1,36 @@
-++# Database Planning Overview
-++
-++This document summarizes the relational structure we will implement in Django once we move from the static prototype to the fully functional reservation flow described in the PRD.
-++
-++## Core Entities
-++
-++| Model | Purpose | Key Fields |
-++| --- | --- | --- |
-++| `accounts.User` | Custom user model extending `AbstractUser` so we can enforce PRD security requirements. | `username`, `email` (AES-256 encrypted), `password` (Argon2 hash), `is_email_verified`, `failed_attempts`, `locked_until`, timestamps |
-++| `accounts.LoginAttempt` | Tracks authentication attempts for rate limiting and audit logs. | `user` FK (nullable for unknown users), `ip_address`, `user_agent`, `is_successful`, `created_at` |
-++| `accounts.Profile` | Stores customer-facing profile details surfaced in the PRD. | `user` OneToOne FK, `display_name`, `phone_number`, `favorite_drink`, `avatar` |
-++| `menu.Category` | Normalized grouping for menu items (drinks vs food). | `name`, `slug`, `type` (`Enum`: `drink`, `food`), `description`, `is_featured`, ordering fields |
-++| `menu.MenuItem` | Individual drink/food entries. | `category` FK, `name`, `slug`, `description`, `base_price`, `image`, `is_available`, `display_order` |
-++| `reservations.Reservation` | Represents the table/ drink reservation request from the PRD. | `user` FK, `menu_item` FK (nullable for table-only reservations), `party_size`, `reservation_at`, `special_request`, status fields |
-++| `reservations.Payment` | Stores payment confirmation metadata once the online payment flow is enabled. | `reservation` OneToOne FK, `provider_reference`, `amount`, `currency`, `status`, timestamps |
-++
-++## Security Considerations
-++
-++* **Password hashing**: Configure `PASSWORD_HASHERS` to prefer `argon2.PasswordHasher` with a fallback to Django’s defaults. This satisfies the PRD requirement for Argon2.
-++* **Email encryption**: Use `django-fernet-fields` or a lightweight wrapper around `cryptography.fernet` to transparently encrypt/decrypt the `email` field at rest. The sample static menu data shows how we will ultimately hydrate menu items before a database is ready.
-++* **Login throttling**: Store failed attempts in `LoginAttempt` and update `User.locked_until` after five failed tries within 15 minutes. The login form already surfaces the user-facing messaging for this behaviour.
-++* **PII separation**: Keep reservation/payment tables in a dedicated app (`reservations`) so we can apply stricter access controls and auditing middleware.
-++
-++## Initial Migration Plan
-++
-++1. **Custom user**: Create the `accounts` app migration that swaps in our custom user (`AUTH_USER_MODEL`). Include fields for lockouts and audit timestamps from the start to avoid disruptive schema changes later.
-++2. **Profile + LoginAttempt**: Add supporting tables and signals (e.g., create a `Profile` row on user creation).
-++3. **Menu scaffolding**: Port the structures from `pages/menu_data.py` into actual `Category` and `MenuItem` models. Seed fixtures with the existing sample content so the UI remains populated.
-++4. **Reservations**: Introduce reservation/payment tables with status enums (`pending`, `confirmed`, `cancelled`) and indexes on `reservation_at` + `user` for quick lookups.
-++5. **Data privacy**: Configure database-level constraints (unique email, unique reservation per timeslot + table) and add custom managers for filtering available menu items.
-++
-++## Next Steps
-++
-++* Finalize field choices (e.g., decimal precision for pricing, phone validation) and document them in model docstrings.
-++* Determine whether we need a separate table for `Table` inventory or if reservations are per menu item only; the PRD hints at table reservations, so we likely introduce a `Table` model with capacity + availability windows.
-++* Prepare ERD diagrams once migrations are drafted to keep documentation in sync with the PRD and onboarding material in the README.
-+diff --git a/manage.py b/manage.py
-+new file mode 100644
-+index 0000000..ea6e345
-+--- /dev/null
-++++ b/manage.py
-+@@ -0,0 +1,22 @@
-++#!/usr/bin/env python3
-++"""Django's command-line utility for administrative tasks."""
-++import os
-++import sys
-++
-++
-++def main() -> None:
-++    """Run administrative tasks."""
-++    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "brewschews.settings")
-++    try:
-++        from django.core.management import execute_from_command_line
-++    except ImportError as exc:
-++        raise ImportError(
-++            "Couldn't import Django. Are you sure it's installed and "
-++            "available on your PYTHONPATH environment variable? Did you "
-++            "forget to activate a virtual environment?"
-++        ) from exc
-++    execute_from_command_line(sys.argv)
-++
-++
-++if __name__ == "__main__":
-++    main()
-+diff --git a/pages/__init__.py b/pages/__init__.py
-+new file mode 100644
-+index 0000000..e69de29
-+diff --git a/pages/admin.py b/pages/admin.py
-+new file mode 100644
-+index 0000000..d167bdf
-+--- /dev/null
-++++ b/pages/admin.py
-+@@ -0,0 +1 @@
-++"""Admin configuration for static pages (none required yet)."""
-+diff --git a/pages/apps.py b/pages/apps.py
-+new file mode 100644
-+index 0000000..4b6237c
-+--- /dev/null
-++++ b/pages/apps.py
-+@@ -0,0 +1,6 @@
-++from django.apps import AppConfig
-++
-++
-++class PagesConfig(AppConfig):
-++    default_auto_field = "django.db.models.BigAutoField"
-++    name = "pages"
-+diff --git a/pages/menu_data.py b/pages/menu_data.py
-+new file mode 100644
-+index 0000000..bb6cad9
-+--- /dev/null
-++++ b/pages/menu_data.py
-+@@ -0,0 +1,198 @@
-++"""Static menu data used to render the preview page before the database is ready."""
-++
-++from dataclasses import dataclass
-++from typing import List, Sequence
-++
-++
-++@dataclass(frozen=True)
-++class MenuItem:
-++    """Simple representation of a menu item for the preview page."""
-++
-++    name: str
-++    image: str
-++    description: str
-++
-++
-++@dataclass(frozen=True)
-++class MenuCategory:
-++    """Grouping of menu items for display in the preview UI."""
-++
-++    slug: str
-++    title: str
-++    kind: str  # either "drinks" or "food"
-++    blurb: str
-++    items: Sequence[MenuItem]
-++
-++
-++MENU_CATEGORIES: List[MenuCategory] = [
-++    MenuCategory(
-++        slug="featured-drinks",
-++        title="Featured Drinks",
-++        kind="drinks",
-++        blurb="Seasonal favorites curated by our baristas.",
-++        items=(
-++            MenuItem(
-++                name="Maple Cocoa Nibs Oatmilk Shaken Espresso",
-++                image="img/Product 1.jpg",
-++                description="A cozy blend of maple, cocoa nibs, and velvety oatmilk shaken over ice.",
-++            ),
-++            MenuItem(
-++                name="Frappuccino",
-++                image="img/Product 2.jpg",
-++                description="Our signature blended beverage with whipped cream and caramel drizzle.",
-++            ),
-++        ),
-++    ),
-++    MenuCategory(
-++        slug="brewed-coffee",
-++        title="Brewed Coffee",
-++        kind="drinks",
-++        blurb="Slow brewed classics to jump-start your day.",
-++        items=(
-++            MenuItem(
-++                name="Drip Coffee",
-++                image="img/bg.jpg",
-++                description="Freshly brewed medium roast with a smooth finish.",
-++            ),
-++            MenuItem(
-++                name="Cold Brew",
-++                image="img/bg.jpg",
-++                description="Steeped for 20 hours for a naturally sweet, less acidic cup.",
-++            ),
-++        ),
-++    ),
-++    MenuCategory(
-++        slug="espresso",
-++        title="Espresso",
-++        kind="drinks",
-++        blurb="Pulled-to-order shots and milk-based espresso favorites.",
-++        items=(
-++            MenuItem(
-++                name="Espresso Shot",
-++                image="img/bg.jpg",
-++                description="A concentrated shot with rich crema and balanced sweetness.",
-++            ),
-++            MenuItem(
-++                name="Cappuccino",
-++                image="img/bg.jpg",
-++                description="Equal parts espresso, steamed milk, and foam dusted with cocoa.",
-++            ),
-++        ),
-++    ),
-++    MenuCategory(
-++        slug="blended-beverage",
-++        title="Blended Beverages",
-++        kind="drinks",
-++        blurb="Creamy and refreshing treats blended to perfection.",
-++        items=(
-++            MenuItem(
-++                name="Chai Tea Cream Frappuccino",
-++                image="img/bg.jpg",
-++                description="Spiced chai blended with milk and ice, finished with whipped cream.",
-++            ),
-++            MenuItem(
-++                name="Caramel Cream Frappuccino",
-++                image="img/bg.jpg",
-++                description="Buttery caramel blended with milk for a dessert-like sip.",
-++            ),
-++        ),
-++    ),
-++    MenuCategory(
-++        slug="teavana-tea",
-++        title="Teavana Tea",
-++        kind="drinks",
-++        blurb="Loose-leaf teas served hot or iced for any mood.",
-++        items=(
-++            MenuItem(
-++                name="Full Leaf Brewed Tea",
-++                image="img/bg.jpg",
-++                description="Choose from jasmine, earl grey, or chamomile, brewed to order.",
-++            ),
-++            MenuItem(
-++                name="Iced Black Tea Latte",
-++                image="img/bg.jpg",
-++                description="Bold black tea shaken with milk and a hint of sweetness over ice.",
-++            ),
-++        ),
-++    ),
-++    MenuCategory(
-++        slug="refreshers",
-++        title="Refreshers",
-++        kind="drinks",
-++        blurb="Light, fruit-forward refreshments with a caffeine boost.",
-++        items=(
-++            MenuItem(
-++                name="Lemonade",
-++                image="img/bg.jpg",
-++                description="House-made lemonade with freshly squeezed citrus.",
-++            ),
-++            MenuItem(
-++                name="Iced Cucumber",
-++                image="img/bg.jpg",
-++                description="Cucumber, mint, and lime shaken for a crisp cooler.",
-++            ),
-++        ),
-++    ),
-++    MenuCategory(
-++        slug="featured-food",
-++        title="Featured Food",
-++        kind="food",
-++        blurb="Limited-time pairings hand-picked for the season.",
-++        items=(
-++            MenuItem(
-++                name="Glazed Chicken",
-++                image="img/bg.jpg",
-++                description="Grilled chicken glazed with honey garlic and served warm.",
-++            ),
-++            MenuItem(
-++                name="Buttered Chicken",
-++                image="img/bg.jpg",
-++                description="Comforting butter chicken served with artisanal bread.",
-++            ),
-++        ),
-++    ),
-++    MenuCategory(
-++        slug="bakery",
-++        title="Bakery",
-++        kind="food",
-++        blurb="Freshly baked goods made in-house every morning.",
-++        items=(
-++            MenuItem(
-++                name="Chocolate Dipped Doughnut",
-++                image="img/bg.jpg",
-++                description="Yeast doughnut dipped in rich dark chocolate glaze.",
-++            ),
-++            MenuItem(
-++                name="Bacon Belgian Waffle",
-++                image="img/bg.jpg",
-++                description="Crisp waffle folded with smoky bacon bits and maple butter.",
-++            ),
-++        ),
-++    ),
-++    MenuCategory(
-++        slug="sandwiches",
-++        title="Sandwiches",
-++        kind="food",
-++        blurb="Savory sandwiches assembled with local ingredients.",
-++        items=(
-++            MenuItem(
-++                name="Cheesy Tuna Sandwich",
-++                image="img/bg.jpg",
-++                description="Toasted sourdough with creamy tuna salad and cheddar.",
-++            ),
-++            MenuItem(
-++                name="Egg Sandwich",
-++                image="img/bg.jpg",
-++                description="Soft brioche filled with scrambled eggs and cheddar cheese.",
-++            ),
-++        ),
-++    ),
-++]
-++
-++
-++def get_menu_categories(kind: str) -> List[MenuCategory]:
-++    """Return categories filtered by kind (drinks or food)."""
-++
-++    kind = kind.lower()
-++    return [category for category in MENU_CATEGORIES if category.kind == kind]
-++
-+diff --git a/pages/migrations/__init__.py b/pages/migrations/__init__.py
-+new file mode 100644
-+index 0000000..e69de29
-+diff --git a/pages/models.py b/pages/models.py
-+new file mode 100644
-+index 0000000..18d75d1
-+--- /dev/null
-++++ b/pages/models.py
-+@@ -0,0 +1 @@
-++"""Database models for marketing pages are not required at this stage."""
-+diff --git a/pages/tests.py b/pages/tests.py
-+new file mode 100644
-+index 0000000..0e31f73
-+--- /dev/null
-++++ b/pages/tests.py
-+@@ -0,0 +1 @@
-++"""Placeholder for pages app tests."""
-+diff --git a/pages/urls.py b/pages/urls.py
-+new file mode 100644
-+index 0000000..6888542
-+--- /dev/null
-++++ b/pages/urls.py
-+@@ -0,0 +1,11 @@
-++"""URL patterns for the public-facing pages."""
-++from django.urls import path
-++
-++from . import views
-++
-++app_name = "pages"
-++
-++urlpatterns = [
-++    path("", views.home, name="home"),
-++    path("menu/", views.menu_preview, name="menu"),
-++]
-+diff --git a/pages/views.py b/pages/views.py
-+new file mode 100644
-+index 0000000..b54558a
-+--- /dev/null
-++++ b/pages/views.py
-+@@ -0,0 +1,35 @@
-++"""Views for the pages app."""
-++from django.shortcuts import render
-++from django.views.decorators.http import require_GET
-++
-++from .menu_data import MENU_CATEGORIES, get_menu_categories
-++
-++
-++@require_GET
-++def home(request):
-++    """Render the marketing landing page."""
-++    return render(request, "pages/index.html")
-++
-++
-++@require_GET
-++def menu_preview(request):
-++    """Render the menu preview page."""
-++    drinks = get_menu_categories("drinks")
-++    food = get_menu_categories("food")
-++
-++    default_category = ""
-++    if drinks:
-++        default_category = drinks[0].slug
-++    elif MENU_CATEGORIES:
-++        default_category = MENU_CATEGORIES[0].slug
-++
-++    return render(
-++        request,
-++        "pages/menu.html",
-++        {
-++            "drinks_categories": drinks,
-++            "food_categories": food,
-++            "all_categories": MENU_CATEGORIES,
-++            "default_category": default_category,
-++        },
-++    )
-+diff --git a/requirements.txt b/requirements.txt
-+new file mode 100644
-+index 0000000..c3c0c89
-+--- /dev/null
-++++ b/requirements.txt
-+@@ -0,0 +1,4 @@
-++Django>=4.2,<5.0
-++argon2-cffi>=23.1.0
-++cryptography>=41.0.0
-++python-dotenv>=1.0.0
-+diff --git a/static/css/menu.css b/static/css/menu.css
-+new file mode 100644
-+index 0000000..2094762
-+--- /dev/null
-++++ b/static/css/menu.css
-+@@ -0,0 +1,214 @@
-++.menu-main {
-++    display: grid;
-++    grid-template-columns: 260px 1fr;
-++    gap: 2.5rem;
-++    padding: 6.5rem 8vw 4rem 8vw;
-++    color: #fff;
-++}
-++
-++.menu-sidebar {
-++    position: sticky;
-++    top: 6.5rem;
-++    align-self: start;
-++    background: rgba(0, 0, 0, 0.55);
-++    border: 1px solid rgba(255, 255, 255, 0.08);
-++    border-radius: .75rem;
-++    padding: 1.5rem 1.75rem;
-++    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-++    backdrop-filter: blur(4px);
-++}
-++
-++.menu-sidebar__group + .menu-sidebar__group {
-++    margin-top: 2rem;
-++}
-++
-++.menu-sidebar__title {
-++    font-size: 1.1rem;
-++    font-weight: 700;
-++    margin-bottom: 1rem;
-++}
-++
-++.menu-sidebar__list {
-++    list-style: none;
-++    display: grid;
-++    gap: .5rem;
-++    padding: 0;
-++    margin: 0;
-++}
-++
-++.menu-sidebar__button {
-++    width: 100%;
-++    text-align: left;
-++    background: transparent;
-++    border: 1px solid rgba(255, 255, 255, 0.25);
-++    color: #fff;
-++    font: inherit;
-++    padding: .6rem .75rem;
-++    border-radius: .4rem;
-++    cursor: pointer;
-++    transition: border-color .2s ease, background-color .2s ease, color .2s ease;
-++}
-++
-++.menu-sidebar__button[data-active="true"],
-++.menu-sidebar__button:hover,
-++.menu-sidebar__button:focus-visible {
-++    background: rgba(166, 120, 69, 0.25);
-++    border-color: rgba(198, 154, 99, 0.75);
-++    color: #fff5e9;
-++    outline: none;
-++}
-++
-++.menu-content {
-++    display: grid;
-++    gap: 2rem;
-++}
-++
-++.menu-intro {
-++    background: rgba(0, 0, 0, 0.45);
-++    border-radius: .75rem;
-++    padding: 2rem 2.5rem;
-++    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-++    border: 1px solid rgba(255, 255, 255, 0.1);
-++}
-++
-++.menu-intro__title {
-++    font-size: 2.4rem;
-++    margin-bottom: .75rem;
-++}
-++
-++.menu-intro__lead {
-++    font-size: 1.05rem;
-++    line-height: 1.7rem;
-++    opacity: 0.9;
-++    margin-bottom: 1.5rem;
-++}
-++
-++.menu-intro__actions {
-++    display: flex;
-++    flex-wrap: wrap;
-++    gap: 1rem;
-++}
-++
-++.menu-panels {
-++    display: grid;
-++    gap: 2rem;
-++}
-++
-++.menu-category {
-++    background: rgba(0, 0, 0, 0.45);
-++    border-radius: .75rem;
-++    padding: 2rem 2.5rem;
-++    border: 1px solid rgba(255, 255, 255, 0.1);
-++    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-++}
-++
-++.menu-category[hidden] {
-++    display: none;
-++}
-++
-++.menu-category__header {
-++    margin-bottom: 1.5rem;
-++}
-++
-++.menu-category__title {
-++    font-size: 1.8rem;
-++    margin-bottom: .35rem;
-++}
-++
-++.menu-category__blurb {
-++    opacity: .85;
-++}
-++
-++.menu-grid {
-++    display: grid;
-++    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-++    gap: 1.5rem;
-++}
-++
-++.menu-card {
-++    background: rgba(255, 255, 255, 0.08);
-++    border-radius: .75rem;
-++    border: 1px solid rgba(255, 255, 255, 0.15);
-++    overflow: hidden;
-++    display: grid;
-++    grid-template-rows: 180px 1fr;
-++    transition: transform .2s ease, box-shadow .2s ease;
-++}
-++
-++.menu-card:hover {
-++    transform: translateY(-6px);
-++    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.45);
-++}
-++
-++.menu-card__image {
-++    width: 100%;
-++    height: 100%;
-++    object-fit: cover;
-++}
-++
-++.menu-card__body {
-++    padding: 1.25rem 1.5rem 1.5rem 1.5rem;
-++    display: grid;
-++    gap: .75rem;
-++}
-++
-++.menu-card__title {
-++    font-size: 1.1rem;
-++}
-++
-++.menu-card__description {
-++    font-size: .95rem;
-++    line-height: 1.5rem;
-++    opacity: .9;
-++}
-++
-++.menu-card__cta {
-++    justify-self: start;
-++    padding: .65rem 1.1rem;
-++    background: rgba(166, 120, 69, 0.9);
-++    border-radius: .35rem;
-++    color: #fff;
-++    font-weight: 700;
-++    text-decoration: none;
-++    transition: background-color .2s ease, transform .2s ease;
-++}
-++
-++.menu-card__cta:hover,
-++.menu-card__cta:focus-visible {
-++    background: rgba(198, 154, 99, 1);
-++    transform: translateY(-2px);
-++}
-++
-++@media (max-width: 1024px) {
-++    .menu-main {
-++        grid-template-columns: 1fr;
-++        padding: 6.5rem 5vw 3.5rem 5vw;
-++    }
-++
-++    .menu-sidebar {
-++        position: relative;
-++        top: 0;
-++        display: grid;
-++        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-++        gap: 1.5rem;
-++    }
-++
-++    .menu-sidebar__group {
-++        margin-top: 0 !important;
-++    }
-++}
-++
-++@media (max-width: 640px) {
-++    .menu-intro,
-++    .menu-category {
-++        padding: 1.5rem 1.75rem;
-++    }
-++
-++    .menu-card {
-++        grid-template-rows: 160px 1fr;
-++    }
-++
-++    .menu-card__body {
-++        padding: 1rem 1.2rem 1.25rem 1.2rem;
-++    }
-++}
-+diff --git a/style/style.css b/static/css/style.css
-+similarity index 63%
-+rename from style/style.css
-+rename to static/css/style.css
-+index 5c5162c..ff0dc8a 100644
-+--- a/style/style.css
-++++ b/static/css/style.css
-+@@ -35,10 +35,16 @@ html {
-+ 
-+ body {
-+     font-family: "Lato", sans-serif;
-+-    background-image: url('../assets/bg.jpg');
-++    background-image: url('../img/bg.jpg');
-+     background-size: cover;  /* make it cover the whole screen */
-+     background-repeat: no-repeat; /* avoid repeating */
-+     background-position: center center; /* keep image centered */
-++    min-height: 100vh;
-++}
-++
-++.site-header {
-++    position: relative;
-++    z-index: 10;
-+ }
-+ 
-+ /* navbar*/
-+@@ -82,11 +88,24 @@ body {
-+ 
-+ }
-+ 
-++.links.is-active {
-++    color: var(--secondary-text-color);
-++}
-++
-++.page-main {
-++    padding-top: 6.5rem;
-++    min-height: calc(100vh - 4.5rem);
-++}
-++
-++.home-main {
-++    padding-top: 0;
-++}
-++
-+ /* hero section */
-+-#hero-section{
-+-    min-height: 110vh;
-+-    padding: 0 8vw;
-+-    display: flex; 
-++.hero {
-++    min-height: calc(100vh - 6.5rem);
-++    padding: 6.5rem 8vw 0 8vw;
-++    display: flex;
-+     justify-content: space-between;
-+     align-items: center;
-+ }
-+@@ -150,6 +169,16 @@ body {
-+   background-color: var(--secondary-color);
-+ }
-+ 
-++.btn-secondary {
-++    background: transparent;
-++    border: 2px solid var(--light-text-color);
-++    margin-left: 1rem;
-++}
-++
-++.btn-secondary:hover {
-++    background: rgba(255, 255, 255, 0.15);
-++}
-++
-+ 
-+ .hero-image{
-+     width: 500px;
-+@@ -216,7 +245,7 @@ html { scroll-behavior: smooth; }
-+ }
-+ 
-+ @media (max-width: 640px) {
-+-  #hero-section { flex-direction: column; gap: 2rem; padding-top: 5.5rem; }
-++  .hero { flex-direction: column; gap: 2rem; padding-top: 5.5rem; }
-+   .hero-content { max-width: 100%; text-align: center; }
-+   .hero-image { width: 60%; }
-+   .offer-list { grid-template-columns: 1fr; }
-+@@ -248,14 +277,173 @@ html { scroll-behavior: smooth; }
-+ }
-+ 
-+ .auth-card {
-+-  background: rgba(0,0,0,0.4);
-+-  padding: 2rem;
-+-  border-radius: .5rem;
-++  background: rgba(0,0,0,0.45);
-++  padding: 2.25rem 2.5rem;
-++  border-radius: .75rem;
-+   width: 100%;
-++  max-width: 460px;
-++  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
-++  backdrop-filter: blur(6px);
-++}
-++
-++.auth-title {
-++  font-size: 2rem;
-++  line-height: 2.6rem;
-++  text-align: center;
-++}
-++
-++.auth-form {
-++  margin-top: 1.5rem;
-++  display: grid;
-++  gap: 1.25rem;
-++}
-++
-++.auth-field {
-++  display: grid;
-++  gap: .5rem;
-++}
-++
-++.auth-label {
-++  color: #fff;
-++  font-weight: 700;
-++  display: block;
-++}
-++
-++.auth-input {
-++  padding: .95rem 1rem;
-++  border-radius: .35rem;
-++  border: 1px solid rgba(255,255,255,0.25);
-++  background: rgba(255,255,255,0.9);
-++  transition: border-color .2s ease, box-shadow .2s ease;
-++}
-++
-++.auth-input:focus {
-++  border-color: var(--secondary-color);
-++  box-shadow: 0 0 0 4px rgba(198, 154, 99, 0.35);
-++}
-++
-++.field-hint {
-++  font-size: .85rem;
-++  color: rgba(255,255,255,0.75);
-++}
-++
-++.field-error {
-++  font-size: .85rem;
-++  color: #ffb8b8;
-++  background: rgba(209, 67, 67, 0.15);
-++  border-radius: .35rem;
-++  padding: .4rem .6rem;
-++}
-++
-++.password-strength {
-++  height: .6rem;
-++  background: rgba(255,255,255,0.15);
-++  border-radius: .35rem;
-++  position: relative;
-++  overflow: hidden;
-++}
-++
-++.strength-bar {
-++  position: absolute;
-++  left: 0;
-++  top: 0;
-++  bottom: 0;
-++  width: 0;
-++  border-radius: inherit;
-++  transition: width .2s ease, background-color .2s ease;
-++  background-color: #d14343;
-++}
-++
-++.strength-label {
-++  margin-top: .65rem;
-++  font-size: .85rem;
-++  font-weight: 600;
-++  color: #d14343;
-++}
-++
-++.password-requirements {
-++  list-style: none;
-++  padding: 0;
-++  margin: .75rem 0 0 0;
-++  display: grid;
-++  gap: .4rem;
-++  font-size: .85rem;
-++}
-++
-++.password-requirements li {
-++  color: rgba(255,255,255,0.8);
-++  padding-left: 1.4rem;
-++  position: relative;
-++}
-++
-++.password-requirements li::before {
-++  content: '\2717';
-++  position: absolute;
-++  left: 0;
-++  top: 0;
-++  color: #ff7979;
-++  font-weight: 700;
-++}
-++
-++.password-requirements li[data-valid="true"] {
-++  color: #b7f7d4;
-++}
-++
-++.password-requirements li[data-valid="true"]::before {
-++  content: '\2713';
-++  color: #2ecc71;
-++}
-++
-++.auth-checkbox {
-++  display: flex;
-++  align-items: center;
-++  gap: .6rem;
-++  color: rgba(255,255,255,0.85);
-++  font-size: .95rem;
-++}
-++
-++.auth-checkbox input {
-++  width: 1rem;
-++  height: 1rem;
-++}
-++
-++.auth-note {
-++  margin-top: 1.5rem;
-++  font-size: .9rem;
-++  line-height: 1.4rem;
-++  color: rgba(255,255,255,0.85);
-++}
-++
-++.auth-alt {
-++  margin-top: 1.5rem;
-++  text-align: center;
-++  color: #fff;
-++}
-++
-++.auth-alert {
-++  margin-top: 1.25rem;
-++  padding: .85rem 1rem;
-++  border-radius: .5rem;
-++  background: rgba(209, 67, 67, 0.2);
-++  color: #ffdede;
-++  border: 1px solid rgba(209, 67, 67, 0.4);
-++}
-++
-++.profile-main {
-++  align-items: center;
-++}
-++
-++.profile-card {
-+   max-width: 420px;
-++  text-align: center;
-+ }
-+ 
-+-.auth-form { margin-top: 1.5rem; display: grid; gap: 1rem; }
-+-.auth-label { color: #fff; font-weight: 700; }
-+-.auth-input { padding: .9rem 1rem; border-radius: .35rem; border: 1px solid transparent; outline: none; }
-+-.auth-alt { margin-top: 1rem; text-align: center; color: #fff; }
-+\ No newline at end of file
-++@media (max-width: 540px) {
-++  .auth-card {
-++    padding: 1.75rem 1.5rem;
-++  }
-++
-++  .auth-main {
-++    padding: 6.5rem 1.5rem 3rem 1.5rem;
-++  }
-++}
-+diff --git a/assets/Product 1.jpg b/static/img/Product 1.jpg
-+similarity index 100%
-+rename from assets/Product 1.jpg
-+rename to static/img/Product 1.jpg
-+diff --git a/assets/Product 2.jpg b/static/img/Product 2.jpg
-+similarity index 100%
-+rename from assets/Product 2.jpg
-+rename to static/img/Product 2.jpg
-+diff --git a/assets/bg.jpg b/static/img/bg.jpg
-+similarity index 100%
-+rename from assets/bg.jpg
-+rename to static/img/bg.jpg
-+diff --git a/assets/logo.png b/static/img/logo.png
-+similarity index 100%
-+rename from assets/logo.png
-+rename to static/img/logo.png
-+diff --git a/static/js/auth.js b/static/js/auth.js
-+new file mode 100644
-+index 0000000..919ba9e
-+--- /dev/null
-++++ b/static/js/auth.js
-+@@ -0,0 +1,215 @@
-++const REQUIREMENTS = [
-++  {
-++    key: 'length',
-++    test: (value) => value.length >= 8,
-++  },
-++  {
-++    key: 'uppercase',
-++    test: (value) => /[A-Z]/.test(value),
-++  },
-++  {
-++    key: 'number',
-++    test: (value) => /\d/.test(value),
-++  },
-++  {
-++    key: 'special',
-++    test: (value) => /[!@#$%^&*]/.test(value),
-++  },
-++];
-++
-++const STRENGTH_LEVELS = [
-++  { threshold: 0, label: 'Strength: Too weak', color: '#d14343' },
-++  { threshold: 2, label: 'Strength: Fair', color: '#f4a259' },
-++  { threshold: 3, label: 'Strength: Good', color: '#f7d154' },
-++  { threshold: 4, label: 'Strength: Strong', color: '#2ecc71' },
-++];
-++
-++function evaluateStrength(value) {
-++  let score = 0;
-++  for (const requirement of REQUIREMENTS) {
-++    if (requirement.test(value)) {
-++      score += 1;
-++    }
-++  }
-++
-++  let level = STRENGTH_LEVELS[0];
-++  for (const candidate of STRENGTH_LEVELS) {
-++    if (score >= candidate.threshold) {
-++      level = candidate;
-++    }
-++  }
-++
-++  return { score, level };
-++}
-++
-++function updateRequirementIndicators(form, password) {
-++  const result = evaluateStrength(password);
-++  const { level, score } = result;
-++
-++  const bar = form.querySelector('[data-strength-bar]');
-++  const label = form.querySelector('[data-strength-label]');
-++
-++  if (bar) {
-++    bar.style.width = `${(score / REQUIREMENTS.length) * 100}%`;
-++    bar.style.backgroundColor = level.color;
-++  }
-++
-++  if (label) {
-++    label.textContent = level.label;
-++    label.style.color = level.color;
-++  }
-++
-++  for (const requirement of REQUIREMENTS) {
-++    const item = form.querySelector(`[data-requirement="${requirement.key}"]`);
-++    if (!item) continue;
-++    const isValid = requirement.test(password);
-++    item.dataset.valid = String(isValid);
-++  }
-++
-++  return result;
-++}
-++
-++function setFieldError(form, field, message) {
-++  const errorElement = form.querySelector(`[data-field-error="${field}"]`);
-++  if (!errorElement) return;
-++  if (message) {
-++    errorElement.textContent = message;
-++    errorElement.hidden = false;
-++  } else {
-++    errorElement.textContent = '';
-++    errorElement.hidden = true;
-++  }
-++}
-++
-++function validateUsername(value) {
-++  if (!value.trim()) return 'Username is required.';
-++  if (!/^[A-Za-z0-9._-]{3,30}$/.test(value.trim())) {
-++    return 'Use 3-30 characters with letters, numbers, or ._- only.';
-++  }
-++  return '';
-++}
-++
-++function validateEmail(value) {
-++  if (!value.trim()) return 'Email is required.';
-++  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-++  if (!emailPattern.test(value.trim())) {
-++    return 'Enter a valid email address.';
-++  }
-++  return '';
-++}
-++
-++function validatePassword(password) {
-++  const { score } = evaluateStrength(password);
-++  if (!password) return 'Password is required.';
-++  if (score < REQUIREMENTS.length) {
-++    return 'Password does not meet all requirements yet.';
-++  }
-++  return '';
-++}
-++
-++function validateConfirm(password, confirm) {
-++  if (!confirm) return 'Confirm your password.';
-++  if (password !== confirm) return 'Passwords do not match.';
-++  return '';
-++}
-++
-++function setupSignupForm() {
-++  const form = document.querySelector('[data-signup-form]');
-++  if (!form) return;
-++
-++  const username = form.querySelector('#su-username');
-++  const email = form.querySelector('#su-email');
-++  const password = form.querySelector('#su-password');
-++  const confirm = form.querySelector('#su-confirm');
-++
-++  password?.addEventListener('input', () => {
-++    updateRequirementIndicators(form, password.value);
-++    setFieldError(form, 'password', '');
-++    if (confirm?.value) {
-++      setFieldError(form, 'confirm', password.value === confirm.value ? '' : 'Passwords do not match.');
-++    }
-++  });
-++
-++  confirm?.addEventListener('input', () => {
-++    if (!password) return;
-++    setFieldError(form, 'confirm', password.value === confirm.value ? '' : 'Passwords do not match.');
-++  });
-++
-++  username?.addEventListener('blur', () => {
-++    setFieldError(form, 'username', validateUsername(username.value));
-++  });
-++
-++  email?.addEventListener('blur', () => {
-++    setFieldError(form, 'email', validateEmail(email.value));
-++  });
-++
-++  form.addEventListener('submit', (event) => {
-++    let hasError = false;
-++
-++    if (username) {
-++      const message = validateUsername(username.value);
-++      setFieldError(form, 'username', message);
-++      hasError ||= Boolean(message);
-++    }
-++
-++    if (email) {
-++      const message = validateEmail(email.value);
-++      setFieldError(form, 'email', message);
-++      hasError ||= Boolean(message);
-++    }
-++
-++    if (password) {
-++      const message = validatePassword(password.value);
-++      setFieldError(form, 'password', message);
-++      hasError ||= Boolean(message);
-++    }
-++
-++    if (password && confirm) {
-++      const message = validateConfirm(password.value, confirm.value);
-++      setFieldError(form, 'confirm', message);
-++      hasError ||= Boolean(message);
-++    }
-++
-++    if (hasError) {
-++      event.preventDefault();
-++      form.querySelector('.auth-input')?.focus();
-++    }
-++  });
-++
-++  // Seed the indicator on first render.
-++  updateRequirementIndicators(form, password?.value ?? '');
-++}
-++
-++function setupLoginForm() {
-++  const form = document.querySelector('[data-login-form]');
-++  if (!form) return;
-++  const alertBox = document.querySelector('[data-auth-alert]');
-++
-++  form.addEventListener('submit', (event) => {
-++    const identifier = form.querySelector('#login-identifier');
-++    const password = form.querySelector('#login-password');
-++    const missingIdentifier = !identifier?.value.trim();
-++    const missingPassword = !password?.value.trim();
-++
-++    if (missingIdentifier || missingPassword) {
-++      event.preventDefault();
-++      if (alertBox) {
-++        alertBox.textContent = 'Enter your username/email and password to continue.';
-++        alertBox.hidden = false;
-++      }
-++      identifier?.focus();
-++      return;
-++    }
-++
-++    if (alertBox) {
-++      alertBox.hidden = true;
-++    }
-++  });
-++}
-++
-++function init() {
-++  setupSignupForm();
-++  setupLoginForm();
-++}
-++
-++document.addEventListener('DOMContentLoaded', init);
-+diff --git a/static/js/menu.js b/static/js/menu.js
-+new file mode 100644
-+index 0000000..7244f6c
-+--- /dev/null
-++++ b/static/js/menu.js
-+@@ -0,0 +1,50 @@
-++const MENU_SELECTOR = '[data-menu]';
-++const BUTTON_SELECTOR = '[data-category-trigger]';
-++const PANEL_SELECTOR = '[data-category-panel]';
-++
-++function activateCategory(panels, buttons, slug) {
-++  buttons.forEach((button) => {
-++    const isActive = button.dataset.target === slug;
-++    button.dataset.active = String(isActive);
-++    button.setAttribute('aria-selected', String(isActive));
-++    button.setAttribute('tabindex', isActive ? '0' : '-1');
-++  });
-++
-++  panels.forEach((panel) => {
-++    const isActive = panel.id === slug;
-++    panel.toggleAttribute('hidden', !isActive);
-++    panel.dataset.active = String(isActive);
-++  });
-++}
-++
-++function setupMenuTabs() {
-++  const menuRoot = document.querySelector(MENU_SELECTOR);
-++  if (!menuRoot) return;
-++
-++  const panels = menuRoot.querySelectorAll(PANEL_SELECTOR);
-++  const buttons = document.querySelectorAll(BUTTON_SELECTOR);
-++  if (!buttons.length || !panels.length) return;
-++
-++  const defaultSlug = menuRoot.dataset.defaultCategory || buttons[0].dataset.target;
-++
-++  buttons.forEach((button) => {
-++    button.addEventListener('click', () => {
-++      activateCategory(panels, buttons, button.dataset.target);
-++      button.focus();
-++    });
-++
-++    button.addEventListener('keydown', (event) => {
-++      if (event.key !== 'Enter' && event.key !== ' ') {
-++        return;
-++      }
-++      event.preventDefault();
-++      activateCategory(panels, buttons, button.dataset.target);
-++    });
-++  });
-++
-++  if (defaultSlug) {
-++    activateCategory(panels, buttons, defaultSlug);
-++  }
-++}
-++
-++document.addEventListener('DOMContentLoaded', setupMenuTabs);
-+diff --git a/style/menu.css b/style/menu.css
-+deleted file mode 100644
-+index e057f01..0000000
-+--- a/style/menu.css
-++++ /dev/null
-+@@ -1,162 +0,0 @@
-+-* {
-+-    margin: 0;
-+-    padding: 0;
-+-    box-sizing: border-box;
-+-}
-+-
-+-:root {
-+-    /* color variables */
-+-    --accent-color: #a67845;
-+-    --primary-text-color: #ffffff;
-+-    --secondary-text-color: #794800;
-+-    --light-text-color: #fff;
-+-    --primary-color: #fff;
-+-    --secondary-color: #c79a63;
-+-    --alpha-secondary-color: rgba(0, 118, 118, 0.2);
-+-    --discount-color: #E71A1C;
-+-    --card-hover-bg-color: #F9F9F9;
-+-    --border-color: #f9f9f9;
-+-    --box-shadow-color: var(--accent-color);
-+-    --shadow: rgba(0, 0, 0, 0.05);
-+-    --box-shadow: rgba(0, 0, 0, 0.25);
-+-    --discount-banner-background-overlay: linear-gradient(rgba(0, 118, 118, 0.8), rgba(0, 118, 118, 0.8));
-+-    --phone-app-shadow: #C7E1EB;
-+-    --alpha-primary-color: rgba(255, 255, 255, 0.5);
-+-    --rating-color: #FFA800;
-+-
-+-    /* transition curves */
-+-    --transition-curve: cubic-bezier(0.36, -0.21, 0.16, 1.97);
-+-}
-+-
-+-
-+-html {
-+-    font-size: 16px;
-+-}
-+-
-+-body {
-+-    font-family: "Lato", sans-serif;
-+-    background-image: url('../assets/bg.jpg');
-+-    background-size: cover;  /* make it cover the whole screen */
-+-    background-repeat: no-repeat; /* avoid repeating */
-+-    background-position: center center; /* keep image centered */
-+-}
-+-
-+-/* navbar*/
-+-
-+-.navbar {
-+-    position: fixed;
-+-    top: 0;
-+-    left: 0;
-+-    width: 100%;
-+-    height: 4.5rem;
-+-    display: flex;
-+-    align-items: center;
-+-    padding: 0 10vw;
-+-    z-index: 9;
-+-    background: var(--accent-color);    
-+-}
-+-
-+-.links-container {
-+-    display: flex;
-+-    gap: 1rem;
-+-    list-style: none;
-+-    margin-left: auto;
-+-}
-+-
-+-.links {
-+-    color: var(--primary-text-color);
-+-    text-decoration: none;
-+-    text-transform: capitalize;
-+-    padding: .2rem 1rem;
-+-    font-weight: 900;
-+-    transition: .2s;
-+-}
-+-
-+-.links:hover {
-+-    color: var(--secondary-text-color);
-+-   
-+-
-+-}
-+-
-+-.logo {
-+-    height: 5rem;
-+-    margin-left: -3rem;
-+-}
-+-
-+-main {
-+-  display: flex;
-+-  height: calc(150vh - 140px);
-+-  overflow: hidden;
-+-}
-+-
-+-.sidebar {
-+-  position: fixed;
-+-  height:100%;
-+-  width: 170px;
-+-  padding: 100px;
-+-  padding-left: 50px;
-+-  border-right: 1px solid #834d0f;
-+-  overflow-y: auto;
-+-  background: rgba(0, 0, 0, 0.6);
-+-}
-+-
-+-.sidebar h3 {
-+-  margin-bottom: 10px;
-+-  font-size: 25px;
-+-  color: #ffffff;
-+-}
-+-
-+-.sidebar ul {
-+-  list-style: none;
-+-  margin-bottom: 20px;
-+-}
-+-
-+-.sidebar ul li {
-+-  padding: 8px 0;
-+-  cursor: pointer;
-+-  color: #ffffff;
-+-}
-+-
-+-.sidebar ul li:hover {
-+-  color: var(--accent-color);
-+-  font-weight: bold;
-+-}
-+-
-+-.content {
-+-      flex: 1;
-+-      margin-left: 180px;
-+-      padding: 100px;
-+-      color: rgb(255, 255, 255);
-+-      overflow-y: auto;
-+-    }
-+-
-+-    .category {
-+-      display: none;
-+-    }
-+-
-+-    .category.active {
-+-      display: block;
-+-    }
-+-
-+-    .item{
-+-      text-decoration: none;
-+-      display: inline-block;
-+-      color: inherit;
-+-      width: 180px;
-+-      margin: 25px;
-+-      text-align: center;
-+-    }
-+-
-+-    .item img {
-+-      width: 150px;
-+-      height: 150px;
-+-      border-radius: 50%;
-+-      object-fit: cover;
-+-    }
-+-
-+-    .item p {
-+-      margin-top: 10px;
-+-      font-weight: bold;
-+-    }
-+-
-+-    
-+\ No newline at end of file
-+diff --git a/templates/Login.html b/templates/Login.html
-+deleted file mode 100644
-+index aa3d101..0000000
-+--- a/templates/Login.html
-++++ /dev/null
-+@@ -1,62 +0,0 @@
-+-<!DOCTYPE html>
-+-<html lang="en">
-+-
-+-<head>
-+-    <meta charset="UTF-8">
-+-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-+-    <title>Login - Brews & Chews</title>
-+-
-+-    <!-- Google Font CDN: typeface used across the site -->
-+-    <link rel="preconnect" href="https://fonts.googleapis.com">
-+-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-+-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
-+-
-+-    <!-- Font Awesome CDN for icons (if needed) -->
-+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-+-
-+-    <!-- Global stylesheet for layout, colors, and components -->
-+-    <link rel="stylesheet" href="../style/style.css">
-+-</head>
-+-
-+-<body>
-+-    <header>
-+-        <!-- Primary navigation (fixed): brand and key links -->
-+-        <nav class="navbar">
-+-            <a href="index.html" class="logo">
-+-             <img src="../assets/logo.png" class="logo" alt="Logo">
-+-            </a>
-+-            <ul class="links-container">
-+-                <li class="link-items"><a href="index.html" class="links">Home</a></li>
-+-                <li class="link-items"><a href="Menu.html" class="links">Menu</a></li>
-+-                <li class="link-items"><a href="Login.html" class="links" aria-current="page">Login</a></li>
-+-            </ul>
-+-        </nav>
-+-        <!-- end of navbar -->
-+-
-+-        <!-- Auth container: centers the login card and allows scrolling -->
-+-        <main class="auth-main">
-+-            <section aria-labelledby="login-title" class="auth-card">
-+-                <h1 id="login-title" class="hero-heading" style="font-size: 2rem; line-height: 2.6rem; text-align: center;">Sign In to Your Account</h1>
-+-
-+-                <!-- Basic login form; front-end only for now -->
-+-                <form action="#" method="post" class="auth-form">
-+-                    <label for="login-identifier" class="auth-label">Username or Email</label>
-+-                    <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input">
-+-
-+-                    <label for="login-password" class="auth-label">Password</label>
-+-                    <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password" class="auth-input">
-+-
-+-                    <button type="submit" class="btn" style="width: 100%;">Sign In</button>
-+-                </form>
-+-
-+-                <p class="auth-alt">
-+-                    <em>Don’t have an account?</em> <a href="SignUp.html" class="links">Sign Up</a>
-+-                </p>
-+-            </section>
-+-        </main>
-+-    </header>
-+-</body>
-+-</html>
-+-
-+-
-+diff --git a/templates/Menu.html b/templates/Menu.html
-+deleted file mode 100644
-+index 2aed390..0000000
-+--- a/templates/Menu.html
-++++ /dev/null
-+@@ -1,194 +0,0 @@
-+-<!DOCTYPE html>
-+-<html lang="en">
-+-
-+-<head>
-+-    <meta charset="UTF-8">
-+-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-+-    <title>Brews & Chews</title>
-+-           
-+-
-+-        <!-- Google Font CDN: typeface used across the site -->
-+-    <link rel="preconnect" href="https://fonts.googleapis.com">
-+-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-+-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
-+-        
-+-    <!-- Font Awesome CDN for icons used in cards and footer -->
-+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-+-        <!-- Global stylesheet for layout, colors, and components -->
-+-    <link rel="stylesheet" href="../style/menu.css">
-+-    
-+-</head>
-+-
-+-<body>
-+-    <header>
-+-        <!-- Primary navigation (fixed): brand and key links -->
-+-         <nav class="navbar">
-+-
-+-            <!-- Brand logo -->
-+-              <a href="index.html" class="logo">
-+-             <img src="../assets/logo.png" class="logo" alt="Logo">
-+-            </a>
-+-             <!-- ul -->
-+-              
-+-            <ul class="links-container">
-+-                <li class="link-items"><a href="index.html" class="links">Home</a></li>
-+-                <li class="link-items"><a href="Menu.html" class="links">Menu</a></li>
-+-                <li class="link-items"><a href="Login.html" class="links">Login</a></li>
-+-             </ul>
-+-         </nav>
-+-            <!-- end of navbar -->
-+-
-+-        <main>
-+-    <!-- Sidebar -->
-+-      <div class="sidebar">
-+-    <h3>Drinks</h3>
-+-    <ul>
-+-      <li onclick="showCategory('featured-drinks')"><a href="Menu.html"></a>Featured Drinks</li>
-+-      <li onclick="showCategory('brewed-coffee')"><a href="Menu.html"></a>Brewed Coffee</li>
-+-      <li onclick="showCategory('espresso')"><a href="Menu.html"></a>Espresso</li>
-+-      <li onclick="showCategory('blended-beverage')"><a href="Menu.html"></a>Blended Beverage</li>
-+-      <li onclick="showCategory('teavana-tea')"><a href="Menu.html"></a>Teavana Tea</li>
-+-      <li onclick="showCategory('refreshers')"><a href="Menu.html"></a>Refreshers</li>
-+-    </ul>
-+-
-+-    <h3>Food</h3>
-+-    <ul>
-+-      <li onclick="showCategory('featured-food')">Featured Food</li>
-+-      <li onclick="showCategory('bakery')">Bakery</li>
-+-      <li onclick="showCategory('sandwiches')">Sandwiches</li>
-+-    </ul>
-+-  </div>
-+-
-+-  <!-- Content Area -->
-+-
-+-  <div class="content">
-+-    <!-- Featured Drinks -->
-+-    <div id="featured-drinks" class="category active">
-+-      <h2>Featured Drinks</h2>
-+-      <div class="item">
-+-        <a href="login.html">
-+-        <img src="../assets/Product 1.jpg" alt="Maple Cocoa Nibs Oatmilk Shaken Espresso">
-+-        </a>
-+-        <p>Maple Cocoa Nibs Oatmilk Shaken Espresso</p>
-+-      </div>
-+-      <div class="item">
-+-        <a href="login.html">
-+-        <img src="../assets/Product 2.jpg" alt="Frappuccino">
-+-         </a>
-+-        <p>Frappuccino</p>
-+-      </div>
-+-    </div>
-+-
-+-    <div id="brewed-coffee" class="category">
-+-      <h2>Brewed Coffee</h2>
-+-      <div class="item">
-+-        <img src="img/drip.jpg" alt="Drip Coffee">
-+-        <p>Drip Coffee</p>
-+-      </div>
-+-      <div class="item">
-+-        <img src="img/coldbrew.jpg" alt="Cold Brew">
-+-        <p>Cold Brew</p>
-+-      </div>
-+-    </div>
-+-    
-+-    <div id="espresso" class="category">
-+-      <h2>Espresso</h2>
-+-      <div class="item">
-+-        <img src="img/espresso.jpg" alt="Espresso">
-+-        <p>Espresso Shot</p>
-+-      </div>
-+-      <div class="item">
-+-        <img src="img/cappuccino.jpg" alt="Cappuccino">
-+-        <p>Cappuccino</p>
-+-      </div>
-+-    </div>
-+-
-+-    <div id="blended-beverage" class="category">
-+-      <h2>Blended-beverage</h2>
-+-      <div class="item">
-+-        <img src="img/Chai Tea Cream Frappuccino.jpg" alt="Chai Tea Cream Frappuccino">
-+-        <p>Chai Tea Cream Frappuccino</p>
-+-      </div>
-+-      <div class="item">
-+-        <img src="img/Caramel Cream Frappuccino.jpg" alt="Caramel Cream Frappuccino">
-+-        <p>Caramel Cream Frappuccino</p>
-+-      </div>
-+-    </div>
-+-
-+-    <div id="teavana-tea" class="category">
-+-      <h2>Teavana-tea</h2>
-+-      <div class="item">
-+-        <img src="img/Full leaf brewed tea.jpg" alt="Full Leaf Brewed Tea">
-+-        <p>Full leaf brewed tea</p>
-+-      </div>
-+-      <div class="item">
-+-        <img src="img/Iced Black Tea Latte.jpg" alt="Iced Black Tea Latte">
-+-        <p>Iced Black Tea Latte</p>
-+-      </div>
-+-    </div>
-+-
-+-    <div id="refreshers" class="category">
-+-      <h2>Refreshers</h2>
-+-      <div class="item">
-+-        <img src="img/Lemonade.jpg" alt="Lemonade">
-+-        <p>Lemonade</p>
-+-      </div>
-+-      <div class="item">
-+-        <img src="img/Iced Cucumber.jpg" alt="Iced Cucumber">
-+-        <p>Iced Cucumber</p>
-+-      </div>
-+-    </div>
-+-
-+-    <div id="featured-food" class="category">
-+-      <h2>Featured Food</h2>
-+-      <div class="item">
-+-        <img src="img/Glazed Chicken.jpg" alt="Glazed Chicken">
-+-        <p>Glazed Chicken</p>
-+-      </div>
-+-      <div class="item">
-+-        <img src="img/Buttered Chicken" alt="Buttered Chicken">
-+-        <p>Buttered Chicken</p>
-+-      </div>
-+-    </div>
-+-
-+-    <div id="bakery" class="category">
-+-      <h2>Bakery</h2>
-+-      <div class="item">
-+-        <img src="img/ChocolateDippedDoughnut.jpg" alt="ChocolateDippedDoughnut">
-+-        <p>ChocolateDippedDoughnut</p>
-+-      </div>
-+-      <div class="item">
-+-        <img src="img/Bacon.jpg" alt="Bacon Belgian Waffle">
-+-        <p>Bacon Belgian Waffle</p>
-+-      </div>
-+-    </div>
-+-
-+-    <div id="sandwiches" class="category">
-+-      <h2>Sandwiches</h2>
-+-      <div class="item">
-+-        <img src="img/tuna.jpg" alt="Cheesy Tuna Sandwich">
-+-        <p>Cheesy Tuna Sandwich</p>
-+-      </div>
-+-      <div class="item">
-+-        <img src="img/egg.jpg" alt="Egg Sandwich">
-+-        <p>Egg Sandwich</p>
-+-      </div>
-+-    </div>
-+-
-+-  </div>
-+-
-+-  <script>
-+-    function showCategory(categoryId) {
-+-      const categories = document.querySelectorAll('.category');
-+-      categories.forEach(cat => cat.classList.remove('active'));
-+-
-+-      document.getElementById(categoryId).classList.add('active');
-+-    }
-+-  </script>
-+-    
-+-
-+-
-+-</body>
-+-</html>
-+-
-+diff --git a/templates/SignUp.html b/templates/SignUp.html
-+deleted file mode 100644
-+index 0658e9a..0000000
-+--- a/templates/SignUp.html
-++++ /dev/null
-+@@ -1,68 +0,0 @@
-+-<!DOCTYPE html>
-+-<html lang="en">
-+-
-+-<head>
-+-    <meta charset="UTF-8">
-+-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-+-    <title>Sign Up - Brews & Chews</title>
-+-
-+-    <!-- Google Font CDN: typeface used across the site -->
-+-    <link rel="preconnect" href="https://fonts.googleapis.com">
-+-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-+-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
-+-
-+-    <!-- Font Awesome CDN for icons (if needed) -->
-+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-+-
-+-    <!-- Global stylesheet for layout, colors, and components -->
-+-    <link rel="stylesheet" href="../style/style.css">
-+-</head>
-+-
-+-<body>
-+-    <header>
-+-        <!-- Primary navigation (fixed): brand and key links -->
-+-        <nav class="navbar">
-+-             <a href="index.html" class="logo">
-+-             <img src="../assets/logo.png" class="logo" alt="Logo">
-+-            </a>
-+-            <ul class="links-container">
-+-                <li class="link-items"><a href="index.html" class="links">Home</a></li>
-+-                <li class="link-items"><a href="#menu" class="links">Menu</a></li>
-+-                <li class="link-items"><a href="Login.html" class="links">Login</a></li>
-+-            </ul>
-+-        </nav>
-+-        <!-- end of navbar -->
-+-
-+-        <!-- Auth container: centers the signup card and allows scrolling -->
-+-        <main class="auth-main">
-+-            <section aria-labelledby="signup-title" class="auth-card">
-+-                <h1 id="signup-title" class="hero-heading" style="font-size: 2rem; line-height: 2.6rem; text-align: center;">Create Account</h1>
-+-
-+-                <!-- Basic sign-up form; front-end only for now -->
-+-                <form action="#" method="post" class="auth-form">
-+-                    <label for="su-username" class="auth-label">Username</label>
-+-                    <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Enter your username" class="auth-input">
-+-
-+-                    <label for="su-email" class="auth-label">Email</label>
-+-                    <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input">
-+-
-+-                    <label for="su-password" class="auth-label">Password</label>
-+-                    <input id="su-password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Create a password" class="auth-input">
-+-
-+-                    <label for="su-confirm" class="auth-label">Confirm Password</label>
-+-                    <input id="su-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Re-enter your password" class="auth-input">
-+-
-+-                    <button type="submit" class="btn" style="width: 100%;">Sign Up</button>
-+-                </form>
-+-
-+-                <p class="auth-alt">
-+-                    <em>Already have an account?</em> <a href="Login.html" class="links">Sign In</a>
-+-                </p>
-+-            </section>
-+-        </main>
-+-    </header>
-+-</body>
-+-</html>
-+-
-+-
-+diff --git a/templates/accounts/login.html b/templates/accounts/login.html
-+new file mode 100644
-+index 0000000..9e12916
-+--- /dev/null
-++++ b/templates/accounts/login.html
-+@@ -0,0 +1,46 @@
-++{% extends "base.html" %}
-++
-++{% block title %}Login - Brews &amp; Chews{% endblock %}
-++
-++{% block main_class %}auth-main{% endblock %}
-++
-++{% block content %}
-++<section aria-labelledby="login-title" class="auth-card">
-++    <h1 id="login-title" class="hero-heading auth-title">Sign In to Your Account</h1>
-++
-++    <div class="auth-alert" role="alert" aria-live="polite" data-auth-alert hidden>
-++        Invalid username or password. Please try again.
-++    </div>
-++
-++    <form action="#" method="post" class="auth-form" data-login-form>
-++        <div class="auth-field">
-++            <label for="login-identifier" class="auth-label">Username or Email</label>
-++            <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input">
-++        </div>
-++
-++        <div class="auth-field">
-++            <label for="login-password" class="auth-label">Password</label>
-++            <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password" class="auth-input">
-++        </div>
-++
-++        <label class="auth-checkbox">
-++            <input type="checkbox" name="remember" value="1">
-++            <span>Remember me for 2 weeks</span>
-++        </label>
-++
-++        <button type="submit" class="btn" style="width: 100%;">Sign In</button>
-++    </form>
-++
-++    <p class="auth-note">
-++        Multiple failed attempts will temporarily lock your account for 1 hour to protect against brute-force attacks. Sessions are encrypted and expire automatically when inactive.
-++    </p>
-++
-++    <p class="auth-alt">
-++        <em>Don’t have an account?</em> <a href="{% url 'accounts:signup' %}" class="links">Sign Up</a>
-++    </p>
-++</section>
-++{% endblock %}
-++
-++{% block extra_js %}
-++<script src="{% static 'js/auth.js' %}" defer></script>
-++{% endblock %}
-+diff --git a/templates/accounts/profile.html b/templates/accounts/profile.html
-+new file mode 100644
-+index 0000000..81bdf4a
-+--- /dev/null
-++++ b/templates/accounts/profile.html
-+@@ -0,0 +1,13 @@
-++{% extends "base.html" %}
-++
-++{% block title %}Profile - Brews &amp; Chews{% endblock %}
-++
-++{% block main_class %}auth-main profile-main{% endblock %}
-++
-++{% block content %}
-++<section class="auth-card profile-card" aria-labelledby="profile-title">
-++    <h1 id="profile-title" class="hero-heading auth-title">Profile</h1>
-++    <p>This page will show member details once the backend is implemented.</p>
-++    <a class="links" href="{% url 'pages:home' %}">Return to Home</a>
-++</section>
-++{% endblock %}
-+diff --git a/templates/accounts/signup.html b/templates/accounts/signup.html
-+new file mode 100644
-+index 0000000..68efddc
-+--- /dev/null
-++++ b/templates/accounts/signup.html
-+@@ -0,0 +1,62 @@
-++{% extends "base.html" %}
-++
-++{% block title %}Sign Up - Brews &amp; Chews{% endblock %}
-++
-++{% block main_class %}auth-main{% endblock %}
-++
-++{% block content %}
-++<section aria-labelledby="signup-title" class="auth-card">
-++    <h1 id="signup-title" class="hero-heading auth-title">Create Account</h1>
-++
-++    <form action="#" method="post" class="auth-form" novalidate data-signup-form>
-++        <div class="auth-field">
-++            <label for="su-username" class="auth-label">Username</label>
-++            <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Enter your username" class="auth-input" data-validate="text">
-++            <p class="field-hint">3&ndash;30 characters, letters and numbers only.</p>
-++            <p class="field-error" data-field-error="username" aria-live="polite" hidden></p>
-++        </div>
-++
-++        <div class="auth-field">
-++            <label for="su-email" class="auth-label">Email</label>
-++            <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input" data-validate="email">
-++            <p class="field-error" data-field-error="email" aria-live="polite" hidden></p>
-++        </div>
-++
-++        <div class="auth-field" data-password-wrapper>
-++            <label for="su-password" class="auth-label">Password</label>
-++            <input id="su-password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Create a password" class="auth-input" data-password>
-++            <div class="password-strength" role="status" aria-live="polite">
-++                <div class="strength-bar" data-strength-bar></div>
-++            </div>
-++            <p class="strength-label" data-strength-label aria-live="polite">Strength: Start typing...</p>
-++            <ul class="password-requirements" aria-live="polite">
-++                <li data-requirement="length">At least 8 characters</li>
-++                <li data-requirement="uppercase">Contains an uppercase letter</li>
-++                <li data-requirement="number">Contains a number</li>
-++                <li data-requirement="special">Contains a special character (!@#$%^&amp;*)</li>
-++            </ul>
-++            <p class="field-error" data-field-error="password" aria-live="polite" hidden></p>
-++        </div>
-++
-++        <div class="auth-field">
-++            <label for="su-confirm" class="auth-label">Confirm Password</label>
-++            <input id="su-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Re-enter your password" class="auth-input" data-password-confirm>
-++            <p class="field-error" data-field-error="confirm" aria-live="polite" hidden></p>
-++        </div>
-++
-++        <button type="submit" class="btn" style="width: 100%;">Sign Up</button>
-++    </form>
-++
-++    <p class="auth-note">
-++        By creating an account you agree to our data handling practices. Emails are encrypted with AES-256 and passwords are stored using Argon2 hashing in accordance with our security policy.
-++    </p>
-++
-++    <p class="auth-alt">
-++        <em>Already have an account?</em> <a href="{% url 'accounts:login' %}" class="links">Sign In</a>
-++    </p>
-++</section>
-++{% endblock %}
-++
-++{% block extra_js %}
-++<script src="{% static 'js/auth.js' %}" defer></script>
-++{% endblock %}
-+diff --git a/templates/base.html b/templates/base.html
-+new file mode 100644
-+index 0000000..72044bc
-+--- /dev/null
-++++ b/templates/base.html
-+@@ -0,0 +1,69 @@
-++<!DOCTYPE html>
-++<html lang="en">
-++<head>
-++    <meta charset="UTF-8">
-++    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-++    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-++    <title>{% block title %}Brews &amp; Chews{% endblock %}</title>
-++    {% load static %}
-++
-++    <!-- Global typography and iconography -->
-++    <link rel="preconnect" href="https://fonts.googleapis.com">
-++    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-++    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
-++    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-++
-++    <!-- Base stylesheet -->
-++    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-++    {% block extra_css %}{% endblock %}
-++</head>
-++<body class="{% block body_class %}{% endblock %}">
-++    <header class="site-header">
-++        <nav class="navbar" aria-label="Primary">
-++            <a href="{% url 'pages:home' %}" class="logo" aria-label="Brews &amp; Chews home">
-++                <img src="{% static 'img/logo.png' %}" class="logo" alt="Brews &amp; Chews logo">
-++            </a>
-++            {% with current=request.resolver_match.url_name %}
-++            <ul class="links-container">
-++                <li class="link-items">
-++                    <a href="{% url 'pages:home' %}" class="links{% if current == 'home' %} is-active{% endif %}" {% if current == 'home' %}aria-current="page"{% endif %}>Home</a>
-++                </li>
-++                <li class="link-items">
-++                    <a href="{% url 'pages:menu' %}" class="links{% if current == 'menu' %} is-active{% endif %}" {% if current == 'menu' %}aria-current="page"{% endif %}>Menu</a>
-++                </li>
-++                <li class="link-items">
-++                    <a href="{% url 'accounts:login' %}" class="links{% if current == 'login' %} is-active{% endif %}" {% if current == 'login' %}aria-current="page"{% endif %}>Sign In</a>
-++                </li>
-++                <li class="link-items">
-++                    <a href="{% url 'accounts:signup' %}" class="links{% if current == 'signup' %} is-active{% endif %}" {% if current == 'signup' %}aria-current="page"{% endif %}>Sign Up</a>
-++                </li>
-++                <li class="link-items">
-++                    <a href="{% url 'accounts:profile' %}" class="links{% if current == 'profile' %} is-active{% endif %}" {% if current == 'profile' %}aria-current="page"{% endif %}>Profile</a>
-++                </li>
-++            </ul>
-++            {% endwith %}
-++        </nav>
-++    </header>
-++
-++    <main class="{% block main_class %}page-main{% endblock %}">
-++        {% block content %}{% endblock %}
-++    </main>
-++
-++    {% block footer %}
-++    <footer class="footer">
-++        <div class="container">
-++            <div class="footer-contact" aria-labelledby="footer-contact-title">
-++                <h3 id="footer-contact-title">Contact</h3>
-++                <ul>
-++                    <li><i class="fa fa-envelope" aria-hidden="true"></i> <a class="links" href="mailto:Brew@Chew@gmail.com" aria-label="Email us">Brew&amp;Chew@gmail.com</a></li>
-++                    <li><i class="fa fa-phone" aria-hidden="true"></i> <a class="links" href="tel:+639123456789" aria-label="Call us">+63 912 345 6789</a></li>
-++                </ul>
-++            </div>
-++            <p>© 2025 Brews &amp; Chews. All rights reserved.</p>
-++        </div>
-++    </footer>
-++    {% endblock %}
-++
-++    {% block extra_js %}{% endblock %}
-++</body>
-++</html>
-+diff --git a/templates/index.html b/templates/index.html
-+deleted file mode 100644
-+index 68631b3..0000000
-+--- a/templates/index.html
-++++ /dev/null
-+@@ -1,118 +0,0 @@
-+-<!DOCTYPE html>
-+-<html lang="en">
-+-
-+-<head>
-+-    <meta charset="UTF-8">
-+-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-+-    <title>Brews & Chews</title>
-+-           
-+-
-+-        <!-- Google Font CDN: typeface used across the site -->
-+-    <link rel="preconnect" href="https://fonts.googleapis.com">
-+-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-+-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
-+-        
-+-    <!-- Font Awesome CDN for icons used in cards and footer -->
-+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-+-        <!-- Global stylesheet for layout, colors, and components -->
-+-    <link rel="stylesheet" href="../style/style.css">
-+-    
-+-</head>
-+-
-+-<body>
-+-    <header>
-+-        <!-- Primary navigation (fixed): brand and key links -->
-+-         <nav class="navbar">
-+-
-+-            <!-- Brand logo -->
-+-            <a href="index.html" class="logo">
-+-             <img src="../assets/logo.png" class="logo" alt="Logo">
-+-            </a>
-+-             <!-- ul -->
-+-              
-+-            <ul class="links-container">
-+-                <li class="link-items"><a href="#hero-section" class="links">Home</a></li>
-+-                <li class="link-items"><a href="Menu.html" class="links">Menu</a></li>
-+-                <li class="link-items"><a href="Login.html" class="links">Login</a></li>
-+-             </ul>
-+-         </nav>
-+-            <!-- end of navbar -->
-+-
-+-
-+-            <!-- Hero section: headline, subtext, and primary CTA -->
-+-        <main id="hero-section">
-+-
-+-             <!-- hero content-->
-+-            <div class="hero-content">
-+-                <h1 class="hero-heading">Your Coffee, Your Way</h1>
-+-                <p class="hero-line">"Behind every successful person is a substantial amount of coffee".</p>
-+-
-+-                <div class ="hero-action-btn-container">
-+-                    <a href="Login.html" class="btn" aria-label="Order now and sign in">Order Now!</a>
-+-                </div>
-+-            </div>
-+-            <!-- end of hero content -->
-+-             <img src="../assets/logo.png" alt="Big-Logo" class="hero-image">
-+-        </main>
-+-        
-+-        <!-- Feature highlights: key value propositions in a card grid -->
-+-        <section id="what-we-offer" class="section">
-+-            <div class="container">
-+-                <h2 class="section-title">What We Offer</h2>
-+-                <p class="section-subtitle">Everything you need for the perfect coffee experience</p>
-+-                <ul class="offer-list" aria-label="Key features">
-+-                    <a href="Login.html" class="offer-item">
-+-                        <i class="fa fa-chair" aria-hidden="true"></i>
-+-                        <h3>Table reservations</h3>
-+-                        <p>Book your spot ahead for a hassle-free visit.</p>
-+-                    </a>
-+-                    </li>
-+-                    <a href="Login.html" class="offer-item">
-+-                        <i class="fa fa-mug-hot" aria-hidden="true"></i>
-+-                        <h3>View cafe menu online</h3>
-+-                        <p>Browse drinks and bites anytime, anywhere.</p>
-+-                    </a>
-+-                    </li>
-+-                    <a href="Login.html" class="offer-item">
-+-                        <i class="fa fa-credit-card" aria-hidden="true"></i>
-+-                        <h3>Online payments</h3>
-+-                        <p>Pay securely with your preferred method.</p>
-+-                    </a>
-+-                    </li>
-+-                    <a href="Login.html" class="offer-item">
-+-                        <i class="fa fa-lock" aria-hidden="true"></i>
-+-                        <h3>Secure and easy to use</h3>
-+-                        <p>Your data stays safe while you enjoy coffee.</p>
-+-                    </a>
-+-                    </li>
-+-                </ul>
-+-            </div>
-+-        </section>
-+-
-+-        <!-- Call to action: encourage sign up with a prominent button -->
-+-        <section id="cta" class="section">
-+-            <div class="container cta-wrap">
-+-                <h2 class="cta-title">Sign up today to book your coffee!</h2>
-+-                <p class="cta-text">Join thousands of coffee lovers who trust Brews &amp; Chews for their daily caffeine fix</p>
-+-                <a href="Login.html" class="btn">Get Started</a>
-+-            </div>
-+-        </section>
-+-
-+-        <!-- Footer: contact details and copyright -->
-+-        <footer class="footer">
-+-            <div class="container">
-+-                <div class="footer-contact" aria-labelledby="footer-contact-title">
-+-                    <h3 id="footer-contact-title">Contact</h3>
-+-                    <ul>
-+-                        <li><i class="fa fa-envelope" aria-hidden="true"></i> <a class="links" href="mailto:Brew@Chew@gmail.com" aria-label="Email us">Brew&Chew@gmail.com</a></li>
-+-                        <li><i class="fa fa-phone" aria-hidden="true"></i> <a class="links" href="tel:+639123456789" aria-label="Call us">+63 912 345 6789</a></li>
-+-                    </ul>
-+-                </div>
-+-                <p>© 2025 Brews &amp; Chews. All rights reserved.</p>
-+-            </div>
-+-        </footer>
-+-        
-+-    </header>
-+-</body>
-+-</html>
-+\ No newline at end of file
-+diff --git a/templates/pages/index.html b/templates/pages/index.html
-+new file mode 100644
-+index 0000000..9d01e30
-+--- /dev/null
-++++ b/templates/pages/index.html
-+@@ -0,0 +1,64 @@
-++{% extends "base.html" %}
-++
-++{% block title %}Brews &amp; Chews — Specialty Coffee Reservations{% endblock %}
-++
-++{% block main_class %}page-main home-main{% endblock %}
-++
-++{% block content %}
-++<section id="hero-section" class="hero">
-++    <div class="hero-content">
-++        <h1 class="hero-heading">Your Coffee, Your Way</h1>
-++        <p class="hero-line">“Behind every successful person is a substantial amount of coffee.”</p>
-++        <div class="hero-action-btn-container">
-++            <a href="{% url 'accounts:signup' %}" class="btn" aria-label="Create an account to reserve">Get Started</a>
-++            <a href="{% url 'accounts:login' %}" class="btn btn-secondary" aria-label="Sign in to manage reservations">Sign In</a>
-++        </div>
-++    </div>
-++    <img src="{% static 'img/logo.png' %}" alt="Brews &amp; Chews emblem" class="hero-image">
-++</section>
-++
-++<section id="what-we-offer" class="section">
-++    <div class="container">
-++        <h2 class="section-title">What We Offer</h2>
-++        <p class="section-subtitle">Everything you need for the perfect coffee experience</p>
-++        <ul class="offer-list" aria-label="Key features">
-++            <li>
-++                <a href="{% url 'accounts:signup' %}" class="offer-item">
-++                    <i class="fa fa-chair" aria-hidden="true"></i>
-++                    <h3>Table reservations</h3>
-++                    <p>Book your spot ahead for a hassle-free visit.</p>
-++                </a>
-++            </li>
-++            <li>
-++                <a href="{% url 'pages:menu' %}" class="offer-item">
-++                    <i class="fa fa-mug-hot" aria-hidden="true"></i>
-++                    <h3>View cafe menu online</h3>
-++                    <p>Browse drinks and bites anytime, anywhere.</p>
-++                </a>
-++            </li>
-++            <li>
-++                <a href="{% url 'accounts:signup' %}" class="offer-item">
-++                    <i class="fa fa-credit-card" aria-hidden="true"></i>
-++                    <h3>Online payments</h3>
-++                    <p>Pay securely with your preferred method.</p>
-++                </a>
-++            </li>
-++            <li>
-++                <a href="{% url 'accounts:signup' %}" class="offer-item">
-++                    <i class="fa fa-lock" aria-hidden="true"></i>
-++                    <h3>Secure and easy to use</h3>
-++                    <p>Your data stays safe while you enjoy coffee.</p>
-++                </a>
-++            </li>
-++        </ul>
-++    </div>
-++</section>
-++
-++<section id="cta" class="section">
-++    <div class="container cta-wrap">
-++        <h2 class="cta-title">Sign up today to book your coffee!</h2>
-++        <p class="cta-text">Join thousands of coffee lovers who trust Brews &amp; Chews for their daily caffeine fix.</p>
-++        <a href="{% url 'accounts:signup' %}" class="btn">Get Started</a>
-++    </div>
-++</section>
-++{% endblock %}
-+diff --git a/templates/pages/menu.html b/templates/pages/menu.html
-+new file mode 100644
-+index 0000000..6d8b9d4
-+--- /dev/null
-++++ b/templates/pages/menu.html
-+@@ -0,0 +1,91 @@
-++{% extends "base.html" %}
-++
-++{% block title %}Menu Preview - Brews &amp; Chews{% endblock %}
-++
-++{% block extra_css %}<link rel="stylesheet" href="{% static 'css/menu.css' %}">{% endblock %}
-++
-++{% block main_class %}menu-main{% endblock %}
-++
-++{% block content %}
-++<aside class="menu-sidebar" data-menu-sidebar>
-++    <div class="menu-sidebar__group">
-++        <h2 class="menu-sidebar__title">Drinks</h2>
-++        <ul class="menu-sidebar__list" role="tablist" aria-label="Drink categories">
-++            {% for category in drinks_categories %}
-++            <li>
-++                <button type="button"
-++                        class="menu-sidebar__button"
-++                        id="tab-{{ category.slug }}"
-++                        data-category-trigger
-++                        data-target="{{ category.slug }}"
-++                        role="tab"
-++                        aria-controls="{{ category.slug }}">
-++                    {{ category.title }}
-++                </button>
-++            </li>
-++            {% endfor %}
-++        </ul>
-++    </div>
-++    <div class="menu-sidebar__group">
-++        <h2 class="menu-sidebar__title">Food</h2>
-++        <ul class="menu-sidebar__list" role="tablist" aria-label="Food categories">
-++            {% for category in food_categories %}
-++            <li>
-++                <button type="button"
-++                        class="menu-sidebar__button"
-++                        id="tab-{{ category.slug }}"
-++                        data-category-trigger
-++                        data-target="{{ category.slug }}"
-++                        role="tab"
-++                        aria-controls="{{ category.slug }}">
-++                    {{ category.title }}
-++                </button>
-++            </li>
-++            {% endfor %}
-++        </ul>
-++    </div>
-++</aside>
-++
-++<section class="menu-content" data-menu-content>
-++    <header class="menu-intro">
-++        <h1 class="menu-intro__title">Menu Preview</h1>
-++        <p class="menu-intro__lead">Browse featured beverages and bites before reserving your table. Reserve actions direct you to sign in so you can complete the booking flow.</p>
-++        <div class="menu-intro__actions">
-++            <a href="{% url 'accounts:signup' %}" class="btn">Create an account</a>
-++            <a href="{% url 'accounts:login' %}" class="btn btn-secondary">Reserve a drink</a>
-++        </div>
-++    </header>
-++
-++    <div class="menu-panels" data-menu data-default-category="{{ default_category }}">
-++        {% for category in all_categories %}
-++        <section id="{{ category.slug }}"
-++                 class="menu-category"
-++                 data-category-panel
-++                 role="tabpanel"
-++                 aria-labelledby="tab-{{ category.slug }}"
-++                 hidden>
-++            <header class="menu-category__header">
-++                <h2 class="menu-category__title">{{ category.title }}</h2>
-++                <p class="menu-category__blurb">{{ category.blurb }}</p>
-++            </header>
-++            <div class="menu-grid">
-++                {% for item in category.items %}
-++                <article class="menu-card">
-++                    <img src="{% static item.image %}" alt="{{ item.name }}" class="menu-card__image">
-++                    <div class="menu-card__body">
-++                        <h3 class="menu-card__title">{{ item.name }}</h3>
-++                        <p class="menu-card__description">{{ item.description }}</p>
-++                        <a href="{% url 'accounts:login' %}" class="menu-card__cta" aria-label="Reserve {{ item.name }}">Reserve this item</a>
-++                    </div>
-++                </article>
-++                {% endfor %}
-++            </div>
-++        </section>
-++        {% endfor %}
-++    </div>
-++</section>
-++{% endblock %}
-++
-++{% block extra_js %}
-++<script src="{% static 'js/menu.js' %}" defer></script>
-++{% endblock %}
-+-- 
-+2.43.0
++```
++it302-mco/
++├── brewschews/           # Django project configuration
++├── accounts/             # Authentication app (UI-only views for now)
++├── pages/                # Public marketing and menu views
++├── templates/            # HTML templates grouped by app
++├── static/               # Consolidated CSS and image assets
++├── manage.py             # Django management utility
++├── requirements.txt      # Python dependencies
++└── .env.example          # Sample environment configuration
++```
 +
++## Getting started
++
++1. **Create a virtual environment** (recommended):
++
++   ```bash
++   python -m venv .venv
++   source .venv/bin/activate  # Linux/macOS
++   .venv\\Scripts\\activate   # Windows
++   ```
++
++2. **Install dependencies:**
++
++   ```bash
++   pip install -r requirements.txt
++   ```
++
++3. **Configure environment variables:**
++
++   - Copy `.env.example` to `.env` and adjust the values as needed (secret key, debug flag, allowed hosts, database name).
++
++4. **Run migrations and start the development server:**
++
++   ```bash
++   python manage.py migrate
++   python manage.py runserver
++   ```
++
++5. **Access the site:**
++
++   Visit `http://127.0.0.1:8000/` for the landing page and `http://127.0.0.1:8000/menu/` for the menu preview.
++
++## Syncing these updates with your local clone
++
++If you still see the previous static-only structure in VS Code or in your GitHub branch, make sure you are looking at the
++latest commit from the `work` branch (the branch where this reorganisation lives) or merge the forthcoming pull request into
++your main branch. A quick checklist:
++
++1. Fetch the latest branches from GitHub:
++
++   ```bash
++   git fetch origin
++   ```
++
++2. Check out the branch that contains these updates (replace `work` if you publish the branch under a different name):
++
++   ```bash
++   git checkout work
++   git pull origin work
++   ```
++
++3. Open the project in VS Code. You should now see the Django folders (`brewschews/`, `accounts/`, `pages/`, consolidated
++   `templates/`, etc.). If you prefer to stay on another branch, merge or cherry-pick the commit `9a1979c` into that branch.
++
++4. Only resort to manual copy/paste if you cannot fetch the branch for some reason. Keeping the changes tracked in Git will
++   make future updates and code reviews significantly easier.
++
++## Next steps
++
++- Implement full authentication (Argon2 password hashing, encrypted email storage, rate limiting).
++- Build the dynamic profile page and connect menu data to the database.
++- Add automated tests to cover the authentication flows and key UX components.
+ 
+diff --git a/accounts/__init__.py b/accounts/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/accounts/admin.py b/accounts/admin.py
+new file mode 100644
+index 0000000..03c1986
+--- /dev/null
++++ b/accounts/admin.py
+@@ -0,0 +1 @@
++"""Admin customisations for the accounts app (pending implementation)."""
+diff --git a/accounts/apps.py b/accounts/apps.py
+new file mode 100644
+index 0000000..0cb51e6
+--- /dev/null
++++ b/accounts/apps.py
+@@ -0,0 +1,6 @@
++from django.apps import AppConfig
++
++
++class AccountsConfig(AppConfig):
++    default_auto_field = "django.db.models.BigAutoField"
++    name = "accounts"
+diff --git a/accounts/forms.py b/accounts/forms.py
+new file mode 100644
+index 0000000..48c4135
+--- /dev/null
++++ b/accounts/forms.py
+@@ -0,0 +1 @@
++"""Custom authentication forms will live here once backend work begins."""
+diff --git a/accounts/migrations/__init__.py b/accounts/migrations/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/accounts/models.py b/accounts/models.py
+new file mode 100644
+index 0000000..c00e28c
+--- /dev/null
++++ b/accounts/models.py
+@@ -0,0 +1 @@
++"""Database models for the accounts app will be defined in follow-up work."""
+diff --git a/accounts/tests.py b/accounts/tests.py
+new file mode 100644
+index 0000000..68a9b5f
+--- /dev/null
++++ b/accounts/tests.py
+@@ -0,0 +1 @@
++"""Placeholder for accounts app tests."""
+diff --git a/accounts/urls.py b/accounts/urls.py
+new file mode 100644
+index 0000000..19e387c
+--- /dev/null
++++ b/accounts/urls.py
+@@ -0,0 +1,12 @@
++"""URL patterns for the accounts app."""
++from django.urls import path
++
++from . import views
++
++app_name = "accounts"
++
++urlpatterns = [
++    path("login/", views.login_view, name="login"),
++    path("signup/", views.signup_view, name="signup"),
++    path("profile/", views.profile_view, name="profile"),
++]
+diff --git a/accounts/views.py b/accounts/views.py
+new file mode 100644
+index 0000000..0ac4e6a
+--- /dev/null
++++ b/accounts/views.py
+@@ -0,0 +1,21 @@
++"""Views for the accounts app."""
++from django.shortcuts import render
++from django.views.decorators.http import require_GET
++
++
++@require_GET
++def login_view(request):
++    """Render the sign-in page (UI only for now)."""
++    return render(request, "accounts/login.html")
++
++
++@require_GET
++def signup_view(request):
++    """Render the sign-up page (UI only for now)."""
++    return render(request, "accounts/signup.html")
++
++
++@require_GET
++def profile_view(request):
++    """Render the placeholder profile page until functionality is implemented."""
++    return render(request, "accounts/profile.html")
+diff --git a/brewschews/__init__.py b/brewschews/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/brewschews/asgi.py b/brewschews/asgi.py
+new file mode 100644
+index 0000000..8dae554
+--- /dev/null
++++ b/brewschews/asgi.py
+@@ -0,0 +1,10 @@
++"""ASGI config for Brews & Chews."""
++from __future__ import annotations
++
++import os
++
++from django.core.asgi import get_asgi_application
++
++os.environ.setdefault("DJANGO_SETTINGS_MODULE", "brewschews.settings")
++
++application = get_asgi_application()
+diff --git a/brewschews/settings.py b/brewschews/settings.py
+new file mode 100644
+index 0000000..60d3004
+--- /dev/null
++++ b/brewschews/settings.py
+@@ -0,0 +1,100 @@
++"""Django settings for the Brews & Chews project."""
++from __future__ import annotations
++
++import os
++from pathlib import Path
++
++try:
++    from dotenv import load_dotenv
++except ModuleNotFoundError:  # pragma: no cover - optional dependency for local dev
++    def load_dotenv(*_args, **_kwargs):  # type: ignore[override]
++        """Fallback load_dotenv if python-dotenv is unavailable."""
++        return False
++
++BASE_DIR = Path(__file__).resolve().parent.parent
++
++load_dotenv(BASE_DIR / ".env")
++
++SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-change-me")
++DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
++ALLOWED_HOSTS = [host.strip() for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
++
++INSTALLED_APPS = [
++    "django.contrib.admin",
++    "django.contrib.auth",
++    "django.contrib.contenttypes",
++    "django.contrib.sessions",
++    "django.contrib.messages",
++    "django.contrib.staticfiles",
++    "accounts",
++    "pages",
++]
++
++MIDDLEWARE = [
++    "django.middleware.security.SecurityMiddleware",
++    "django.contrib.sessions.middleware.SessionMiddleware",
++    "django.middleware.common.CommonMiddleware",
++    "django.middleware.csrf.CsrfViewMiddleware",
++    "django.contrib.auth.middleware.AuthenticationMiddleware",
++    "django.contrib.messages.middleware.MessageMiddleware",
++    "django.middleware.clickjacking.XFrameOptionsMiddleware",
++]
++
++ROOT_URLCONF = "brewschews.urls"
++
++TEMPLATES = [
++    {
++        "BACKEND": "django.template.backends.django.DjangoTemplates",
++        "DIRS": [BASE_DIR / "templates"],
++        "APP_DIRS": True,
++        "OPTIONS": {
++            "context_processors": [
++                "django.template.context_processors.debug",
++                "django.template.context_processors.request",
++                "django.contrib.auth.context_processors.auth",
++                "django.contrib.messages.context_processors.messages",
++            ],
++        },
++    }
++]
++
++WSGI_APPLICATION = "brewschews.wsgi.application"
++ASGI_APPLICATION = "brewschews.asgi.application"
++
++DATABASES = {
++    "default": {
++        "ENGINE": "django.db.backends.sqlite3",
++        "NAME": BASE_DIR / os.environ.get("DJANGO_DB_NAME", "db.sqlite3"),
++    }
++}
++
++AUTH_PASSWORD_VALIDATORS = [
++    {
++        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
++    },
++    {
++        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
++        "OPTIONS": {"min_length": 12},
++    },
++    {
++        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
++    },
++    {
++        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
++    },
++]
++
++LANGUAGE_CODE = "en-us"
++TIME_ZONE = "UTC"
++USE_I18N = True
++USE_TZ = True
++
++STATIC_URL = "/static/"
++STATICFILES_DIRS = [BASE_DIR / "static"]
++STATIC_ROOT = BASE_DIR / "staticfiles"
++
++DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
++
++LOGIN_URL = "accounts:login"
++LOGIN_REDIRECT_URL = "accounts:profile"
++LOGOUT_REDIRECT_URL = "pages:home"
+diff --git a/brewschews/urls.py b/brewschews/urls.py
+new file mode 100644
+index 0000000..8dbdde6
+--- /dev/null
++++ b/brewschews/urls.py
+@@ -0,0 +1,9 @@
++"""Root URL configuration for the Brews & Chews project."""
++from django.contrib import admin
++from django.urls import include, path
++
++urlpatterns = [
++    path("admin/", admin.site.urls),
++    path("accounts/", include("accounts.urls", namespace="accounts")),
++    path("", include("pages.urls", namespace="pages")),
++]
+diff --git a/brewschews/wsgi.py b/brewschews/wsgi.py
+new file mode 100644
+index 0000000..346ad17
+--- /dev/null
++++ b/brewschews/wsgi.py
+@@ -0,0 +1,10 @@
++"""WSGI config for Brews & Chews."""
++from __future__ import annotations
++
++import os
++
++from django.core.wsgi import get_wsgi_application
++
++os.environ.setdefault("DJANGO_SETTINGS_MODULE", "brewschews.settings")
++
++application = get_wsgi_application()
+diff --git a/docs/database-plan.md b/docs/database-plan.md
+new file mode 100644
+index 0000000..bc527cd
+--- /dev/null
++++ b/docs/database-plan.md
+@@ -0,0 +1,36 @@
++# Database Planning Overview
++
++This document summarizes the relational structure we will implement in Django once we move from the static prototype to the fully functional reservation flow described in the PRD.
++
++## Core Entities
++
++| Model | Purpose | Key Fields |
++| --- | --- | --- |
++| `accounts.User` | Custom user model extending `AbstractUser` so we can enforce PRD security requirements. | `username`, `email` (AES-256 encrypted), `password` (Argon2 hash), `is_email_verified`, `failed_attempts`, `locked_until`, timestamps |
++| `accounts.LoginAttempt` | Tracks authentication attempts for rate limiting and audit logs. | `user` FK (nullable for unknown users), `ip_address`, `user_agent`, `is_successful`, `created_at` |
++| `accounts.Profile` | Stores customer-facing profile details surfaced in the PRD. | `user` OneToOne FK, `display_name`, `phone_number`, `favorite_drink`, `avatar` |
++| `menu.Category` | Normalized grouping for menu items (drinks vs food). | `name`, `slug`, `type` (`Enum`: `drink`, `food`), `description`, `is_featured`, ordering fields |
++| `menu.MenuItem` | Individual drink/food entries. | `category` FK, `name`, `slug`, `description`, `base_price`, `image`, `is_available`, `display_order` |
++| `reservations.Reservation` | Represents the table/ drink reservation request from the PRD. | `user` FK, `menu_item` FK (nullable for table-only reservations), `party_size`, `reservation_at`, `special_request`, status fields |
++| `reservations.Payment` | Stores payment confirmation metadata once the online payment flow is enabled. | `reservation` OneToOne FK, `provider_reference`, `amount`, `currency`, `status`, timestamps |
++
++## Security Considerations
++
++* **Password hashing**: Configure `PASSWORD_HASHERS` to prefer `argon2.PasswordHasher` with a fallback to Django’s defaults. This satisfies the PRD requirement for Argon2.
++* **Email encryption**: Use `django-fernet-fields` or a lightweight wrapper around `cryptography.fernet` to transparently encrypt/decrypt the `email` field at rest. The sample static menu data shows how we will ultimately hydrate menu items before a database is ready.
++* **Login throttling**: Store failed attempts in `LoginAttempt` and update `User.locked_until` after five failed tries within 15 minutes. The login form already surfaces the user-facing messaging for this behaviour.
++* **PII separation**: Keep reservation/payment tables in a dedicated app (`reservations`) so we can apply stricter access controls and auditing middleware.
++
++## Initial Migration Plan
++
++1. **Custom user**: Create the `accounts` app migration that swaps in our custom user (`AUTH_USER_MODEL`). Include fields for lockouts and audit timestamps from the start to avoid disruptive schema changes later.
++2. **Profile + LoginAttempt**: Add supporting tables and signals (e.g., create a `Profile` row on user creation).
++3. **Menu scaffolding**: Port the structures from `pages/menu_data.py` into actual `Category` and `MenuItem` models. Seed fixtures with the existing sample content so the UI remains populated.
++4. **Reservations**: Introduce reservation/payment tables with status enums (`pending`, `confirmed`, `cancelled`) and indexes on `reservation_at` + `user` for quick lookups.
++5. **Data privacy**: Configure database-level constraints (unique email, unique reservation per timeslot + table) and add custom managers for filtering available menu items.
++
++## Next Steps
++
++* Finalize field choices (e.g., decimal precision for pricing, phone validation) and document them in model docstrings.
++* Determine whether we need a separate table for `Table` inventory or if reservations are per menu item only; the PRD hints at table reservations, so we likely introduce a `Table` model with capacity + availability windows.
++* Prepare ERD diagrams once migrations are drafted to keep documentation in sync with the PRD and onboarding material in the README.
+diff --git a/manage.py b/manage.py
+new file mode 100644
+index 0000000..ea6e345
+--- /dev/null
++++ b/manage.py
+@@ -0,0 +1,22 @@
++#!/usr/bin/env python3
++"""Django's command-line utility for administrative tasks."""
++import os
++import sys
++
++
++def main() -> None:
++    """Run administrative tasks."""
++    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "brewschews.settings")
++    try:
++        from django.core.management import execute_from_command_line
++    except ImportError as exc:
++        raise ImportError(
++            "Couldn't import Django. Are you sure it's installed and "
++            "available on your PYTHONPATH environment variable? Did you "
++            "forget to activate a virtual environment?"
++        ) from exc
++    execute_from_command_line(sys.argv)
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/pages/__init__.py b/pages/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/pages/admin.py b/pages/admin.py
+new file mode 100644
+index 0000000..d167bdf
+--- /dev/null
++++ b/pages/admin.py
+@@ -0,0 +1 @@
++"""Admin configuration for static pages (none required yet)."""
+diff --git a/pages/apps.py b/pages/apps.py
+new file mode 100644
+index 0000000..4b6237c
+--- /dev/null
++++ b/pages/apps.py
+@@ -0,0 +1,6 @@
++from django.apps import AppConfig
++
++
++class PagesConfig(AppConfig):
++    default_auto_field = "django.db.models.BigAutoField"
++    name = "pages"
+diff --git a/pages/menu_data.py b/pages/menu_data.py
+new file mode 100644
+index 0000000..bb6cad9
+--- /dev/null
++++ b/pages/menu_data.py
+@@ -0,0 +1,198 @@
++"""Static menu data used to render the preview page before the database is ready."""
++
++from dataclasses import dataclass
++from typing import List, Sequence
++
++
++@dataclass(frozen=True)
++class MenuItem:
++    """Simple representation of a menu item for the preview page."""
++
++    name: str
++    image: str
++    description: str
++
++
++@dataclass(frozen=True)
++class MenuCategory:
++    """Grouping of menu items for display in the preview UI."""
++
++    slug: str
++    title: str
++    kind: str  # either "drinks" or "food"
++    blurb: str
++    items: Sequence[MenuItem]
++
++
++MENU_CATEGORIES: List[MenuCategory] = [
++    MenuCategory(
++        slug="featured-drinks",
++        title="Featured Drinks",
++        kind="drinks",
++        blurb="Seasonal favorites curated by our baristas.",
++        items=(
++            MenuItem(
++                name="Maple Cocoa Nibs Oatmilk Shaken Espresso",
++                image="img/Product 1.jpg",
++                description="A cozy blend of maple, cocoa nibs, and velvety oatmilk shaken over ice.",
++            ),
++            MenuItem(
++                name="Frappuccino",
++                image="img/Product 2.jpg",
++                description="Our signature blended beverage with whipped cream and caramel drizzle.",
++            ),
++        ),
++    ),
++    MenuCategory(
++        slug="brewed-coffee",
++        title="Brewed Coffee",
++        kind="drinks",
++        blurb="Slow brewed classics to jump-start your day.",
++        items=(
++            MenuItem(
++                name="Drip Coffee",
++                image="img/bg.jpg",
++                description="Freshly brewed medium roast with a smooth finish.",
++            ),
++            MenuItem(
++                name="Cold Brew",
++                image="img/bg.jpg",
++                description="Steeped for 20 hours for a naturally sweet, less acidic cup.",
++            ),
++        ),
++    ),
++    MenuCategory(
++        slug="espresso",
++        title="Espresso",
++        kind="drinks",
++        blurb="Pulled-to-order shots and milk-based espresso favorites.",
++        items=(
++            MenuItem(
++                name="Espresso Shot",
++                image="img/bg.jpg",
++                description="A concentrated shot with rich crema and balanced sweetness.",
++            ),
++            MenuItem(
++                name="Cappuccino",
++                image="img/bg.jpg",
++                description="Equal parts espresso, steamed milk, and foam dusted with cocoa.",
++            ),
++        ),
++    ),
++    MenuCategory(
++        slug="blended-beverage",
++        title="Blended Beverages",
++        kind="drinks",
++        blurb="Creamy and refreshing treats blended to perfection.",
++        items=(
++            MenuItem(
++                name="Chai Tea Cream Frappuccino",
++                image="img/bg.jpg",
++                description="Spiced chai blended with milk and ice, finished with whipped cream.",
++            ),
++            MenuItem(
++                name="Caramel Cream Frappuccino",
++                image="img/bg.jpg",
++                description="Buttery caramel blended with milk for a dessert-like sip.",
++            ),
++        ),
++    ),
++    MenuCategory(
++        slug="teavana-tea",
++        title="Teavana Tea",
++        kind="drinks",
++        blurb="Loose-leaf teas served hot or iced for any mood.",
++        items=(
++            MenuItem(
++                name="Full Leaf Brewed Tea",
++                image="img/bg.jpg",
++                description="Choose from jasmine, earl grey, or chamomile, brewed to order.",
++            ),
++            MenuItem(
++                name="Iced Black Tea Latte",
++                image="img/bg.jpg",
++                description="Bold black tea shaken with milk and a hint of sweetness over ice.",
++            ),
++        ),
++    ),
++    MenuCategory(
++        slug="refreshers",
++        title="Refreshers",
++        kind="drinks",
++        blurb="Light, fruit-forward refreshments with a caffeine boost.",
++        items=(
++            MenuItem(
++                name="Lemonade",
++                image="img/bg.jpg",
++                description="House-made lemonade with freshly squeezed citrus.",
++            ),
++            MenuItem(
++                name="Iced Cucumber",
++                image="img/bg.jpg",
++                description="Cucumber, mint, and lime shaken for a crisp cooler.",
++            ),
++        ),
++    ),
++    MenuCategory(
++        slug="featured-food",
++        title="Featured Food",
++        kind="food",
++        blurb="Limited-time pairings hand-picked for the season.",
++        items=(
++            MenuItem(
++                name="Glazed Chicken",
++                image="img/bg.jpg",
++                description="Grilled chicken glazed with honey garlic and served warm.",
++            ),
++            MenuItem(
++                name="Buttered Chicken",
++                image="img/bg.jpg",
++                description="Comforting butter chicken served with artisanal bread.",
++            ),
++        ),
++    ),
++    MenuCategory(
++        slug="bakery",
++        title="Bakery",
++        kind="food",
++        blurb="Freshly baked goods made in-house every morning.",
++        items=(
++            MenuItem(
++                name="Chocolate Dipped Doughnut",
++                image="img/bg.jpg",
++                description="Yeast doughnut dipped in rich dark chocolate glaze.",
++            ),
++            MenuItem(
++                name="Bacon Belgian Waffle",
++                image="img/bg.jpg",
++                description="Crisp waffle folded with smoky bacon bits and maple butter.",
++            ),
++        ),
++    ),
++    MenuCategory(
++        slug="sandwiches",
++        title="Sandwiches",
++        kind="food",
++        blurb="Savory sandwiches assembled with local ingredients.",
++        items=(
++            MenuItem(
++                name="Cheesy Tuna Sandwich",
++                image="img/bg.jpg",
++                description="Toasted sourdough with creamy tuna salad and cheddar.",
++            ),
++            MenuItem(
++                name="Egg Sandwich",
++                image="img/bg.jpg",
++                description="Soft brioche filled with scrambled eggs and cheddar cheese.",
++            ),
++        ),
++    ),
++]
++
++
++def get_menu_categories(kind: str) -> List[MenuCategory]:
++    """Return categories filtered by kind (drinks or food)."""
++
++    kind = kind.lower()
++    return [category for category in MENU_CATEGORIES if category.kind == kind]
++
+diff --git a/pages/migrations/__init__.py b/pages/migrations/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/pages/models.py b/pages/models.py
+new file mode 100644
+index 0000000..18d75d1
+--- /dev/null
++++ b/pages/models.py
+@@ -0,0 +1 @@
++"""Database models for marketing pages are not required at this stage."""
+diff --git a/pages/tests.py b/pages/tests.py
+new file mode 100644
+index 0000000..0e31f73
+--- /dev/null
++++ b/pages/tests.py
+@@ -0,0 +1 @@
++"""Placeholder for pages app tests."""
+diff --git a/pages/urls.py b/pages/urls.py
+new file mode 100644
+index 0000000..6888542
+--- /dev/null
++++ b/pages/urls.py
+@@ -0,0 +1,11 @@
++"""URL patterns for the public-facing pages."""
++from django.urls import path
++
++from . import views
++
++app_name = "pages"
++
++urlpatterns = [
++    path("", views.home, name="home"),
++    path("menu/", views.menu_preview, name="menu"),
++]
+diff --git a/pages/views.py b/pages/views.py
+new file mode 100644
+index 0000000..b54558a
+--- /dev/null
++++ b/pages/views.py
+@@ -0,0 +1,35 @@
++"""Views for the pages app."""
++from django.shortcuts import render
++from django.views.decorators.http import require_GET
++
++from .menu_data import MENU_CATEGORIES, get_menu_categories
++
++
++@require_GET
++def home(request):
++    """Render the marketing landing page."""
++    return render(request, "pages/index.html")
++
++
++@require_GET
++def menu_preview(request):
++    """Render the menu preview page."""
++    drinks = get_menu_categories("drinks")
++    food = get_menu_categories("food")
++
++    default_category = ""
++    if drinks:
++        default_category = drinks[0].slug
++    elif MENU_CATEGORIES:
++        default_category = MENU_CATEGORIES[0].slug
++
++    return render(
++        request,
++        "pages/menu.html",
++        {
++            "drinks_categories": drinks,
++            "food_categories": food,
++            "all_categories": MENU_CATEGORIES,
++            "default_category": default_category,
++        },
++    )
+diff --git a/requirements.txt b/requirements.txt
+new file mode 100644
+index 0000000..c3c0c89
+--- /dev/null
++++ b/requirements.txt
+@@ -0,0 +1,4 @@
++Django>=4.2,<5.0
++argon2-cffi>=23.1.0
++cryptography>=41.0.0
++python-dotenv>=1.0.0
+diff --git a/static/css/menu.css b/static/css/menu.css
+new file mode 100644
+index 0000000..2094762
+--- /dev/null
++++ b/static/css/menu.css
+@@ -0,0 +1,214 @@
++.menu-main {
++    display: grid;
++    grid-template-columns: 260px 1fr;
++    gap: 2.5rem;
++    padding: 6.5rem 8vw 4rem 8vw;
++    color: #fff;
++}
++
++.menu-sidebar {
++    position: sticky;
++    top: 6.5rem;
++    align-self: start;
++    background: rgba(0, 0, 0, 0.55);
++    border: 1px solid rgba(255, 255, 255, 0.08);
++    border-radius: .75rem;
++    padding: 1.5rem 1.75rem;
++    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
++    backdrop-filter: blur(4px);
++}
++
++.menu-sidebar__group + .menu-sidebar__group {
++    margin-top: 2rem;
++}
++
++.menu-sidebar__title {
++    font-size: 1.1rem;
++    font-weight: 700;
++    margin-bottom: 1rem;
++}
++
++.menu-sidebar__list {
++    list-style: none;
++    display: grid;
++    gap: .5rem;
++    padding: 0;
++    margin: 0;
++}
++
++.menu-sidebar__button {
++    width: 100%;
++    text-align: left;
++    background: transparent;
++    border: 1px solid rgba(255, 255, 255, 0.25);
++    color: #fff;
++    font: inherit;
++    padding: .6rem .75rem;
++    border-radius: .4rem;
++    cursor: pointer;
++    transition: border-color .2s ease, background-color .2s ease, color .2s ease;
++}
++
++.menu-sidebar__button[data-active="true"],
++.menu-sidebar__button:hover,
++.menu-sidebar__button:focus-visible {
++    background: rgba(166, 120, 69, 0.25);
++    border-color: rgba(198, 154, 99, 0.75);
++    color: #fff5e9;
++    outline: none;
++}
++
++.menu-content {
++    display: grid;
++    gap: 2rem;
++}
++
++.menu-intro {
++    background: rgba(0, 0, 0, 0.45);
++    border-radius: .75rem;
++    padding: 2rem 2.5rem;
++    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
++    border: 1px solid rgba(255, 255, 255, 0.1);
++}
++
++.menu-intro__title {
++    font-size: 2.4rem;
++    margin-bottom: .75rem;
++}
++
++.menu-intro__lead {
++    font-size: 1.05rem;
++    line-height: 1.7rem;
++    opacity: 0.9;
++    margin-bottom: 1.5rem;
++}
++
++.menu-intro__actions {
++    display: flex;
++    flex-wrap: wrap;
++    gap: 1rem;
++}
++
++.menu-panels {
++    display: grid;
++    gap: 2rem;
++}
++
++.menu-category {
++    background: rgba(0, 0, 0, 0.45);
++    border-radius: .75rem;
++    padding: 2rem 2.5rem;
++    border: 1px solid rgba(255, 255, 255, 0.1);
++    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
++}
++
++.menu-category[hidden] {
++    display: none;
++}
++
++.menu-category__header {
++    margin-bottom: 1.5rem;
++}
++
++.menu-category__title {
++    font-size: 1.8rem;
++    margin-bottom: .35rem;
++}
++
++.menu-category__blurb {
++    opacity: .85;
++}
++
++.menu-grid {
++    display: grid;
++    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
++    gap: 1.5rem;
++}
++
++.menu-card {
++    background: rgba(255, 255, 255, 0.08);
++    border-radius: .75rem;
++    border: 1px solid rgba(255, 255, 255, 0.15);
++    overflow: hidden;
++    display: grid;
++    grid-template-rows: 180px 1fr;
++    transition: transform .2s ease, box-shadow .2s ease;
++}
++
++.menu-card:hover {
++    transform: translateY(-6px);
++    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.45);
++}
++
++.menu-card__image {
++    width: 100%;
++    height: 100%;
++    object-fit: cover;
++}
++
++.menu-card__body {
++    padding: 1.25rem 1.5rem 1.5rem 1.5rem;
++    display: grid;
++    gap: .75rem;
++}
++
++.menu-card__title {
++    font-size: 1.1rem;
++}
++
++.menu-card__description {
++    font-size: .95rem;
++    line-height: 1.5rem;
++    opacity: .9;
++}
++
++.menu-card__cta {
++    justify-self: start;
++    padding: .65rem 1.1rem;
++    background: rgba(166, 120, 69, 0.9);
++    border-radius: .35rem;
++    color: #fff;
++    font-weight: 700;
++    text-decoration: none;
++    transition: background-color .2s ease, transform .2s ease;
++}
++
++.menu-card__cta:hover,
++.menu-card__cta:focus-visible {
++    background: rgba(198, 154, 99, 1);
++    transform: translateY(-2px);
++}
++
++@media (max-width: 1024px) {
++    .menu-main {
++        grid-template-columns: 1fr;
++        padding: 6.5rem 5vw 3.5rem 5vw;
++    }
++
++    .menu-sidebar {
++        position: relative;
++        top: 0;
++        display: grid;
++        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
++        gap: 1.5rem;
++    }
++
++    .menu-sidebar__group {
++        margin-top: 0 !important;
++    }
++}
++
++@media (max-width: 640px) {
++    .menu-intro,
++    .menu-category {
++        padding: 1.5rem 1.75rem;
++    }
++
++    .menu-card {
++        grid-template-rows: 160px 1fr;
++    }
++
++    .menu-card__body {
++        padding: 1rem 1.2rem 1.25rem 1.2rem;
++    }
++}
+diff --git a/style/style.css b/static/css/style.css
+similarity index 63%
+rename from style/style.css
+rename to static/css/style.css
+index 5c5162c..ff0dc8a 100644
+--- a/style/style.css
++++ b/static/css/style.css
+@@ -35,10 +35,16 @@ html {
+ 
+ body {
+     font-family: "Lato", sans-serif;
+-    background-image: url('../assets/bg.jpg');
++    background-image: url('../img/bg.jpg');
+     background-size: cover;  /* make it cover the whole screen */
+     background-repeat: no-repeat; /* avoid repeating */
+     background-position: center center; /* keep image centered */
++    min-height: 100vh;
++}
++
++.site-header {
++    position: relative;
++    z-index: 10;
+ }
+ 
+ /* navbar*/
+@@ -82,11 +88,24 @@ body {
+ 
+ }
+ 
++.links.is-active {
++    color: var(--secondary-text-color);
++}
++
++.page-main {
++    padding-top: 6.5rem;
++    min-height: calc(100vh - 4.5rem);
++}
++
++.home-main {
++    padding-top: 0;
++}
++
+ /* hero section */
+-#hero-section{
+-    min-height: 110vh;
+-    padding: 0 8vw;
+-    display: flex; 
++.hero {
++    min-height: calc(100vh - 6.5rem);
++    padding: 6.5rem 8vw 0 8vw;
++    display: flex;
+     justify-content: space-between;
+     align-items: center;
+ }
+@@ -150,6 +169,16 @@ body {
+   background-color: var(--secondary-color);
+ }
+ 
++.btn-secondary {
++    background: transparent;
++    border: 2px solid var(--light-text-color);
++    margin-left: 1rem;
++}
++
++.btn-secondary:hover {
++    background: rgba(255, 255, 255, 0.15);
++}
++
+ 
+ .hero-image{
+     width: 500px;
+@@ -216,7 +245,7 @@ html { scroll-behavior: smooth; }
+ }
+ 
+ @media (max-width: 640px) {
+-  #hero-section { flex-direction: column; gap: 2rem; padding-top: 5.5rem; }
++  .hero { flex-direction: column; gap: 2rem; padding-top: 5.5rem; }
+   .hero-content { max-width: 100%; text-align: center; }
+   .hero-image { width: 60%; }
+   .offer-list { grid-template-columns: 1fr; }
+@@ -248,14 +277,173 @@ html { scroll-behavior: smooth; }
+ }
+ 
+ .auth-card {
+-  background: rgba(0,0,0,0.4);
+-  padding: 2rem;
+-  border-radius: .5rem;
++  background: rgba(0,0,0,0.45);
++  padding: 2.25rem 2.5rem;
++  border-radius: .75rem;
+   width: 100%;
++  max-width: 460px;
++  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
++  backdrop-filter: blur(6px);
++}
++
++.auth-title {
++  font-size: 2rem;
++  line-height: 2.6rem;
++  text-align: center;
++}
++
++.auth-form {
++  margin-top: 1.5rem;
++  display: grid;
++  gap: 1.25rem;
++}
++
++.auth-field {
++  display: grid;
++  gap: .5rem;
++}
++
++.auth-label {
++  color: #fff;
++  font-weight: 700;
++  display: block;
++}
++
++.auth-input {
++  padding: .95rem 1rem;
++  border-radius: .35rem;
++  border: 1px solid rgba(255,255,255,0.25);
++  background: rgba(255,255,255,0.9);
++  transition: border-color .2s ease, box-shadow .2s ease;
++}
++
++.auth-input:focus {
++  border-color: var(--secondary-color);
++  box-shadow: 0 0 0 4px rgba(198, 154, 99, 0.35);
++}
++
++.field-hint {
++  font-size: .85rem;
++  color: rgba(255,255,255,0.75);
++}
++
++.field-error {
++  font-size: .85rem;
++  color: #ffb8b8;
++  background: rgba(209, 67, 67, 0.15);
++  border-radius: .35rem;
++  padding: .4rem .6rem;
++}
++
++.password-strength {
++  height: .6rem;
++  background: rgba(255,255,255,0.15);
++  border-radius: .35rem;
++  position: relative;
++  overflow: hidden;
++}
++
++.strength-bar {
++  position: absolute;
++  left: 0;
++  top: 0;
++  bottom: 0;
++  width: 0;
++  border-radius: inherit;
++  transition: width .2s ease, background-color .2s ease;
++  background-color: #d14343;
++}
++
++.strength-label {
++  margin-top: .65rem;
++  font-size: .85rem;
++  font-weight: 600;
++  color: #d14343;
++}
++
++.password-requirements {
++  list-style: none;
++  padding: 0;
++  margin: .75rem 0 0 0;
++  display: grid;
++  gap: .4rem;
++  font-size: .85rem;
++}
++
++.password-requirements li {
++  color: rgba(255,255,255,0.8);
++  padding-left: 1.4rem;
++  position: relative;
++}
++
++.password-requirements li::before {
++  content: '\2717';
++  position: absolute;
++  left: 0;
++  top: 0;
++  color: #ff7979;
++  font-weight: 700;
++}
++
++.password-requirements li[data-valid="true"] {
++  color: #b7f7d4;
++}
++
++.password-requirements li[data-valid="true"]::before {
++  content: '\2713';
++  color: #2ecc71;
++}
++
++.auth-checkbox {
++  display: flex;
++  align-items: center;
++  gap: .6rem;
++  color: rgba(255,255,255,0.85);
++  font-size: .95rem;
++}
++
++.auth-checkbox input {
++  width: 1rem;
++  height: 1rem;
++}
++
++.auth-note {
++  margin-top: 1.5rem;
++  font-size: .9rem;
++  line-height: 1.4rem;
++  color: rgba(255,255,255,0.85);
++}
++
++.auth-alt {
++  margin-top: 1.5rem;
++  text-align: center;
++  color: #fff;
++}
++
++.auth-alert {
++  margin-top: 1.25rem;
++  padding: .85rem 1rem;
++  border-radius: .5rem;
++  background: rgba(209, 67, 67, 0.2);
++  color: #ffdede;
++  border: 1px solid rgba(209, 67, 67, 0.4);
++}
++
++.profile-main {
++  align-items: center;
++}
++
++.profile-card {
+   max-width: 420px;
++  text-align: center;
+ }
+ 
+-.auth-form { margin-top: 1.5rem; display: grid; gap: 1rem; }
+-.auth-label { color: #fff; font-weight: 700; }
+-.auth-input { padding: .9rem 1rem; border-radius: .35rem; border: 1px solid transparent; outline: none; }
+-.auth-alt { margin-top: 1rem; text-align: center; color: #fff; }
+\ No newline at end of file
++@media (max-width: 540px) {
++  .auth-card {
++    padding: 1.75rem 1.5rem;
++  }
++
++  .auth-main {
++    padding: 6.5rem 1.5rem 3rem 1.5rem;
++  }
++}
+diff --git a/assets/Product 1.jpg b/static/img/Product 1.jpg
+similarity index 100%
+rename from assets/Product 1.jpg
+rename to static/img/Product 1.jpg
+diff --git a/assets/Product 2.jpg b/static/img/Product 2.jpg
+similarity index 100%
+rename from assets/Product 2.jpg
+rename to static/img/Product 2.jpg
+diff --git a/assets/bg.jpg b/static/img/bg.jpg
+similarity index 100%
+rename from assets/bg.jpg
+rename to static/img/bg.jpg
+diff --git a/assets/logo.png b/static/img/logo.png
+similarity index 100%
+rename from assets/logo.png
+rename to static/img/logo.png
+diff --git a/static/js/auth.js b/static/js/auth.js
+new file mode 100644
+index 0000000..919ba9e
+--- /dev/null
++++ b/static/js/auth.js
+@@ -0,0 +1,215 @@
++const REQUIREMENTS = [
++  {
++    key: 'length',
++    test: (value) => value.length >= 8,
++  },
++  {
++    key: 'uppercase',
++    test: (value) => /[A-Z]/.test(value),
++  },
++  {
++    key: 'number',
++    test: (value) => /\d/.test(value),
++  },
++  {
++    key: 'special',
++    test: (value) => /[!@#$%^&*]/.test(value),
++  },
++];
++
++const STRENGTH_LEVELS = [
++  { threshold: 0, label: 'Strength: Too weak', color: '#d14343' },
++  { threshold: 2, label: 'Strength: Fair', color: '#f4a259' },
++  { threshold: 3, label: 'Strength: Good', color: '#f7d154' },
++  { threshold: 4, label: 'Strength: Strong', color: '#2ecc71' },
++];
++
++function evaluateStrength(value) {
++  let score = 0;
++  for (const requirement of REQUIREMENTS) {
++    if (requirement.test(value)) {
++      score += 1;
++    }
++  }
++
++  let level = STRENGTH_LEVELS[0];
++  for (const candidate of STRENGTH_LEVELS) {
++    if (score >= candidate.threshold) {
++      level = candidate;
++    }
++  }
++
++  return { score, level };
++}
++
++function updateRequirementIndicators(form, password) {
++  const result = evaluateStrength(password);
++  const { level, score } = result;
++
++  const bar = form.querySelector('[data-strength-bar]');
++  const label = form.querySelector('[data-strength-label]');
++
++  if (bar) {
++    bar.style.width = `${(score / REQUIREMENTS.length) * 100}%`;
++    bar.style.backgroundColor = level.color;
++  }
++
++  if (label) {
++    label.textContent = level.label;
++    label.style.color = level.color;
++  }
++
++  for (const requirement of REQUIREMENTS) {
++    const item = form.querySelector(`[data-requirement="${requirement.key}"]`);
++    if (!item) continue;
++    const isValid = requirement.test(password);
++    item.dataset.valid = String(isValid);
++  }
++
++  return result;
++}
++
++function setFieldError(form, field, message) {
++  const errorElement = form.querySelector(`[data-field-error="${field}"]`);
++  if (!errorElement) return;
++  if (message) {
++    errorElement.textContent = message;
++    errorElement.hidden = false;
++  } else {
++    errorElement.textContent = '';
++    errorElement.hidden = true;
++  }
++}
++
++function validateUsername(value) {
++  if (!value.trim()) return 'Username is required.';
++  if (!/^[A-Za-z0-9._-]{3,30}$/.test(value.trim())) {
++    return 'Use 3-30 characters with letters, numbers, or ._- only.';
++  }
++  return '';
++}
++
++function validateEmail(value) {
++  if (!value.trim()) return 'Email is required.';
++  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
++  if (!emailPattern.test(value.trim())) {
++    return 'Enter a valid email address.';
++  }
++  return '';
++}
++
++function validatePassword(password) {
++  const { score } = evaluateStrength(password);
++  if (!password) return 'Password is required.';
++  if (score < REQUIREMENTS.length) {
++    return 'Password does not meet all requirements yet.';
++  }
++  return '';
++}
++
++function validateConfirm(password, confirm) {
++  if (!confirm) return 'Confirm your password.';
++  if (password !== confirm) return 'Passwords do not match.';
++  return '';
++}
++
++function setupSignupForm() {
++  const form = document.querySelector('[data-signup-form]');
++  if (!form) return;
++
++  const username = form.querySelector('#su-username');
++  const email = form.querySelector('#su-email');
++  const password = form.querySelector('#su-password');
++  const confirm = form.querySelector('#su-confirm');
++
++  password?.addEventListener('input', () => {
++    updateRequirementIndicators(form, password.value);
++    setFieldError(form, 'password', '');
++    if (confirm?.value) {
++      setFieldError(form, 'confirm', password.value === confirm.value ? '' : 'Passwords do not match.');
++    }
++  });
++
++  confirm?.addEventListener('input', () => {
++    if (!password) return;
++    setFieldError(form, 'confirm', password.value === confirm.value ? '' : 'Passwords do not match.');
++  });
++
++  username?.addEventListener('blur', () => {
++    setFieldError(form, 'username', validateUsername(username.value));
++  });
++
++  email?.addEventListener('blur', () => {
++    setFieldError(form, 'email', validateEmail(email.value));
++  });
++
++  form.addEventListener('submit', (event) => {
++    let hasError = false;
++
++    if (username) {
++      const message = validateUsername(username.value);
++      setFieldError(form, 'username', message);
++      hasError ||= Boolean(message);
++    }
++
++    if (email) {
++      const message = validateEmail(email.value);
++      setFieldError(form, 'email', message);
++      hasError ||= Boolean(message);
++    }
++
++    if (password) {
++      const message = validatePassword(password.value);
++      setFieldError(form, 'password', message);
++      hasError ||= Boolean(message);
++    }
++
++    if (password && confirm) {
++      const message = validateConfirm(password.value, confirm.value);
++      setFieldError(form, 'confirm', message);
++      hasError ||= Boolean(message);
++    }
++
++    if (hasError) {
++      event.preventDefault();
++      form.querySelector('.auth-input')?.focus();
++    }
++  });
++
++  // Seed the indicator on first render.
++  updateRequirementIndicators(form, password?.value ?? '');
++}
++
++function setupLoginForm() {
++  const form = document.querySelector('[data-login-form]');
++  if (!form) return;
++  const alertBox = document.querySelector('[data-auth-alert]');
++
++  form.addEventListener('submit', (event) => {
++    const identifier = form.querySelector('#login-identifier');
++    const password = form.querySelector('#login-password');
++    const missingIdentifier = !identifier?.value.trim();
++    const missingPassword = !password?.value.trim();
++
++    if (missingIdentifier || missingPassword) {
++      event.preventDefault();
++      if (alertBox) {
++        alertBox.textContent = 'Enter your username/email and password to continue.';
++        alertBox.hidden = false;
++      }
++      identifier?.focus();
++      return;
++    }
++
++    if (alertBox) {
++      alertBox.hidden = true;
++    }
++  });
++}
++
++function init() {
++  setupSignupForm();
++  setupLoginForm();
++}
++
++document.addEventListener('DOMContentLoaded', init);
+diff --git a/static/js/menu.js b/static/js/menu.js
+new file mode 100644
+index 0000000..7244f6c
+--- /dev/null
++++ b/static/js/menu.js
+@@ -0,0 +1,50 @@
++const MENU_SELECTOR = '[data-menu]';
++const BUTTON_SELECTOR = '[data-category-trigger]';
++const PANEL_SELECTOR = '[data-category-panel]';
++
++function activateCategory(panels, buttons, slug) {
++  buttons.forEach((button) => {
++    const isActive = button.dataset.target === slug;
++    button.dataset.active = String(isActive);
++    button.setAttribute('aria-selected', String(isActive));
++    button.setAttribute('tabindex', isActive ? '0' : '-1');
++  });
++
++  panels.forEach((panel) => {
++    const isActive = panel.id === slug;
++    panel.toggleAttribute('hidden', !isActive);
++    panel.dataset.active = String(isActive);
++  });
++}
++
++function setupMenuTabs() {
++  const menuRoot = document.querySelector(MENU_SELECTOR);
++  if (!menuRoot) return;
++
++  const panels = menuRoot.querySelectorAll(PANEL_SELECTOR);
++  const buttons = document.querySelectorAll(BUTTON_SELECTOR);
++  if (!buttons.length || !panels.length) return;
++
++  const defaultSlug = menuRoot.dataset.defaultCategory || buttons[0].dataset.target;
++
++  buttons.forEach((button) => {
++    button.addEventListener('click', () => {
++      activateCategory(panels, buttons, button.dataset.target);
++      button.focus();
++    });
++
++    button.addEventListener('keydown', (event) => {
++      if (event.key !== 'Enter' && event.key !== ' ') {
++        return;
++      }
++      event.preventDefault();
++      activateCategory(panels, buttons, button.dataset.target);
++    });
++  });
++
++  if (defaultSlug) {
++    activateCategory(panels, buttons, defaultSlug);
++  }
++}
++
++document.addEventListener('DOMContentLoaded', setupMenuTabs);
+diff --git a/style/menu.css b/style/menu.css
+deleted file mode 100644
+index e057f01..0000000
+--- a/style/menu.css
++++ /dev/null
+@@ -1,162 +0,0 @@
+-* {
+-    margin: 0;
+-    padding: 0;
+-    box-sizing: border-box;
+-}
+-
+-:root {
+-    /* color variables */
+-    --accent-color: #a67845;
+-    --primary-text-color: #ffffff;
+-    --secondary-text-color: #794800;
+-    --light-text-color: #fff;
+-    --primary-color: #fff;
+-    --secondary-color: #c79a63;
+-    --alpha-secondary-color: rgba(0, 118, 118, 0.2);
+-    --discount-color: #E71A1C;
+-    --card-hover-bg-color: #F9F9F9;
+-    --border-color: #f9f9f9;
+-    --box-shadow-color: var(--accent-color);
+-    --shadow: rgba(0, 0, 0, 0.05);
+-    --box-shadow: rgba(0, 0, 0, 0.25);
+-    --discount-banner-background-overlay: linear-gradient(rgba(0, 118, 118, 0.8), rgba(0, 118, 118, 0.8));
+-    --phone-app-shadow: #C7E1EB;
+-    --alpha-primary-color: rgba(255, 255, 255, 0.5);
+-    --rating-color: #FFA800;
+-
+-    /* transition curves */
+-    --transition-curve: cubic-bezier(0.36, -0.21, 0.16, 1.97);
+-}
+-
+-
+-html {
+-    font-size: 16px;
+-}
+-
+-body {
+-    font-family: "Lato", sans-serif;
+-    background-image: url('../assets/bg.jpg');
+-    background-size: cover;  /* make it cover the whole screen */
+-    background-repeat: no-repeat; /* avoid repeating */
+-    background-position: center center; /* keep image centered */
+-}
+-
+-/* navbar*/
+-
+-.navbar {
+-    position: fixed;
+-    top: 0;
+-    left: 0;
+-    width: 100%;
+-    height: 4.5rem;
+-    display: flex;
+-    align-items: center;
+-    padding: 0 10vw;
+-    z-index: 9;
+-    background: var(--accent-color);    
+-}
+-
+-.links-container {
+-    display: flex;
+-    gap: 1rem;
+-    list-style: none;
+-    margin-left: auto;
+-}
+-
+-.links {
+-    color: var(--primary-text-color);
+-    text-decoration: none;
+-    text-transform: capitalize;
+-    padding: .2rem 1rem;
+-    font-weight: 900;
+-    transition: .2s;
+-}
+-
+-.links:hover {
+-    color: var(--secondary-text-color);
+-   
+-
+-}
+-
+-.logo {
+-    height: 5rem;
+-    margin-left: -3rem;
+-}
+-
+-main {
+-  display: flex;
+-  height: calc(150vh - 140px);
+-  overflow: hidden;
+-}
+-
+-.sidebar {
+-  position: fixed;
+-  height:100%;
+-  width: 170px;
+-  padding: 100px;
+-  padding-left: 50px;
+-  border-right: 1px solid #834d0f;
+-  overflow-y: auto;
+-  background: rgba(0, 0, 0, 0.6);
+-}
+-
+-.sidebar h3 {
+-  margin-bottom: 10px;
+-  font-size: 25px;
+-  color: #ffffff;
+-}
+-
+-.sidebar ul {
+-  list-style: none;
+-  margin-bottom: 20px;
+-}
+-
+-.sidebar ul li {
+-  padding: 8px 0;
+-  cursor: pointer;
+-  color: #ffffff;
+-}
+-
+-.sidebar ul li:hover {
+-  color: var(--accent-color);
+-  font-weight: bold;
+-}
+-
+-.content {
+-      flex: 1;
+-      margin-left: 180px;
+-      padding: 100px;
+-      color: rgb(255, 255, 255);
+-      overflow-y: auto;
+-    }
+-
+-    .category {
+-      display: none;
+-    }
+-
+-    .category.active {
+-      display: block;
+-    }
+-
+-    .item{
+-      text-decoration: none;
+-      display: inline-block;
+-      color: inherit;
+-      width: 180px;
+-      margin: 25px;
+-      text-align: center;
+-    }
+-
+-    .item img {
+-      width: 150px;
+-      height: 150px;
+-      border-radius: 50%;
+-      object-fit: cover;
+-    }
+-
+-    .item p {
+-      margin-top: 10px;
+-      font-weight: bold;
+-    }
+-
+-    
+\ No newline at end of file
+diff --git a/templates/Login.html b/templates/Login.html
+deleted file mode 100644
+index aa3d101..0000000
+--- a/templates/Login.html
++++ /dev/null
+@@ -1,62 +0,0 @@
+-<!DOCTYPE html>
+-<html lang="en">
+-
+-<head>
+-    <meta charset="UTF-8">
+-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Login - Brews & Chews</title>
+-
+-    <!-- Google Font CDN: typeface used across the site -->
+-    <link rel="preconnect" href="https://fonts.googleapis.com">
+-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+-
+-    <!-- Font Awesome CDN for icons (if needed) -->
+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+-
+-    <!-- Global stylesheet for layout, colors, and components -->
+-    <link rel="stylesheet" href="../style/style.css">
+-</head>
+-
+-<body>
+-    <header>
+-        <!-- Primary navigation (fixed): brand and key links -->
+-        <nav class="navbar">
+-            <a href="index.html" class="logo">
+-             <img src="../assets/logo.png" class="logo" alt="Logo">
+-            </a>
+-            <ul class="links-container">
+-                <li class="link-items"><a href="index.html" class="links">Home</a></li>
+-                <li class="link-items"><a href="Menu.html" class="links">Menu</a></li>
+-                <li class="link-items"><a href="Login.html" class="links" aria-current="page">Login</a></li>
+-            </ul>
+-        </nav>
+-        <!-- end of navbar -->
+-
+-        <!-- Auth container: centers the login card and allows scrolling -->
+-        <main class="auth-main">
+-            <section aria-labelledby="login-title" class="auth-card">
+-                <h1 id="login-title" class="hero-heading" style="font-size: 2rem; line-height: 2.6rem; text-align: center;">Sign In to Your Account</h1>
+-
+-                <!-- Basic login form; front-end only for now -->
+-                <form action="#" method="post" class="auth-form">
+-                    <label for="login-identifier" class="auth-label">Username or Email</label>
+-                    <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input">
+-
+-                    <label for="login-password" class="auth-label">Password</label>
+-                    <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password" class="auth-input">
+-
+-                    <button type="submit" class="btn" style="width: 100%;">Sign In</button>
+-                </form>
+-
+-                <p class="auth-alt">
+-                    <em>Don’t have an account?</em> <a href="SignUp.html" class="links">Sign Up</a>
+-                </p>
+-            </section>
+-        </main>
+-    </header>
+-</body>
+-</html>
+-
+-
+diff --git a/templates/Menu.html b/templates/Menu.html
+deleted file mode 100644
+index 2aed390..0000000
+--- a/templates/Menu.html
++++ /dev/null
+@@ -1,194 +0,0 @@
+-<!DOCTYPE html>
+-<html lang="en">
+-
+-<head>
+-    <meta charset="UTF-8">
+-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Brews & Chews</title>
+-           
+-
+-        <!-- Google Font CDN: typeface used across the site -->
+-    <link rel="preconnect" href="https://fonts.googleapis.com">
+-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+-        
+-    <!-- Font Awesome CDN for icons used in cards and footer -->
+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+-        <!-- Global stylesheet for layout, colors, and components -->
+-    <link rel="stylesheet" href="../style/menu.css">
+-    
+-</head>
+-
+-<body>
+-    <header>
+-        <!-- Primary navigation (fixed): brand and key links -->
+-         <nav class="navbar">
+-
+-            <!-- Brand logo -->
+-              <a href="index.html" class="logo">
+-             <img src="../assets/logo.png" class="logo" alt="Logo">
+-            </a>
+-             <!-- ul -->
+-              
+-            <ul class="links-container">
+-                <li class="link-items"><a href="index.html" class="links">Home</a></li>
+-                <li class="link-items"><a href="Menu.html" class="links">Menu</a></li>
+-                <li class="link-items"><a href="Login.html" class="links">Login</a></li>
+-             </ul>
+-         </nav>
+-            <!-- end of navbar -->
+-
+-        <main>
+-    <!-- Sidebar -->
+-      <div class="sidebar">
+-    <h3>Drinks</h3>
+-    <ul>
+-      <li onclick="showCategory('featured-drinks')"><a href="Menu.html"></a>Featured Drinks</li>
+-      <li onclick="showCategory('brewed-coffee')"><a href="Menu.html"></a>Brewed Coffee</li>
+-      <li onclick="showCategory('espresso')"><a href="Menu.html"></a>Espresso</li>
+-      <li onclick="showCategory('blended-beverage')"><a href="Menu.html"></a>Blended Beverage</li>
+-      <li onclick="showCategory('teavana-tea')"><a href="Menu.html"></a>Teavana Tea</li>
+-      <li onclick="showCategory('refreshers')"><a href="Menu.html"></a>Refreshers</li>
+-    </ul>
+-
+-    <h3>Food</h3>
+-    <ul>
+-      <li onclick="showCategory('featured-food')">Featured Food</li>
+-      <li onclick="showCategory('bakery')">Bakery</li>
+-      <li onclick="showCategory('sandwiches')">Sandwiches</li>
+-    </ul>
+-  </div>
+-
+-  <!-- Content Area -->
+-
+-  <div class="content">
+-    <!-- Featured Drinks -->
+-    <div id="featured-drinks" class="category active">
+-      <h2>Featured Drinks</h2>
+-      <div class="item">
+-        <a href="login.html">
+-        <img src="../assets/Product 1.jpg" alt="Maple Cocoa Nibs Oatmilk Shaken Espresso">
+-        </a>
+-        <p>Maple Cocoa Nibs Oatmilk Shaken Espresso</p>
+-      </div>
+-      <div class="item">
+-        <a href="login.html">
+-        <img src="../assets/Product 2.jpg" alt="Frappuccino">
+-         </a>
+-        <p>Frappuccino</p>
+-      </div>
+-    </div>
+-
+-    <div id="brewed-coffee" class="category">
+-      <h2>Brewed Coffee</h2>
+-      <div class="item">
+-        <img src="img/drip.jpg" alt="Drip Coffee">
+-        <p>Drip Coffee</p>
+-      </div>
+-      <div class="item">
+-        <img src="img/coldbrew.jpg" alt="Cold Brew">
+-        <p>Cold Brew</p>
+-      </div>
+-    </div>
+-    
+-    <div id="espresso" class="category">
+-      <h2>Espresso</h2>
+-      <div class="item">
+-        <img src="img/espresso.jpg" alt="Espresso">
+-        <p>Espresso Shot</p>
+-      </div>
+-      <div class="item">
+-        <img src="img/cappuccino.jpg" alt="Cappuccino">
+-        <p>Cappuccino</p>
+-      </div>
+-    </div>
+-
+-    <div id="blended-beverage" class="category">
+-      <h2>Blended-beverage</h2>
+-      <div class="item">
+-        <img src="img/Chai Tea Cream Frappuccino.jpg" alt="Chai Tea Cream Frappuccino">
+-        <p>Chai Tea Cream Frappuccino</p>
+-      </div>
+-      <div class="item">
+-        <img src="img/Caramel Cream Frappuccino.jpg" alt="Caramel Cream Frappuccino">
+-        <p>Caramel Cream Frappuccino</p>
+-      </div>
+-    </div>
+-
+-    <div id="teavana-tea" class="category">
+-      <h2>Teavana-tea</h2>
+-      <div class="item">
+-        <img src="img/Full leaf brewed tea.jpg" alt="Full Leaf Brewed Tea">
+-        <p>Full leaf brewed tea</p>
+-      </div>
+-      <div class="item">
+-        <img src="img/Iced Black Tea Latte.jpg" alt="Iced Black Tea Latte">
+-        <p>Iced Black Tea Latte</p>
+-      </div>
+-    </div>
+-
+-    <div id="refreshers" class="category">
+-      <h2>Refreshers</h2>
+-      <div class="item">
+-        <img src="img/Lemonade.jpg" alt="Lemonade">
+-        <p>Lemonade</p>
+-      </div>
+-      <div class="item">
+-        <img src="img/Iced Cucumber.jpg" alt="Iced Cucumber">
+-        <p>Iced Cucumber</p>
+-      </div>
+-    </div>
+-
+-    <div id="featured-food" class="category">
+-      <h2>Featured Food</h2>
+-      <div class="item">
+-        <img src="img/Glazed Chicken.jpg" alt="Glazed Chicken">
+-        <p>Glazed Chicken</p>
+-      </div>
+-      <div class="item">
+-        <img src="img/Buttered Chicken" alt="Buttered Chicken">
+-        <p>Buttered Chicken</p>
+-      </div>
+-    </div>
+-
+-    <div id="bakery" class="category">
+-      <h2>Bakery</h2>
+-      <div class="item">
+-        <img src="img/ChocolateDippedDoughnut.jpg" alt="ChocolateDippedDoughnut">
+-        <p>ChocolateDippedDoughnut</p>
+-      </div>
+-      <div class="item">
+-        <img src="img/Bacon.jpg" alt="Bacon Belgian Waffle">
+-        <p>Bacon Belgian Waffle</p>
+-      </div>
+-    </div>
+-
+-    <div id="sandwiches" class="category">
+-      <h2>Sandwiches</h2>
+-      <div class="item">
+-        <img src="img/tuna.jpg" alt="Cheesy Tuna Sandwich">
+-        <p>Cheesy Tuna Sandwich</p>
+-      </div>
+-      <div class="item">
+-        <img src="img/egg.jpg" alt="Egg Sandwich">
+-        <p>Egg Sandwich</p>
+-      </div>
+-    </div>
+-
+-  </div>
+-
+-  <script>
+-    function showCategory(categoryId) {
+-      const categories = document.querySelectorAll('.category');
+-      categories.forEach(cat => cat.classList.remove('active'));
+-
+-      document.getElementById(categoryId).classList.add('active');
+-    }
+-  </script>
+-    
+-
+-
+-</body>
+-</html>
+-
+diff --git a/templates/SignUp.html b/templates/SignUp.html
+deleted file mode 100644
+index 0658e9a..0000000
+--- a/templates/SignUp.html
++++ /dev/null
+@@ -1,68 +0,0 @@
+-<!DOCTYPE html>
+-<html lang="en">
+-
+-<head>
+-    <meta charset="UTF-8">
+-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Sign Up - Brews & Chews</title>
+-
+-    <!-- Google Font CDN: typeface used across the site -->
+-    <link rel="preconnect" href="https://fonts.googleapis.com">
+-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+-
+-    <!-- Font Awesome CDN for icons (if needed) -->
+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+-
+-    <!-- Global stylesheet for layout, colors, and components -->
+-    <link rel="stylesheet" href="../style/style.css">
+-</head>
+-
+-<body>
+-    <header>
+-        <!-- Primary navigation (fixed): brand and key links -->
+-        <nav class="navbar">
+-             <a href="index.html" class="logo">
+-             <img src="../assets/logo.png" class="logo" alt="Logo">
+-            </a>
+-            <ul class="links-container">
+-                <li class="link-items"><a href="index.html" class="links">Home</a></li>
+-                <li class="link-items"><a href="#menu" class="links">Menu</a></li>
+-                <li class="link-items"><a href="Login.html" class="links">Login</a></li>
+-            </ul>
+-        </nav>
+-        <!-- end of navbar -->
+-
+-        <!-- Auth container: centers the signup card and allows scrolling -->
+-        <main class="auth-main">
+-            <section aria-labelledby="signup-title" class="auth-card">
+-                <h1 id="signup-title" class="hero-heading" style="font-size: 2rem; line-height: 2.6rem; text-align: center;">Create Account</h1>
+-
+-                <!-- Basic sign-up form; front-end only for now -->
+-                <form action="#" method="post" class="auth-form">
+-                    <label for="su-username" class="auth-label">Username</label>
+-                    <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Enter your username" class="auth-input">
+-
+-                    <label for="su-email" class="auth-label">Email</label>
+-                    <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input">
+-
+-                    <label for="su-password" class="auth-label">Password</label>
+-                    <input id="su-password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Create a password" class="auth-input">
+-
+-                    <label for="su-confirm" class="auth-label">Confirm Password</label>
+-                    <input id="su-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Re-enter your password" class="auth-input">
+-
+-                    <button type="submit" class="btn" style="width: 100%;">Sign Up</button>
+-                </form>
+-
+-                <p class="auth-alt">
+-                    <em>Already have an account?</em> <a href="Login.html" class="links">Sign In</a>
+-                </p>
+-            </section>
+-        </main>
+-    </header>
+-</body>
+-</html>
+-
+-
+diff --git a/templates/accounts/login.html b/templates/accounts/login.html
+new file mode 100644
+index 0000000..9e12916
+--- /dev/null
++++ b/templates/accounts/login.html
+@@ -0,0 +1,46 @@
++{% extends "base.html" %}
++
++{% block title %}Login - Brews &amp; Chews{% endblock %}
++
++{% block main_class %}auth-main{% endblock %}
++
++{% block content %}
++<section aria-labelledby="login-title" class="auth-card">
++    <h1 id="login-title" class="hero-heading auth-title">Sign In to Your Account</h1>
++
++    <div class="auth-alert" role="alert" aria-live="polite" data-auth-alert hidden>
++        Invalid username or password. Please try again.
++    </div>
++
++    <form action="#" method="post" class="auth-form" data-login-form>
++        <div class="auth-field">
++            <label for="login-identifier" class="auth-label">Username or Email</label>
++            <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input">
++        </div>
++
++        <div class="auth-field">
++            <label for="login-password" class="auth-label">Password</label>
++            <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password" class="auth-input">
++        </div>
++
++        <label class="auth-checkbox">
++            <input type="checkbox" name="remember" value="1">
++            <span>Remember me for 2 weeks</span>
++        </label>
++
++        <button type="submit" class="btn" style="width: 100%;">Sign In</button>
++    </form>
++
++    <p class="auth-note">
++        Multiple failed attempts will temporarily lock your account for 1 hour to protect against brute-force attacks. Sessions are encrypted and expire automatically when inactive.
++    </p>
++
++    <p class="auth-alt">
++        <em>Don’t have an account?</em> <a href="{% url 'accounts:signup' %}" class="links">Sign Up</a>
++    </p>
++</section>
++{% endblock %}
++
++{% block extra_js %}
++<script src="{% static 'js/auth.js' %}" defer></script>
++{% endblock %}
+diff --git a/templates/accounts/profile.html b/templates/accounts/profile.html
+new file mode 100644
+index 0000000..81bdf4a
+--- /dev/null
++++ b/templates/accounts/profile.html
+@@ -0,0 +1,13 @@
++{% extends "base.html" %}
++
++{% block title %}Profile - Brews &amp; Chews{% endblock %}
++
++{% block main_class %}auth-main profile-main{% endblock %}
++
++{% block content %}
++<section class="auth-card profile-card" aria-labelledby="profile-title">
++    <h1 id="profile-title" class="hero-heading auth-title">Profile</h1>
++    <p>This page will show member details once the backend is implemented.</p>
++    <a class="links" href="{% url 'pages:home' %}">Return to Home</a>
++</section>
++{% endblock %}
+diff --git a/templates/accounts/signup.html b/templates/accounts/signup.html
+new file mode 100644
+index 0000000..68efddc
+--- /dev/null
++++ b/templates/accounts/signup.html
+@@ -0,0 +1,62 @@
++{% extends "base.html" %}
++
++{% block title %}Sign Up - Brews &amp; Chews{% endblock %}
++
++{% block main_class %}auth-main{% endblock %}
++
++{% block content %}
++<section aria-labelledby="signup-title" class="auth-card">
++    <h1 id="signup-title" class="hero-heading auth-title">Create Account</h1>
++
++    <form action="#" method="post" class="auth-form" novalidate data-signup-form>
++        <div class="auth-field">
++            <label for="su-username" class="auth-label">Username</label>
++            <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Enter your username" class="auth-input" data-validate="text">
++            <p class="field-hint">3&ndash;30 characters, letters and numbers only.</p>
++            <p class="field-error" data-field-error="username" aria-live="polite" hidden></p>
++        </div>
++
++        <div class="auth-field">
++            <label for="su-email" class="auth-label">Email</label>
++            <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input" data-validate="email">
++            <p class="field-error" data-field-error="email" aria-live="polite" hidden></p>
++        </div>
++
++        <div class="auth-field" data-password-wrapper>
++            <label for="su-password" class="auth-label">Password</label>
++            <input id="su-password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="Create a password" class="auth-input" data-password>
++            <div class="password-strength" role="status" aria-live="polite">
++                <div class="strength-bar" data-strength-bar></div>
++            </div>
++            <p class="strength-label" data-strength-label aria-live="polite">Strength: Start typing...</p>
++            <ul class="password-requirements" aria-live="polite">
++                <li data-requirement="length">At least 8 characters</li>
++                <li data-requirement="uppercase">Contains an uppercase letter</li>
++                <li data-requirement="number">Contains a number</li>
++                <li data-requirement="special">Contains a special character (!@#$%^&amp;*)</li>
++            </ul>
++            <p class="field-error" data-field-error="password" aria-live="polite" hidden></p>
++        </div>
++
++        <div class="auth-field">
++            <label for="su-confirm" class="auth-label">Confirm Password</label>
++            <input id="su-confirm" name="confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Re-enter your password" class="auth-input" data-password-confirm>
++            <p class="field-error" data-field-error="confirm" aria-live="polite" hidden></p>
++        </div>
++
++        <button type="submit" class="btn" style="width: 100%;">Sign Up</button>
++    </form>
++
++    <p class="auth-note">
++        By creating an account you agree to our data handling practices. Emails are encrypted with AES-256 and passwords are stored using Argon2 hashing in accordance with our security policy.
++    </p>
++
++    <p class="auth-alt">
++        <em>Already have an account?</em> <a href="{% url 'accounts:login' %}" class="links">Sign In</a>
++    </p>
++</section>
++{% endblock %}
++
++{% block extra_js %}
++<script src="{% static 'js/auth.js' %}" defer></script>
++{% endblock %}
+diff --git a/templates/base.html b/templates/base.html
+new file mode 100644
+index 0000000..72044bc
+--- /dev/null
++++ b/templates/base.html
+@@ -0,0 +1,69 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++    <meta charset="UTF-8">
++    <meta http-equiv="X-UA-Compatible" content="IE=edge">
++    <meta name="viewport" content="width=device-width, initial-scale=1.0">
++    <title>{% block title %}Brews &amp; Chews{% endblock %}</title>
++    {% load static %}
++
++    <!-- Global typography and iconography -->
++    <link rel="preconnect" href="https://fonts.googleapis.com">
++    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
++    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
++
++    <!-- Base stylesheet -->
++    <link rel="stylesheet" href="{% static 'css/style.css' %}">
++    {% block extra_css %}{% endblock %}
++</head>
++<body class="{% block body_class %}{% endblock %}">
++    <header class="site-header">
++        <nav class="navbar" aria-label="Primary">
++            <a href="{% url 'pages:home' %}" class="logo" aria-label="Brews &amp; Chews home">
++                <img src="{% static 'img/logo.png' %}" class="logo" alt="Brews &amp; Chews logo">
++            </a>
++            {% with current=request.resolver_match.url_name %}
++            <ul class="links-container">
++                <li class="link-items">
++                    <a href="{% url 'pages:home' %}" class="links{% if current == 'home' %} is-active{% endif %}" {% if current == 'home' %}aria-current="page"{% endif %}>Home</a>
++                </li>
++                <li class="link-items">
++                    <a href="{% url 'pages:menu' %}" class="links{% if current == 'menu' %} is-active{% endif %}" {% if current == 'menu' %}aria-current="page"{% endif %}>Menu</a>
++                </li>
++                <li class="link-items">
++                    <a href="{% url 'accounts:login' %}" class="links{% if current == 'login' %} is-active{% endif %}" {% if current == 'login' %}aria-current="page"{% endif %}>Sign In</a>
++                </li>
++                <li class="link-items">
++                    <a href="{% url 'accounts:signup' %}" class="links{% if current == 'signup' %} is-active{% endif %}" {% if current == 'signup' %}aria-current="page"{% endif %}>Sign Up</a>
++                </li>
++                <li class="link-items">
++                    <a href="{% url 'accounts:profile' %}" class="links{% if current == 'profile' %} is-active{% endif %}" {% if current == 'profile' %}aria-current="page"{% endif %}>Profile</a>
++                </li>
++            </ul>
++            {% endwith %}
++        </nav>
++    </header>
++
++    <main class="{% block main_class %}page-main{% endblock %}">
++        {% block content %}{% endblock %}
++    </main>
++
++    {% block footer %}
++    <footer class="footer">
++        <div class="container">
++            <div class="footer-contact" aria-labelledby="footer-contact-title">
++                <h3 id="footer-contact-title">Contact</h3>
++                <ul>
++                    <li><i class="fa fa-envelope" aria-hidden="true"></i> <a class="links" href="mailto:Brew@Chew@gmail.com" aria-label="Email us">Brew&amp;Chew@gmail.com</a></li>
++                    <li><i class="fa fa-phone" aria-hidden="true"></i> <a class="links" href="tel:+639123456789" aria-label="Call us">+63 912 345 6789</a></li>
++                </ul>
++            </div>
++            <p>© 2025 Brews &amp; Chews. All rights reserved.</p>
++        </div>
++    </footer>
++    {% endblock %}
++
++    {% block extra_js %}{% endblock %}
++</body>
++</html>
+diff --git a/templates/index.html b/templates/index.html
+deleted file mode 100644
+index 68631b3..0000000
+--- a/templates/index.html
++++ /dev/null
+@@ -1,118 +0,0 @@
+-<!DOCTYPE html>
+-<html lang="en">
+-
+-<head>
+-    <meta charset="UTF-8">
+-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Brews & Chews</title>
+-           
+-
+-        <!-- Google Font CDN: typeface used across the site -->
+-    <link rel="preconnect" href="https://fonts.googleapis.com">
+-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+-    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+-        
+-    <!-- Font Awesome CDN for icons used in cards and footer -->
+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+-        <!-- Global stylesheet for layout, colors, and components -->
+-    <link rel="stylesheet" href="../style/style.css">
+-    
+-</head>
+-
+-<body>
+-    <header>
+-        <!-- Primary navigation (fixed): brand and key links -->
+-         <nav class="navbar">
+-
+-            <!-- Brand logo -->
+-            <a href="index.html" class="logo">
+-             <img src="../assets/logo.png" class="logo" alt="Logo">
+-            </a>
+-             <!-- ul -->
+-              
+-            <ul class="links-container">
+-                <li class="link-items"><a href="#hero-section" class="links">Home</a></li>
+-                <li class="link-items"><a href="Menu.html" class="links">Menu</a></li>
+-                <li class="link-items"><a href="Login.html" class="links">Login</a></li>
+-             </ul>
+-         </nav>
+-            <!-- end of navbar -->
+-
+-
+-            <!-- Hero section: headline, subtext, and primary CTA -->
+-        <main id="hero-section">
+-
+-             <!-- hero content-->
+-            <div class="hero-content">
+-                <h1 class="hero-heading">Your Coffee, Your Way</h1>
+-                <p class="hero-line">"Behind every successful person is a substantial amount of coffee".</p>
+-
+-                <div class ="hero-action-btn-container">
+-                    <a href="Login.html" class="btn" aria-label="Order now and sign in">Order Now!</a>
+-                </div>
+-            </div>
+-            <!-- end of hero content -->
+-             <img src="../assets/logo.png" alt="Big-Logo" class="hero-image">
+-        </main>
+-        
+-        <!-- Feature highlights: key value propositions in a card grid -->
+-        <section id="what-we-offer" class="section">
+-            <div class="container">
+-                <h2 class="section-title">What We Offer</h2>
+-                <p class="section-subtitle">Everything you need for the perfect coffee experience</p>
+-                <ul class="offer-list" aria-label="Key features">
+-                    <a href="Login.html" class="offer-item">
+-                        <i class="fa fa-chair" aria-hidden="true"></i>
+-                        <h3>Table reservations</h3>
+-                        <p>Book your spot ahead for a hassle-free visit.</p>
+-                    </a>
+-                    </li>
+-                    <a href="Login.html" class="offer-item">
+-                        <i class="fa fa-mug-hot" aria-hidden="true"></i>
+-                        <h3>View cafe menu online</h3>
+-                        <p>Browse drinks and bites anytime, anywhere.</p>
+-                    </a>
+-                    </li>
+-                    <a href="Login.html" class="offer-item">
+-                        <i class="fa fa-credit-card" aria-hidden="true"></i>
+-                        <h3>Online payments</h3>
+-                        <p>Pay securely with your preferred method.</p>
+-                    </a>
+-                    </li>
+-                    <a href="Login.html" class="offer-item">
+-                        <i class="fa fa-lock" aria-hidden="true"></i>
+-                        <h3>Secure and easy to use</h3>
+-                        <p>Your data stays safe while you enjoy coffee.</p>
+-                    </a>
+-                    </li>
+-                </ul>
+-            </div>
+-        </section>
+-
+-        <!-- Call to action: encourage sign up with a prominent button -->
+-        <section id="cta" class="section">
+-            <div class="container cta-wrap">
+-                <h2 class="cta-title">Sign up today to book your coffee!</h2>
+-                <p class="cta-text">Join thousands of coffee lovers who trust Brews &amp; Chews for their daily caffeine fix</p>
+-                <a href="Login.html" class="btn">Get Started</a>
+-            </div>
+-        </section>
+-
+-        <!-- Footer: contact details and copyright -->
+-        <footer class="footer">
+-            <div class="container">
+-                <div class="footer-contact" aria-labelledby="footer-contact-title">
+-                    <h3 id="footer-contact-title">Contact</h3>
+-                    <ul>
+-                        <li><i class="fa fa-envelope" aria-hidden="true"></i> <a class="links" href="mailto:Brew@Chew@gmail.com" aria-label="Email us">Brew&Chew@gmail.com</a></li>
+-                        <li><i class="fa fa-phone" aria-hidden="true"></i> <a class="links" href="tel:+639123456789" aria-label="Call us">+63 912 345 6789</a></li>
+-                    </ul>
+-                </div>
+-                <p>© 2025 Brews &amp; Chews. All rights reserved.</p>
+-            </div>
+-        </footer>
+-        
+-    </header>
+-</body>
+-</html>
+\ No newline at end of file
+diff --git a/templates/pages/index.html b/templates/pages/index.html
+new file mode 100644
+index 0000000..9d01e30
+--- /dev/null
++++ b/templates/pages/index.html
+@@ -0,0 +1,64 @@
++{% extends "base.html" %}
++
++{% block title %}Brews &amp; Chews — Specialty Coffee Reservations{% endblock %}
++
++{% block main_class %}page-main home-main{% endblock %}
++
++{% block content %}
++<section id="hero-section" class="hero">
++    <div class="hero-content">
++        <h1 class="hero-heading">Your Coffee, Your Way</h1>
++        <p class="hero-line">“Behind every successful person is a substantial amount of coffee.”</p>
++        <div class="hero-action-btn-container">
++            <a href="{% url 'accounts:signup' %}" class="btn" aria-label="Create an account to reserve">Get Started</a>
++            <a href="{% url 'accounts:login' %}" class="btn btn-secondary" aria-label="Sign in to manage reservations">Sign In</a>
++        </div>
++    </div>
++    <img src="{% static 'img/logo.png' %}" alt="Brews &amp; Chews emblem" class="hero-image">
++</section>
++
++<section id="what-we-offer" class="section">
++    <div class="container">
++        <h2 class="section-title">What We Offer</h2>
++        <p class="section-subtitle">Everything you need for the perfect coffee experience</p>
++        <ul class="offer-list" aria-label="Key features">
++            <li>
++                <a href="{% url 'accounts:signup' %}" class="offer-item">
++                    <i class="fa fa-chair" aria-hidden="true"></i>
++                    <h3>Table reservations</h3>
++                    <p>Book your spot ahead for a hassle-free visit.</p>
++                </a>
++            </li>
++            <li>
++                <a href="{% url 'pages:menu' %}" class="offer-item">
++                    <i class="fa fa-mug-hot" aria-hidden="true"></i>
++                    <h3>View cafe menu online</h3>
++                    <p>Browse drinks and bites anytime, anywhere.</p>
++                </a>
++            </li>
++            <li>
++                <a href="{% url 'accounts:signup' %}" class="offer-item">
++                    <i class="fa fa-credit-card" aria-hidden="true"></i>
++                    <h3>Online payments</h3>
++                    <p>Pay securely with your preferred method.</p>
++                </a>
++            </li>
++            <li>
++                <a href="{% url 'accounts:signup' %}" class="offer-item">
++                    <i class="fa fa-lock" aria-hidden="true"></i>
++                    <h3>Secure and easy to use</h3>
++                    <p>Your data stays safe while you enjoy coffee.</p>
++                </a>
++            </li>
++        </ul>
++    </div>
++</section>
++
++<section id="cta" class="section">
++    <div class="container cta-wrap">
++        <h2 class="cta-title">Sign up today to book your coffee!</h2>
++        <p class="cta-text">Join thousands of coffee lovers who trust Brews &amp; Chews for their daily caffeine fix.</p>
++        <a href="{% url 'accounts:signup' %}" class="btn">Get Started</a>
++    </div>
++</section>
++{% endblock %}
+diff --git a/templates/pages/menu.html b/templates/pages/menu.html
+new file mode 100644
+index 0000000..6d8b9d4
+--- /dev/null
++++ b/templates/pages/menu.html
+@@ -0,0 +1,91 @@
++{% extends "base.html" %}
++
++{% block title %}Menu Preview - Brews &amp; Chews{% endblock %}
++
++{% block extra_css %}<link rel="stylesheet" href="{% static 'css/menu.css' %}">{% endblock %}
++
++{% block main_class %}menu-main{% endblock %}
++
++{% block content %}
++<aside class="menu-sidebar" data-menu-sidebar>
++    <div class="menu-sidebar__group">
++        <h2 class="menu-sidebar__title">Drinks</h2>
++        <ul class="menu-sidebar__list" role="tablist" aria-label="Drink categories">
++            {% for category in drinks_categories %}
++            <li>
++                <button type="button"
++                        class="menu-sidebar__button"
++                        id="tab-{{ category.slug }}"
++                        data-category-trigger
++                        data-target="{{ category.slug }}"
++                        role="tab"
++                        aria-controls="{{ category.slug }}">
++                    {{ category.title }}
++                </button>
++            </li>
++            {% endfor %}
++        </ul>
++    </div>
++    <div class="menu-sidebar__group">
++        <h2 class="menu-sidebar__title">Food</h2>
++        <ul class="menu-sidebar__list" role="tablist" aria-label="Food categories">
++            {% for category in food_categories %}
++            <li>
++                <button type="button"
++                        class="menu-sidebar__button"
++                        id="tab-{{ category.slug }}"
++                        data-category-trigger
++                        data-target="{{ category.slug }}"
++                        role="tab"
++                        aria-controls="{{ category.slug }}">
++                    {{ category.title }}
++                </button>
++            </li>
++            {% endfor %}
++        </ul>
++    </div>
++</aside>
++
++<section class="menu-content" data-menu-content>
++    <header class="menu-intro">
++        <h1 class="menu-intro__title">Menu Preview</h1>
++        <p class="menu-intro__lead">Browse featured beverages and bites before reserving your table. Reserve actions direct you to sign in so you can complete the booking flow.</p>
++        <div class="menu-intro__actions">
++            <a href="{% url 'accounts:signup' %}" class="btn">Create an account</a>
++            <a href="{% url 'accounts:login' %}" class="btn btn-secondary">Reserve a drink</a>
++        </div>
++    </header>
++
++    <div class="menu-panels" data-menu data-default-category="{{ default_category }}">
++        {% for category in all_categories %}
++        <section id="{{ category.slug }}"
++                 class="menu-category"
++                 data-category-panel
++                 role="tabpanel"
++                 aria-labelledby="tab-{{ category.slug }}"
++                 hidden>
++            <header class="menu-category__header">
++                <h2 class="menu-category__title">{{ category.title }}</h2>
++                <p class="menu-category__blurb">{{ category.blurb }}</p>
++            </header>
++            <div class="menu-grid">
++                {% for item in category.items %}
++                <article class="menu-card">
++                    <img src="{% static item.image %}" alt="{{ item.name }}" class="menu-card__image">
++                    <div class="menu-card__body">
++                        <h3 class="menu-card__title">{{ item.name }}</h3>
++                        <p class="menu-card__description">{{ item.description }}</p>
++                        <a href="{% url 'accounts:login' %}" class="menu-card__cta" aria-label="Reserve {{ item.name }}">Reserve this item</a>
++                    </div>
++                </article>
++                {% endfor %}
++            </div>
++        </section>
++        {% endfor %}
++    </div>
++</section>
++{% endblock %}
++
++{% block extra_js %}
++<script src="{% static 'js/menu.js' %}" defer></script>
++{% endblock %}
+-- 
+2.43.0

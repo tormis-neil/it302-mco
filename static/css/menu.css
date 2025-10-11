@@ -1,25 +1,50 @@
-.menu-main {
+.menu-page {
+    max-width: 1240px;
+    width: 100%;
+    gap: clamp(3rem, 6vw, 4.5rem);
+}
+
+.menu-hero {
+    background: var(--card-bg);
+    border-radius: var(--radius-base);
+    padding: clamp(3rem, 6vw, 4.5rem) clamp(2.5rem, 7vw, 5rem);
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-color);
+    text-align: center;
+    display: grid;
+    justify-items: center;
+    gap: clamp(1.5rem, 4vw, 2.25rem);
+}
+
+.menu-hero__title {
+    font-size: clamp(2.4rem, 5vw, 3.5rem);
+    font-weight: 800;
+}
+
+.menu-hero__lead {
+    font-size: clamp(1rem, 2.2vw, 1.15rem);
+    max-width: 720px;
+    line-height: 1.7;
+    color: var(--text-muted);
+}
+
+.menu-layout {
     display: grid;
     grid-template-columns: 260px 1fr;
-    gap: 2.5rem;
-    padding: 6.5rem 8vw 4rem 8vw;
-    color: #fff;
+    gap: clamp(2rem, 6vw, 3rem);
 }
 
 .menu-sidebar {
     position: sticky;
-    top: 6.5rem;
+    top: 7rem;
     align-self: start;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(23, 13, 8, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: .75rem;
-    padding: 1.5rem 1.75rem;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(4px);
-}
-
-.menu-sidebar__group + .menu-sidebar__group {
-    margin-top: 2rem;
+    border-radius: var(--radius-base);
+    padding: 1.75rem 1.9rem;
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
+    display: grid;
+    gap: 2rem;
 }
 
 .menu-sidebar__title {
@@ -31,7 +56,7 @@
 .menu-sidebar__list {
     list-style: none;
     display: grid;
-    gap: .5rem;
+    gap: 0.6rem;
     padding: 0;
     margin: 0;
 }
@@ -39,67 +64,90 @@
 .menu-sidebar__button {
     width: 100%;
     text-align: left;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: inherit;
     font: inherit;
-    padding: .6rem .75rem;
-    border-radius: .4rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 0.5rem;
     cursor: pointer;
-    transition: border-color .2s ease, background-color .2s ease, color .2s ease;
+    transition: border-color var(--transition-base), background-color var(--transition-base), color var(--transition-base);
 }
 
 .menu-sidebar__button[data-active="true"],
 .menu-sidebar__button:hover,
 .menu-sidebar__button:focus-visible {
-    background: rgba(166, 120, 69, 0.25);
-    border-color: rgba(198, 154, 99, 0.75);
-    color: #fff5e9;
+    background: rgba(198, 154, 99, 0.18);
+    border-color: rgba(198, 154, 99, 0.6);
+    color: #fffdf6;
     outline: none;
 }
 
 .menu-content {
     display: grid;
-    gap: 2rem;
+    gap: clamp(1.75rem, 4vw, 2.5rem);
 }
 
-.menu-intro {
-    background: rgba(0, 0, 0, 0.45);
-    border-radius: .75rem;
-    padding: 2rem 2.5rem;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.menu-featured {
+    background: rgba(27, 17, 12, 0.82);
+    border-radius: var(--radius-base);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.4);
+    padding: clamp(1.75rem, 4vw, 2.25rem);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: clamp(1.5rem, 4vw, 2rem);
 }
 
-.menu-intro__title {
-    font-size: 2.4rem;
-    margin-bottom: .75rem;
+.menu-featured__card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.65rem;
+    padding: 1.2rem 1.4rem 1.5rem;
+    display: grid;
+    gap: 0.75rem;
 }
 
-.menu-intro__lead {
-    font-size: 1.05rem;
-    line-height: 1.7rem;
-    opacity: 0.9;
-    margin-bottom: 1.5rem;
+.menu-featured__title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
 }
 
-.menu-intro__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
+.menu-featured__list {
+    list-style: none;
+    display: grid;
+    gap: 0.8rem;
+    padding: 0;
+    margin: 0;
+}
+
+.menu-featured__item {
+    display: grid;
+    gap: 0.3rem;
+}
+
+.menu-featured__name {
+    font-weight: 700;
+}
+
+.menu-featured__desc {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.92rem;
+    line-height: 1.5;
 }
 
 .menu-panels {
     display: grid;
-    gap: 2rem;
+    gap: clamp(1.75rem, 4vw, 2.5rem);
 }
 
 .menu-category {
-    background: rgba(0, 0, 0, 0.45);
-    border-radius: .75rem;
-    padding: 2rem 2.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    background: rgba(27, 17, 12, 0.82);
+    border-radius: var(--radius-base);
+    padding: clamp(1.85rem, 4vw, 2.5rem);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.42);
 }
 
 .menu-category[hidden] {
@@ -108,15 +156,16 @@
 
 .menu-category__header {
     margin-bottom: 1.5rem;
+    display: grid;
+    gap: 0.4rem;
 }
 
 .menu-category__title {
-    font-size: 1.8rem;
-    margin-bottom: .35rem;
+    font-size: 1.85rem;
 }
 
 .menu-category__blurb {
-    opacity: .85;
+    color: rgba(255, 255, 255, 0.72);
 }
 
 .menu-grid {
@@ -127,17 +176,17 @@
 
 .menu-card {
     background: rgba(255, 255, 255, 0.08);
-    border-radius: .75rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     overflow: hidden;
     display: grid;
     grid-template-rows: 180px 1fr;
-    transition: transform .2s ease, box-shadow .2s ease;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .menu-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.45);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5);
 }
 
 .menu-card__image {
@@ -147,61 +196,82 @@
 }
 
 .menu-card__body {
-    padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+    padding: 1.25rem 1.5rem 1.65rem;
     display: grid;
-    gap: .75rem;
+    gap: 0.75rem;
 }
 
 .menu-card__title {
     font-size: 1.1rem;
+    font-weight: 700;
 }
 
 .menu-card__description {
-    font-size: .95rem;
-    line-height: 1.5rem;
-    opacity: .9;
+    font-size: 0.95rem;
+    line-height: 1.55rem;
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .menu-card__cta {
     justify-self: start;
-    padding: .65rem 1.1rem;
-    background: rgba(166, 120, 69, 0.9);
-    border-radius: .35rem;
-    color: #fff;
+    padding: 0.65rem 1.15rem;
+    background: rgba(198, 154, 99, 0.92);
+    border-radius: 999px;
+    color: #1b110e;
     font-weight: 700;
     text-decoration: none;
-    transition: background-color .2s ease, transform .2s ease;
+    transition: transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
 }
 
 .menu-card__cta:hover,
 .menu-card__cta:focus-visible {
-    background: rgba(198, 154, 99, 1);
     transform: translateY(-2px);
+    background: rgba(255, 215, 166, 0.95);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
 }
 
-@media (max-width: 1024px) {
-    .menu-main {
-        grid-template-columns: 1fr;
-        padding: 6.5rem 5vw 3.5rem 5vw;
+.menu-cta {
+    background: var(--card-bg);
+    border-radius: var(--radius-base);
+    padding: clamp(2.5rem, 6vw, 3.5rem);
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.menu-cta__content {
+    display: grid;
+    gap: 1rem;
+    justify-items: center;
+}
+
+.menu-cta__title {
+    font-size: clamp(1.8rem, 4vw, 2.0rem);
+    font-weight: 800;
+}
+
+.menu-cta__lead {
+    max-width: 520px;
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+@media (max-width: 1200px) {
+    .menu-layout {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .menu-sidebar {
         position: relative;
         top: 0;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .menu-sidebar__group {
-        margin-top: 0 !important;
+        order: -1;
     }
 }
 
 @media (max-width: 640px) {
-    .menu-intro,
-    .menu-category {
-        padding: 1.5rem 1.75rem;
+    .menu-sidebar {
+        padding: 1.5rem;
     }
 
     .menu-card {
@@ -209,6 +279,6 @@
     }
 
     .menu-card__body {
-        padding: 1rem 1.2rem 1.25rem 1.2rem;
+        padding: 1.1rem 1.25rem 1.4rem;
     }
 }

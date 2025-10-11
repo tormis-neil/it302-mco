@@ -7,9 +7,6 @@
 {% block content %}
 <section aria-labelledby="signup-title" class="auth-card">
     <h1 id="signup-title" class="hero-heading auth-title">Create your Brews &amp; Chews account</h1>
-    <p class="auth-note" role="note">
-        Your credentials are protected with Argon2 hashing and encrypted sessions for maximum security.
-    </p>
 
     <form action="#" method="post" class="auth-form" novalidate data-signup-form>
         {% csrf_token %}

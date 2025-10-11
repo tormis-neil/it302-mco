@@ -88,48 +88,6 @@
     gap: clamp(1.75rem, 4vw, 2.5rem);
 }
 
-.menu-featured {
-    padding: clamp(1.25rem, 3vw, 1.75rem) 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: clamp(1.5rem, 4vw, 2.5rem);
-}
-
-.menu-featured__card {
-    gap: 0.65rem;
-}
-
-.menu-featured__title {
-    font-size: 1.35rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-
-.menu-featured__list {
-    list-style: none;
-    display: grid;
-    gap: 0.6rem;
-    padding: 0;
-    margin: 0;
-}
-
-.menu-featured__item {
-    display: grid;
-    gap: 0.3rem;
-}
-
-.menu-featured__name {
-    font-weight: 700;
-}
-
-.menu-featured__desc {
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 0.92rem;
-    line-height: 1.5;
-}
-
 .menu-panels {
     display: grid;
     gap: clamp(1.75rem, 4vw, 2.5rem);

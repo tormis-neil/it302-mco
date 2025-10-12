@@ -48,10 +48,15 @@ it302-mco/
 
    Visit `http://127.0.0.1:8000/` for the landing page and `http://127.0.0.1:8000/menu/` for the menu preview.
 
+## Database management
+
+The project uses SQLite by default so new contributors can get started quickly without provisioning external services. The database file is intentionally excluded from version control—run `python manage.py migrate` locally to create or upgrade your own `db.sqlite3` after pulling new migrations.
+
+You can change the database location by updating `DJANGO_DB_NAME` in your `.env`. For production deployments, point `DJANGO_DB_NAME` at a persistent volume or switch to a managed service such as PostgreSQL by adjusting `DATABASES` in `brewschews/settings.py` and setting the appropriate environment variables.
+
 ## Syncing these updates with your local clone
 
-Because the code lives only in this workspace right now, there is no `work` branch on GitHub for you to pull. You have three
-ways to get the files locally:
+Because the code lives only in this workspace right now, there is no `work` branch on GitHub for you to pull. You have three ways to get the files locally:
 
 1. **Apply the patch** – download `docs/work-update.patch` from this repo snapshot (or copy its contents) and run
    `git apply work-update.patch`. This recreates the Django restructure in your clone while preserving history. Full

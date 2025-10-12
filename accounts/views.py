@@ -1,10 +1,12 @@
 """Views for the accounts app."""
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Optional
 
 from django.contrib.auth import login
+from django.db import DatabaseError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -21,6 +23,7 @@ LOGIN_RATE_WINDOW = timedelta(minutes=15)
 LOGIN_LOCK_THRESHOLD = 5
 LOGIN_LOCK_DURATION = timedelta(hours=1)
 
+logger = logging.getLogger(__name__)
 
 def _record_event(
     *,
@@ -36,17 +39,19 @@ def _record_event(
     """Persist an authentication audit event."""
 
     metadata = {"reason": reason} if reason else {}
-    AuthenticationEvent.objects.create(
-        event_type=event_type,
-        ip_address=ip_address,
-        user_agent=user_agent[:255],
-        username_submitted=username,
-        email_digest=digest_email(email) if email else None,
-        user=user,
-        successful=successful,
-        metadata=metadata,
-    )
-
+    try:
+        AuthenticationEvent.objects.create(
+            event_type=event_type,
+            ip_address=ip_address,
+            user_agent=user_agent[:255],
+            username_submitted=username,
+            email_digest=digest_email(email) if email else None,
+            user=user,
+            successful=successful,
+            metadata=metadata,
+        )
+    except DatabaseError:
+        logger.exception("Unable to persist authentication audit event")
 
 def _is_rate_limited(
     *,
@@ -57,14 +62,18 @@ def _is_rate_limited(
     successful: Optional[bool] = None,
 ) -> bool:
     cutoff = timezone.now() - window
-    queryset = AuthenticationEvent.objects.filter(
-        event_type=event_type,
-        ip_address=ip_address,
-        created_at__gte=cutoff,
-    )
-    if successful is not None:
-        queryset = queryset.filter(successful=successful)
-    return queryset.count() >= limit
+    try:
+        queryset = AuthenticationEvent.objects.filter(
+            event_type=event_type,
+            ip_address=ip_address,
+            created_at__gte=cutoff,
+        )
+        if successful is not None:
+            queryset = queryset.filter(successful=successful)
+        return queryset.count() >= limit
+    except DatabaseError:
+        logger.exception("Unable to evaluate authentication rate limits")
+        return False
 
 
 @require_http_methods(["GET", "POST"])

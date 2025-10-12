@@ -8,7 +8,7 @@ from django.db.utils import OperationalError
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from .models import AuthenticationEvent, digest_email
+from .models import AuthenticationEvent, Profile, digest_email
 
 User = get_user_model()
 
@@ -30,7 +30,7 @@ class SignupViewTests(TestCase):
             REMOTE_ADDR="198.51.100.10",
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers["Location"], reverse("pages:menu"))
+        self.assertEqual(response.headers["Location"], reverse("menu:catalog"))
 
         user = User.objects.get(username="newuser")
         self.assertTrue(user.check_password("StrongPass1!"))
@@ -137,7 +137,7 @@ class LoginViewTests(TestCase):
             REMOTE_ADDR="203.0.113.5",
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers["Location"], reverse("pages:menu"))
+        self.assertEqual(response.headers["Location"], reverse("menu:catalog"))
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.failed_login_attempts, 0)
@@ -150,7 +150,7 @@ class LoginViewTests(TestCase):
             REMOTE_ADDR="203.0.113.15",
         )
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers["Location"], reverse("pages:menu"))
+        self.assertEqual(response.headers["Location"], reverse("menu:catalog"))
 
         event = AuthenticationEvent.objects.get(user=self.user, successful=True)
         self.assertEqual(event.username_submitted, "existing@example.com")
@@ -201,3 +201,60 @@ class LoginViewTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.is_locked())
         self.assertGreaterEqual(AuthenticationEvent.objects.filter(user=self.user, successful=False).count(), 5)
+
+
+class ProfileViewTests(TestCase):
+    def setUp(self) -> None:
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="profileuser",
+            email="profile@example.com",
+            password="ComplexPass1!",
+        )
+        self.url = reverse("accounts:profile")
+
+    def test_profile_requires_login(self) -> None:
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("accounts:login"), response.headers["Location"])
+
+    def test_profile_update_persists_changes(self) -> None:
+        self.client.login(username="profileuser", password="ComplexPass1!")
+        response = self.client.post(
+            self.url,
+            {
+                "display_name": "Brews Fan",
+                "phone_number": "+639171234567",
+                "favorite_drink": "Cold Brew",
+                "bio": "Prefers light roast beans.",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        profile = Profile.objects.get(user=self.user)
+        self.assertEqual(profile.display_name, "Brews Fan")
+        self.assertEqual(profile.phone_number, "+639171234567")
+        self.assertEqual(profile.favorite_drink, "Cold Brew")
+        self.assertIn("Prefers light roast beans.", profile.bio)
+
+
+class LogoutViewTests(TestCase):
+    def setUp(self) -> None:
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username="logoutuser",
+            email="logout@example.com",
+            password="ComplexPass1!",
+        )
+        self.url = reverse("accounts:logout")
+
+    def test_logout_requires_post(self) -> None:
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+    def test_logout_clears_session(self) -> None:
+        self.client.login(username="logoutuser", password="ComplexPass1!")
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], reverse("pages:home"))
+        response = self.client.get(reverse("accounts:profile"))
+        self.assertEqual(response.status_code, 302)

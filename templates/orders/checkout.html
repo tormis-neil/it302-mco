@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - Brews &amp; Chews{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block main_class %}dashboard-main{% endblock %}
+
+{% block content %}
+<section class="dashboard-hero">
+    <div>
+        <p class="dashboard-eyebrow">Secure Checkout</p>
+        <h1 class="dashboard-title">Confirm your order</h1>
+        <p class="dashboard-subtitle">Checkout is in staging mode. Review the layout below—submission will be enabled after the ordering workflow is finalized.</p>
+    </div>
+    <a href="{% url 'orders:cart' %}" class="btn dashboard-cta">Back to cart</a>
+</section>
+
+<section class="dashboard-section checkout-layout" aria-labelledby="checkout-details">
+    <div class="checkout-form-wrapper">
+        <h2 id="checkout-details" class="dashboard-section__title">Contact information</h2>
+        <form class="profile-form profile-form--preview" aria-describedby="checkout-preview-note">
+            <p id="checkout-preview-note" class="cart-preview-note">Fields are disabled while we complete the secure processing logic.</p>
+            <div class="profile-form__field">
+                <label for="preview_contact_name">Full name</label>
+                <input id="preview_contact_name" type="text" value="{{ contact_example.name }}" disabled>
+            </div>
+            <div class="profile-form__field">
+                <label for="preview_contact_phone">Phone number <span class="profile-form__hint">Optional</span></label>
+                <input id="preview_contact_phone" type="tel" value="{{ contact_example.phone }}" disabled>
+            </div>
+            <div class="profile-form__field">
+                <label for="preview_special_instructions">Special instructions</label>
+                <textarea id="preview_special_instructions" rows="3" disabled>{{ contact_example.instructions }}</textarea>
+            </div>
+            <button type="button" class="btn profile-form__submit btn-disabled" disabled>Place order</button>
+        </form>
+    </div>
+    <aside class="checkout-summary" aria-labelledby="checkout-summary">
+        <h2 id="checkout-summary" class="dashboard-section__title">Order summary</h2>
+        <ul class="checkout-items">
+            {% for entry in sample_items %}
+            <li class="checkout-items__entry">
+                <div>
+                    <strong>{{ entry.menu_item.name }}</strong>
+                    <span class="checkout-items__meta">Qty {{ entry.quantity }}</span>
+                </div>
+                <span>₱{{ entry.line_total|floatformat:2 }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        <dl class="cart-summary__list">
+            <div class="cart-summary__row">
+                <dt>Subtotal</dt>
+                <dd>₱{{ subtotal|floatformat:2 }}</dd>
+            </div>
+            <div class="cart-summary__row">
+                <dt>Tax (8%)</dt>
+                <dd>₱{{ tax|floatformat:2 }}</dd>
+            </div>
+            <div class="cart-summary__row cart-summary__total">
+                <dt>Total</dt>
+                <dd>₱{{ total|floatformat:2 }}</dd>
+            </div>
+        </dl>
+    </aside>
+</section>
+{% endblock %}

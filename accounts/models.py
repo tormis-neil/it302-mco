@@ -7,6 +7,8 @@ from typing import Optional
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from .security import decrypt_email, encrypt_email
@@ -140,3 +142,25 @@ class AuthenticationEvent(models.Model):
     def __str__(self) -> str:  # pragma: no cover - human-readable debugging only
         status = "success" if self.successful else "failure"
         return f"{self.get_event_type_display()} {status} from {self.ip_address}"
+
+
+class Profile(models.Model):
+    """Customer profile surfaced on the authenticated dashboard."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    display_name = models.CharField(max_length=120, blank=True)
+    phone_number = models.CharField(max_length=20, blank=True)
+    favorite_drink = models.CharField(max_length=120, blank=True)
+    bio = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:  # pragma: no cover - human readable
+        return f"Profile for {self.user.username}"
+
+
+@receiver(post_save, sender=User)
+def _ensure_profile(sender, instance: User, created: bool, **_: object) -> None:
+    """Create a profile automatically when a user is provisioned."""
+
+    if created:
+        Profile.objects.create(user=instance, display_name=instance.username)

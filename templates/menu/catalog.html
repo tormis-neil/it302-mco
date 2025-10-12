@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Order Menu - Brews &amp; Chews{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block main_class %}dashboard-main{% endblock %}
+
+{% block content %}
+<section class="dashboard-hero">
+    <div>
+        <p class="dashboard-eyebrow">Welcome back, {{ request.user.first_name|default:request.user.username }}</p>
+        <h1 class="dashboard-title">Order Your Favorites</h1>
+        <p class="dashboard-subtitle">Our ordering engine is almost ready. Explore the curated menu below—buttons are disabled while we finalize the checkout experience.</p>
+    </div>
+    <a href="{% url 'orders:cart' %}" class="btn dashboard-cta btn-disabled" aria-disabled="true">View Cart</a>
+</section>
+
+{% if not categories %}
+<p class="menu-order-empty">Our menu is being finalized. Please check back soon.</p>
+{% endif %}
+
+{% for category in categories %}
+<section class="dashboard-section" aria-labelledby="category-{{ category.slug }}">
+    <header class="dashboard-section__header">
+        <h2 id="category-{{ category.slug }}">{{ category.name }}</h2>
+        {% if category.description %}
+        <p class="dashboard-section__description">{{ category.description }}</p>
+        {% endif %}
+    </header>
+    <div class="menu-order-grid">
+        {% for item in category.items.all %}
+        <article class="menu-order-card">
+            <img src="{% static item.image|default:'img/bg.jpg' %}" alt="{{ item.name }}" class="menu-order-card__image">
+            <div class="menu-order-card__content">
+                <h3 class="menu-order-card__title">{{ item.name }}</h3>
+                <p class="menu-order-card__description">{{ item.description }}</p>
+                <div class="menu-order-card__footer">
+                    <span class="menu-order-card__price">₱{{ item.base_price|floatformat:2 }}</span>
+                    <button type="button" class="btn btn-small btn-disabled" disabled>Coming Soon</button>
+                </div>
+            </div>
+        </article>
+        {% empty %}
+        <p class="menu-order-empty">No items are currently available in this category.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endfor %}
+{% endblock %}

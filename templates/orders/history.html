@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Order History - Brews &amp; Chews{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block main_class %}dashboard-main{% endblock %}
+
+{% block content %}
+<section class="dashboard-hero">
+    <div>
+        <p class="dashboard-eyebrow">Order History</p>
+        <h1 class="dashboard-title">Track your recent activity</h1>
+        <p class="dashboard-subtitle">This section showcases how your orders will appear once fulfillment goes live.</p>
+    </div>
+    <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Place another order</a>
+</section>
+
+<section class="dashboard-section" aria-labelledby="history-list">
+    <h2 id="history-list" class="dashboard-section__title">Recent orders</h2>
+    {% if history_entries %}
+    <ul class="history-list">
+        {% for entry in history_entries %}
+        <li class="history-card">
+            <header class="history-card__header">
+                <div>
+                    <h3 class="history-card__title">Order {{ entry.reference }}</h3>
+                    <p class="history-card__meta">Placed on {{ entry.placed_at|date:"M d, Y g:i a" }}</p>
+                </div>
+                <span class="history-card__status history-card__status--{{ entry.status }}">{{ entry.status_label }}</span>
+            </header>
+            <ul class="history-card__items">
+                {% for item in entry.items %}
+                <li>
+                    <span>{{ item.name }}</span>
+                    <span class="history-card__items-meta">Qty {{ item.quantity }}</span>
+                    <span>₱{{ item.line_total|floatformat:2 }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <footer class="history-card__footer">
+                <dl>
+                    <div>
+                        <dt>Total</dt>
+                        <dd>₱{{ entry.total|floatformat:2 }}</dd>
+                    </div>
+                    <div>
+                        <dt>Notes</dt>
+                        <dd>{{ entry.notes|default:"—" }}</dd>
+                    </div>
+                </dl>
+            </footer>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <div class="dashboard-empty">
+        <p>Once live orders are placed, their status will be displayed here.</p>
+        <a href="{% url 'menu:catalog' %}" class="btn">Order your first drink</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

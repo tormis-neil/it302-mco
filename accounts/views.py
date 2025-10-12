@@ -5,15 +5,16 @@ import logging
 from datetime import timedelta
 from typing import Optional
 
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from django.db import DatabaseError
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from .forms import LoginForm, SignupForm
-from .models import AuthenticationEvent, User, digest_email
+from .forms import LoginForm, ProfileForm, SignupForm
+from .models import AuthenticationEvent, Profile, User, digest_email
 from .utils import get_client_ip
 
 SIGNUP_RATE_LIMIT = 5
@@ -164,7 +165,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     user=user,
                     successful=True,
                 )
-                return redirect("pages:menu")
+                return redirect("menu:catalog")
         else:
             alert_message = "Enter your username/email and password to continue."
 
@@ -212,7 +213,7 @@ def signup_view(request: HttpRequest) -> HttpResponse:
                 user=user,
                 successful=True,
             )
-            return redirect("pages:menu")
+            return redirect("menu:catalog")
         else:
             _record_event(
                 event_type=AuthenticationEvent.EventType.SIGNUP,
@@ -230,8 +231,36 @@ def signup_view(request: HttpRequest) -> HttpResponse:
     return render(request, "accounts/signup.html", context)
 
 
-@require_http_methods(["GET"])
+@login_required
+@require_http_methods(["GET", "POST"])
 def profile_view(request: HttpRequest) -> HttpResponse:
-    """Render the placeholder profile page until functionality is implemented."""
+    """Render and update the authenticated user's profile."""
 
-    return render(request, "accounts/profile.html")
+    profile, _ = Profile.objects.get_or_create(
+        user=request.user,
+        defaults={"display_name": request.user.username},
+    )
+    form = ProfileForm(request.POST or None, instance=profile)
+    update_success = False
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        update_success = True
+
+    recent_orders = request.user.orders.all()[:3]
+
+    context = {
+        "form": form,
+        "update_success": update_success,
+        "user_email": request.user.email,
+        "recent_orders": recent_orders,
+    }
+    return render(request, "accounts/profile.html", context)
+
+
+@require_http_methods(["POST"])
+def logout_view(request: HttpRequest) -> HttpResponse:
+    """Log out the current user using a POST-only endpoint."""
+
+    logout(request)
+    return redirect("pages:home")

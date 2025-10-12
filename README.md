@@ -8,7 +8,9 @@ This repository contains the in-progress implementation of the Brews & Chews web
 ```
 it302-mco/
 ├── brewschews/           # Django project configuration
-├── accounts/             # Authentication app (UI-only views for now)
+├── accounts/             # Authentication app with secure signup/login and profiles
+├── menu/                 # Authenticated menu UI fed by seeded catalog data
+├── orders/               # Read-only cart, checkout, and history dashboard views
 ├── pages/                # Public marketing and menu views
 ├── templates/            # HTML templates grouped by app
 ├── static/               # Consolidated CSS and image assets
@@ -46,7 +48,20 @@ it302-mco/
 
 5. **Access the site:**
 
-   Visit `http://127.0.0.1:8000/` for the landing page and `http://127.0.0.1:8000/menu/` for the menu preview.
+   Visit `http://127.0.0.1:8000/` for the landing page, `http://127.0.0.1:8000/pages/menu/preview/` for the public menu preview,
+   and sign in to explore the authenticated dashboard at `/menu/`, `/orders/cart/`, `/orders/checkout/`, and `/orders/history/`.
+
+## Authenticated user journey
+
+The current build focuses on finalizing the secure authentication experience while presenting the post-login UI as a clickable
+prototype. The expected flow is:
+
+1. Browse the **Menu Preview** without signing in to see a snapshot of the café offerings.
+2. Create an account or sign in—rate limiting and audit logging are enabled to satisfy the security requirements.
+3. After authentication, explore the **Order Menu**, **Cart**, **Checkout**, and **History** pages. Buttons and forms are
+   intentionally disabled while the transactional back-end is still under construction.
+4. Visit the **Profile** page to update account details or delete the account; these actions are fully wired to the database.
+5. Sign out using the navigation menu when finished.
 
 ## Database management
 
@@ -71,6 +86,6 @@ push that branch to GitHub and open a PR into `main`.
 
 ## Next steps
 
-- Implement full authentication (Argon2 password hashing, encrypted email storage, rate limiting).
-- Build the dynamic profile page and connect menu data to the database.
-- Add automated tests to cover the authentication flows and key UX components.
+- Connect the cart, checkout, and history interfaces to the underlying order models.
+- Add staff tooling for managing menu availability and order status updates.
+- Expand automated test coverage to include front-end interactions and regression checks.

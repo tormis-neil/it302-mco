@@ -29,14 +29,35 @@
                     <a href="{% url 'pages:home' %}" class="links{% if current == 'home' %} is-active{% endif %}" {% if current == 'home' %}aria-current="page"{% endif %}>Home</a>
                 </li>
                 <li class="link-items">
-                    <a href="{% url 'pages:menu' %}" class="links{% if current == 'menu' %} is-active{% endif %}" {% if current == 'menu' %}aria-current="page"{% endif %}>Menu</a>
+                    <a href="{% url 'pages:menu_preview' %}" class="links{% if current == 'menu_preview' %} is-active{% endif %}" {% if current == 'menu_preview' %}aria-current="page"{% endif %}>Menu Preview</a>
                 </li>
+                {% if request.user.is_authenticated %}
+                <li class="link-items">
+                    <a href="{% url 'menu:catalog' %}" class="links{% if current == 'catalog' %} is-active{% endif %}" {% if current == 'catalog' %}aria-current="page"{% endif %}>Order Menu</a>
+                </li>
+                <li class="link-items">
+                    <a href="{% url 'orders:cart' %}" class="links{% if current == 'cart' %} is-active{% endif %}" {% if current == 'cart' %}aria-current="page"{% endif %}>Cart</a>
+                </li>
+                <li class="link-items">
+                    <a href="{% url 'orders:history' %}" class="links{% if current == 'history' %} is-active{% endif %}" {% if current == 'history' %}aria-current="page"{% endif %}>Orders</a>
+                </li>
+                <li class="link-items">
+                    <a href="{% url 'accounts:profile' %}" class="links{% if current == 'profile' %} is-active{% endif %}" {% if current == 'profile' %}aria-current="page"{% endif %}>Profile</a>
+                </li>
+                <li class="link-items">
+                    <form action="{% url 'accounts:logout' %}" method="post" class="logout-form">
+                        {% csrf_token %}
+                        <button type="submit" class="links logout-button">Sign Out</button>
+                    </form>
+                </li>
+                {% else %}
                 <li class="link-items">
                     <a href="{% url 'accounts:login' %}" class="links{% if current == 'login' %} is-active{% endif %}" {% if current == 'login' %}aria-current="page"{% endif %}>Sign In</a>
                 </li>
                 <li class="link-items">
                     <a href="{% url 'accounts:signup' %}" class="links{% if current == 'signup' %} is-active{% endif %}" {% if current == 'signup' %}aria-current="page"{% endif %}>Sign Up</a>
                 </li>
+                {% endif %}
             </ul>
             {% endwith %}
         </nav>

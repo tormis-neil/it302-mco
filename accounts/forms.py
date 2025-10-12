@@ -8,7 +8,7 @@ from typing import Optional
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import User, digest_email
+from .models import Profile, User, digest_email
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]{3,30}$")
 PASSWORD_SPECIAL_PATTERN = re.compile(r"[!@#$%^&*]")
@@ -100,4 +100,29 @@ class LoginForm(forms.Form):
         return user
 
 
-__all__ = ["SignupForm", "LoginForm"]
+class ProfileForm(forms.ModelForm):
+    """Edit the authenticated user's profile details."""
+
+    phone_number = forms.CharField(
+        max_length=20,
+        required=False,
+        help_text="Optional: include country code",
+    )
+
+    class Meta:
+        model = Profile
+        fields = ["display_name", "phone_number", "favorite_drink", "bio"]
+        widgets = {
+            "display_name": forms.TextInput(attrs={"placeholder": "How should we address you?"}),
+            "favorite_drink": forms.TextInput(attrs={"placeholder": "Your go-to order"}),
+            "bio": forms.Textarea(attrs={"rows": 3, "placeholder": "Share a short note for our baristas."}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            classes = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"dashboard-input {classes}".strip()
+
+
+__all__ = ["SignupForm", "LoginForm", "ProfileForm"]

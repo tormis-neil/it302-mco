@@ -20,17 +20,22 @@
 <body class="{% block body_class %}{% endblock %}">
     <header class="site-header">
         <nav class="navbar" aria-label="Primary">
-            <a href="{% url 'pages:home' %}" class="navbar-brand" aria-label="Brews &amp; Chews home">
+            <a href="{% if request.user.is_authenticated %}{% url 'menu:catalog' %}{% else %}{% url 'pages:home' %}{% endif %}" class="navbar-brand" aria-label="Brews &amp; Chews home">
                 Brews <span class="navbar-brand-accent">&amp; Chews</span>
             </a>
             {% with current=request.resolver_match.url_name %}
             <ul class="links-container">
+                {% if not request.user.is_authenticated %}
+                {# Show Home link only when logged OUT #}
                 <li class="link-items">
                     <a href="{% url 'pages:home' %}" class="links{% if current == 'home' %} is-active{% endif %}" {% if current == 'home' %}aria-current="page"{% endif %}>Home</a>
                 </li>
+                {% endif %}
+                
                 {% if request.user.is_authenticated %}
+                {# Authenticated user links #}
                 <li class="link-items">
-                    <a href="{% url 'menu:catalog' %}" class="links{% if current == 'catalog' %} is-active{% endif %}" {% if current == 'catalog' %}aria-current="page"{% endif %}>Order Menu</a>
+                    <a href="{% url 'menu:catalog' %}" class="links{% if current == 'catalog' %} is-active{% endif %}" {% if current == 'catalog' %}aria-current="page"{% endif %}>Menu</a>
                 </li>
                 <li class="link-items">
                     <a href="{% url 'orders:cart' %}" class="links{% if current == 'cart' %} is-active{% endif %}" {% if current == 'cart' %}aria-current="page"{% endif %}>Cart</a>
@@ -48,6 +53,7 @@
                     </form>
                 </li>
                 {% else %}
+                {# Guest user links #}
                 <li class="link-items">
                     <a href="{% url 'accounts:login' %}" class="links{% if current == 'login' %} is-active{% endif %}" {% if current == 'login' %}aria-current="page"{% endif %}>Sign In</a>
                 </li>
@@ -70,8 +76,8 @@
             <div class="footer-contact" aria-labelledby="footer-contact-title">
                 <h3 id="footer-contact-title">Contact</h3>
                 <ul>
-                    <li><i class="fa fa-envelope" aria-hidden="true"></i> <a class="links" href="mailto:Brew@Chew@gmail.com" aria-label="Email us">Brew&amp;Chew@gmail.com</a></li>
-                    <li><i class="fa fa-phone" aria-hidden="true"></i> <a class="links" href="tel:+639123456789" aria-label="Call us">+63 912 345 6789</a></li>
+                    <li><i class="fa fa-envelope" aria-hidden="true"></i> <a class="links" href="mailto:tormisneilmayo@gmail.com" aria-label="Email us">tormisneilmayo@gmail.com</a></li>
+                    <li><i class="fa fa-phone" aria-hidden="true"></i> <a class="links" href="tel:+639451768835" aria-label="Call us">+63 9451768835</a></li>
                 </ul>
             </div>
             <p>© 2025 Brews &amp; Chews. All rights reserved.</p>

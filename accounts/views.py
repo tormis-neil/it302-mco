@@ -5,7 +5,7 @@ import logging
 from datetime import timedelta
 from typing import Optional
 
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.db import DatabaseError
 from django.http import HttpRequest, HttpResponse
@@ -13,7 +13,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from .forms import LoginForm, ProfileForm, SignupForm
+from .forms import LoginForm, ProfileForm, SignupForm, ChangeUsernameForm, ChangePasswordForm
 from .models import AuthenticationEvent, Profile, User
 from .utils import get_client_ip
 
@@ -239,27 +239,81 @@ def profile_view(request: HttpRequest) -> HttpResponse:
         user=request.user,
         defaults={"display_name": request.user.username},
     )
-    form = ProfileForm(request.POST or None, instance=profile)
+    
+    # Initialize all forms
+    profile_form = ProfileForm(request.POST or None, instance=profile)
+    username_form = ChangeUsernameForm(request.user)
+    password_form = ChangePasswordForm(request.user)
+    
     update_success = False
-
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        update_success = True
-
+    update_message = ""
+    
+    # Handle profile update
+    if request.method == "POST" and "update_profile" in request.POST:
+        if profile_form.is_valid():
+            profile_form.save()
+            update_success = True
+            update_message = "Profile updated successfully."
+    
+    # Handle username change
+    elif request.method == "POST" and "change_username" in request.POST:
+        username_form = ChangeUsernameForm(request.user, request.POST)
+        if username_form.is_valid():
+            request.user.username = username_form.cleaned_data["new_username"]
+            request.user.save()
+            update_success = True
+            update_message = "Username changed successfully."
+    
+    # Handle password change
+    elif request.method == "POST" and "change_password" in request.POST:
+        password_form = ChangePasswordForm(request.user, request.POST)
+        if password_form.is_valid():
+            password_form.save()
+            # Re-authenticate user after password change
+            update_session_auth_hash(request, request.user)
+            update_success = True
+            update_message = "Password changed successfully."
+    
     recent_orders = request.user.orders.all()[:3]
 
     context = {
-        "form": form,
+        "profile_form": profile_form,
+        "username_form": username_form,
+        "password_form": password_form,
         "update_success": update_success,
+        "update_message": update_message,
         "user_email": request.user.email,
         "recent_orders": recent_orders,
     }
-    return render(request, "accounts/profile.html", context)
+    return render(request, "accounts/profile.html", context)    
 
 
 @require_http_methods(["POST"])
 def logout_view(request: HttpRequest) -> HttpResponse:
     """Log out the current user using a POST-only endpoint."""
 
+    logout(request)
+    return redirect("pages:home")
+
+@login_required
+@require_http_methods(["POST"])
+def delete_account_view(request: HttpRequest) -> HttpResponse:
+    """Delete user account after password confirmation."""
+    
+    password = request.POST.get("password", "")
+    
+    if not password:
+        # Redirect back with error
+        return redirect("accounts:profile")
+    
+    if not request.user.check_password(password):
+        # Redirect back with error
+        return redirect("accounts:profile")
+    
+    # Delete the user account
+    username = request.user.username
+    request.user.delete()
+    
+    # Logout and redirect
     logout(request)
     return redirect("pages:home")

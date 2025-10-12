@@ -4,6 +4,142 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<style>
+.profile-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    flex-wrap: wrap;
+}
+
+.profile-tab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    transition: color var(--transition-base);
+    font-size: 0.95rem;
+}
+
+.profile-tab:hover {
+    color: var(--text-color);
+}
+
+.profile-tab.active {
+    color: var(--brand-primary);
+}
+
+.profile-tab.active::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--brand-primary);
+}
+
+.profile-tab-content {
+    display: none;
+}
+
+.profile-tab-content.active {
+    display: block;
+}
+
+.danger-zone {
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: var(--radius-base);
+    padding: 1.5rem;
+    background: rgba(220, 53, 69, 0.05);
+    max-width: 600px;
+}
+
+.danger-zone h3 {
+    color: #ff6b6b;
+    margin-bottom: 0.5rem;
+}
+
+.danger-zone p {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333, #bd2130);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.8);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border-radius: var(--radius-base);
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    border: 1px solid var(--border-color);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+    .profile-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+    
+    .profile-tab {
+        white-space: nowrap;
+        font-size: 0.85rem;
+        padding: 0.65rem 1rem;
+    }
+}
+</style>
 {% endblock %}
 
 {% block main_class %}dashboard-main{% endblock %}
@@ -13,89 +149,205 @@
     <div>
         <p class="dashboard-eyebrow">Account Center</p>
         <h1 class="dashboard-title">Hi, {{ request.user.first_name|default:request.user.username }}!</h1>
-        <p class="dashboard-subtitle">Manage your contact preferences and view a snapshot of your recent café activity.</p>
+        <p class="dashboard-subtitle">Manage your account settings and preferences.</p>
     </div>
     <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Back to menu</a>
 </section>
 
 {% if update_success %}
 <div class="dashboard-alert" role="status" aria-live="polite">
-    Your profile has been updated successfully.
+    {{ update_message }}
 </div>
 {% endif %}
 
-<section class="dashboard-section profile-layout" aria-labelledby="profile-details">
-    <div class="profile-summary">
-        <h2 id="profile-details" class="dashboard-section__title">Account details</h2>
-        <dl>
-            <div>
-                <dt>Username</dt>
-                <dd>{{ request.user.username }}</dd>
-            </div>
-            <div>
-                <dt>Email</dt>
-                <dd>{{ user_email }}</dd>
-            </div>
-            <div>
-                <dt>Member since</dt>
-                <dd>{{ request.user.date_joined|date:"M d, Y" }}</dd>
-            </div>
-            <div>
-                <dt>Last sign-in</dt>
-                <dd>
-                    {% if request.user.last_login %}
-                    {{ request.user.last_login|date:"M d, Y g:i a" }}
-                    {% else %}
-                    —
-                    {% endif %}
-                </dd>
-            </div>
-        </dl>
+<section class="dashboard-section">
+    <!-- Tabs -->
+    <div class="profile-tabs" role="tablist">
+        <button class="profile-tab active" data-tab="details" role="tab" aria-selected="true">Account Details</button>
+        <button class="profile-tab" data-tab="username" role="tab" aria-selected="false">Change Username</button>
+        <button class="profile-tab" data-tab="password" role="tab" aria-selected="false">Change Password</button>
+        <button class="profile-tab" data-tab="danger" role="tab" aria-selected="false">Delete Account</button>
     </div>
-    <div class="profile-form-wrapper">
-        <h2 class="dashboard-section__title">Update preferences</h2>
-        <form action="" method="post" class="profile-form">
-            {% csrf_token %}
-            {% for field in form %}
-            <div class="profile-form__field">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}
-                <p class="profile-form__hint">{{ field.help_text }}</p>
-                {% endif %}
-                {% for error in field.errors %}
-                <p class="profile-form__error">{{ error }}</p>
-                {% endfor %}
+
+    <!-- Tab 1: Account Details -->
+    <div class="profile-tab-content active" data-content="details">
+        <div class="profile-layout">
+            <div class="profile-summary">
+                <h2 class="dashboard-section__title">Your Information</h2>
+                <dl>
+                    <div>
+                        <dt>Username</dt>
+                        <dd>{{ request.user.username }}</dd>
+                    </div>
+                    <div>
+                        <dt>Email</dt>
+                        <dd>{{ user_email }}</dd>
+                    </div>
+                    <div>
+                        <dt>Member since</dt>
+                        <dd>{{ request.user.date_joined|date:"M d, Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt>Last sign-in</dt>
+                        <dd>
+                            {% if request.user.last_login %}
+                            {{ request.user.last_login|date:"M d, Y g:i a" }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
             </div>
-            {% endfor %}
-            <button type="submit" class="btn profile-form__submit">Save changes</button>
-        </form>
+            <div class="profile-form-wrapper">
+                <h2 class="dashboard-section__title">Update Profile</h2>
+                <form action="" method="post" class="profile-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="update_profile" value="1">
+                    {% for field in profile_form %}
+                    <div class="profile-form__field">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                        <p class="profile-form__hint">{{ field.help_text }}</p>
+                        {% endif %}
+                        {% for error in field.errors %}
+                        <p class="profile-form__error">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn profile-form__submit">Save changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Change Username -->
+    <div class="profile-tab-content" data-content="username">
+        <div class="profile-form-wrapper" style="max-width: 600px;">
+            <h2 class="dashboard-section__title">Change Username</h2>
+            <p class="dashboard-section__description">Your username is how you'll sign in and how others will see you.</p>
+            <form action="" method="post" class="profile-form">
+                {% csrf_token %}
+                <input type="hidden" name="change_username" value="1">
+                {% for field in username_form %}
+                <div class="profile-form__field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <p class="profile-form__hint">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% for error in field.errors %}
+                    <p class="profile-form__error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn profile-form__submit">Update Username</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tab 3: Change Password -->
+    <div class="profile-tab-content" data-content="password">
+        <div class="profile-form-wrapper" style="max-width: 600px;">
+            <h2 class="dashboard-section__title">Change Password</h2>
+            <p class="dashboard-section__description">Choose a strong password with at least 12 characters.</p>
+            <form action="" method="post" class="profile-form">
+                {% csrf_token %}
+                <input type="hidden" name="change_password" value="1">
+                {% for field in password_form %}
+                <div class="profile-form__field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% for error in field.errors %}
+                    <p class="profile-form__error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn profile-form__submit">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tab 4: Delete Account -->
+    <div class="profile-tab-content" data-content="danger">
+        <div class="danger-zone">
+            <h3>Delete Account</h3>
+            <p>Once you delete your account, there is no going back. This will permanently delete your profile, order history, and all associated data.</p>
+            <button type="button" class="btn btn-danger" data-delete-trigger>Delete My Account</button>
+        </div>
     </div>
 </section>
 
-<section class="dashboard-section" aria-labelledby="profile-recent-orders">
-    <h2 id="profile-recent-orders" class="dashboard-section__title">Recent orders</h2>
-    {% if recent_orders %}
-    <ul class="history-list history-list--compact">
-        {% for order in recent_orders %}
-        <li class="history-card history-card--compact">
-            <div class="history-card__header">
-                <div>
-                    <h3 class="history-card__title">Order #{{ order.pk }}</h3>
-                    <p class="history-card__meta">Placed on {{ order.created_at|date:"M d, Y g:i a" }}</p>
+<!-- Delete Confirmation Modal -->
+<div class="modal" id="deleteModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Confirm Account Deletion</h2>
+            <button type="button" class="modal-close" data-modal-close>&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 1rem; color: #ff6b6b;">⚠️ This action cannot be undone!</p>
+            <p style="margin-bottom: 1rem;">Please enter your password to confirm account deletion:</p>
+            <form id="deleteForm" action="{% url 'accounts:delete_account' %}" method="post">
+                {% csrf_token %}
+                <div class="profile-form__field">
+                    <label for="delete-password">Password</label>
+                    <input type="password" id="delete-password" name="password" class="dashboard-input" required>
                 </div>
-                <span class="history-card__status history-card__status--{{ order.status }}">{{ order.get_status_display }}</span>
-            </div>
-            <p class="history-card__summary">Total: ₱{{ order.total|floatformat:2 }}</p>
-        </li>
-        {% endfor %}
-    </ul>
-    <a href="{% url 'orders:history' %}" class="btn btn-link">View full history</a>
-    {% else %}
-    <div class="dashboard-empty">
-        <p>No orders yet. Start by exploring the menu.</p>
-        <a href="{% url 'menu:catalog' %}" class="btn">Order now</a>
+            </form>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+            <button type="submit" form="deleteForm" class="btn btn-danger">Yes, Delete My Account</button>
+        </div>
     </div>
-    {% endif %}
-</section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Tab switching
+document.querySelectorAll('.profile-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const targetTab = tab.dataset.tab;
+        
+        // Update tabs
+        document.querySelectorAll('.profile-tab').forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        
+        // Update content
+        document.querySelectorAll('.profile-tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.querySelector(`[data-content="${targetTab}"]`).classList.add('active');
+    });
+});
+
+// Delete modal
+const modal = document.getElementById('deleteModal');
+const deleteTrigger = document.querySelector('[data-delete-trigger]');
+const modalCloses = document.querySelectorAll('[data-modal-close]');
+
+deleteTrigger?.addEventListener('click', () => {
+    modal.classList.add('active');
+});
+
+modalCloses.forEach(close => {
+    close.addEventListener('click', () => {
+        modal.classList.remove('active');
+    });
+});
+
+// Close modal on outside click
+modal?.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.classList.remove('active');
+    }
+});
+</script>
 {% endblock %}

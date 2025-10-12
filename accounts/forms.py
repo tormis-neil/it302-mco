@@ -134,5 +134,117 @@ class ProfileForm(forms.ModelForm):
             classes = field.widget.attrs.get("class", "")
             field.widget.attrs["class"] = f"dashboard-input {classes}".strip()
 
+class ChangeUsernameForm(forms.Form):
+    """Form for changing username."""
+    
+    new_username = forms.CharField(
+        max_length=150,
+        label="New Username",
+        help_text="Choose a new username (3-30 characters, letters, numbers, ._- only)"
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput,
+        label="Confirm Password",
+        help_text="Enter your current password to confirm"
+    )
 
-__all__ = ["SignupForm", "LoginForm", "ProfileForm"]
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_new_username(self) -> str:
+        username = self.cleaned_data["new_username"].strip()
+        
+        # Check pattern
+        if not USERNAME_PATTERN.match(username):
+            raise ValidationError(
+                "Username must be 3-30 characters using letters, numbers, periods, underscores, or hyphens."
+            )
+        
+        # Check if username is the same
+        if username.lower() == self.user.username.lower():
+            raise ValidationError("This is already your current username.")
+        
+        # Check if username is taken
+        if User.objects.filter(username__iexact=username).exclude(pk=self.user.pk).exists():
+            raise ValidationError("That username is already taken.")
+        
+        return username
+
+    def clean_password(self) -> str:
+        password = self.cleaned_data.get("password")
+        if not self.user.check_password(password):
+            raise ValidationError("Incorrect password.")
+        return password
+
+
+class ChangePasswordForm(forms.Form):
+    """Form for changing password."""
+    
+    current_password = forms.CharField(
+        widget=forms.PasswordInput,
+        label="Current Password"
+    )
+    new_password = forms.CharField(
+        widget=forms.PasswordInput,
+        label="New Password"
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput,
+        label="Confirm New Password"
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_current_password(self) -> str:
+        password = self.cleaned_data.get("current_password")
+        if not self.user.check_password(password):
+            raise ValidationError("Current password is incorrect.")
+        return password
+
+    def clean(self) -> dict:
+        data = super().clean()
+        new_password = data.get("new_password", "")
+        confirm = data.get("confirm_password", "")
+        
+        if new_password:
+            # Validate password strength
+            try:
+                password_validation.validate_password(new_password, self.user)
+            except ValidationError as exc:
+                self.add_error("new_password", exc)
+            
+            # Check custom requirements
+            try:
+                self._validate_password_strength(new_password)
+            except ValidationError as exc:
+                self.add_error("new_password", exc)
+        
+        if new_password and confirm and new_password != confirm:
+            self.add_error("confirm_password", "Passwords do not match.")
+        
+        return data
+
+    def _validate_password_strength(self, password: str) -> None:
+        """Same validation as signup."""
+        errors = []
+        if len(password) < 12:
+            errors.append("Password must be at least 12 characters long.")
+        if password.lower() == password:
+            errors.append("Include at least one uppercase letter.")
+        if not any(ch.isdigit() for ch in password):
+            errors.append("Include at least one number.")
+        if not PASSWORD_SPECIAL_PATTERN.search(password):
+            errors.append("Include at least one special character (!@#$%^&*).")
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self):
+        """Update user password."""
+        self.user.set_password(self.cleaned_data["new_password"])
+        self.user.save()
+
+
+__all__ = ["SignupForm", "LoginForm", "ProfileForm", "ChangeUsernameForm", "ChangePasswordForm"]

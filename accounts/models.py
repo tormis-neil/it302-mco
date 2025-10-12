@@ -30,10 +30,10 @@ class UserManager(BaseUserManager):
         if not username:
             raise ValueError("The username must be set")
 
-        email = self.normalize_email(email)
         user = self.model(username=username, **extra_fields)
         user.set_password(password)
         if email:
+            email = self.normalize_email(email)
             user.email = email
         user.save(using=self._db)
         return user
@@ -52,34 +52,40 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        if not email:
-            raise ValueError("Superuser accounts require an email address.")
-
+        # Email is optional - can be added later via shell
         return self._create_user(username, email, password, **extra_fields)
 
 
 class User(AbstractUser):
     """Custom user storing encrypted email addresses and lockout metadata."""
 
-    email = None  # remove the plaintext email column from the parent class
-
+    # Remove the parent email field
+    email = None
+    
+    # Our custom encrypted fields
     encrypted_email = models.BinaryField(blank=True, null=True, editable=False)
     email_digest = models.CharField(max_length=64, unique=True, blank=True, null=True, editable=False)
+    
+    # Security fields
     failed_login_attempts = models.PositiveIntegerField(default=0)
     locked_until = models.DateTimeField(blank=True, null=True)
     last_failed_login_at = models.DateTimeField(blank=True, null=True)
 
     objects = UserManager()
 
-    EMAIL_FIELD = "email"
-    REQUIRED_FIELDS = ["email"]
+    # IMPORTANT: Tell Django not to use 'email' as the email field
+    # since it's now a property, not a database field
+    EMAIL_FIELD = None  # ← Changed from "email"
+    REQUIRED_FIELDS = []  # ← Changed from ["email"]
 
     @property
     def email(self) -> str:  # type: ignore[override]
+        """Decrypt and return the email address."""
         return decrypt_email(self.encrypted_email)
 
     @email.setter
     def email(self, value: Optional[str]) -> None:  # type: ignore[override]
+        """Encrypt and store the email address."""
         normalized = self.__class__.objects.normalize_email(value)
         if normalized:
             self.encrypted_email = encrypt_email(normalized)
@@ -87,6 +93,10 @@ class User(AbstractUser):
         else:
             self.encrypted_email = b""
             self.email_digest = None
+
+    def get_email_field_name(self):
+        """Override to prevent Django from looking for 'email' field."""
+        return None
 
     def mark_login_failure(self) -> None:
         """Record a failed login attempt and update lockout metadata."""
@@ -107,6 +117,7 @@ class User(AbstractUser):
         self.save(update_fields=["locked_until"])
 
     def is_locked(self) -> bool:
+        """Check if account is currently locked."""
         return bool(self.locked_until and self.locked_until > timezone.now())
 
 
@@ -161,6 +172,5 @@ class Profile(models.Model):
 @receiver(post_save, sender=User)
 def _ensure_profile(sender, instance: User, created: bool, **_: object) -> None:
     """Create a profile automatically when a user is provisioned."""
-
     if created:
         Profile.objects.create(user=instance, display_name=instance.username)

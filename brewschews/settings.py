@@ -1,6 +1,8 @@
 """Django settings for the Brews & Chews project."""
 from __future__ import annotations
 
+import base64
+import hashlib
 import os
 from pathlib import Path
 
@@ -19,8 +21,13 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-change-me")
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
 
+def _derive_default_account_key(secret: str) -> str:
+    """Derive a deterministic base64 encoded 32-byte key for local development."""
+
+    digest = hashlib.sha256(f"{secret}:accounts-email-key".encode("utf-8")).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii")
+
 INSTALLED_APPS = [
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -70,6 +77,18 @@ DATABASES = {
         "NAME": BASE_DIR / os.environ.get("DJANGO_DB_NAME", "db.sqlite3"),
     }
 }
+ACCOUNT_EMAIL_ENCRYPTION_KEY = os.environ.get(
+    "ACCOUNT_EMAIL_ENCRYPTION_KEY", _derive_default_account_key(SECRET_KEY)
+)
+
+AUTH_USER_MODEL = "accounts.User"
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+]
 
 AUTH_PASSWORD_VALIDATORS = [
     {

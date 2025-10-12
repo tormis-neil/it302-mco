@@ -55,8 +55,7 @@
     </aside>
 
     <section class="menu-content" data-menu-content>
-        <!-- FEATURED SECTION REMOVED -->
-        
+
         <div class="menu-panels" data-menu data-default-category="{{ default_category }}">
             {% for category in all_categories %}
             <section id="{{ category.slug }}"
@@ -76,7 +75,7 @@
                         <div class="menu-card__body">
                             <h3 class="menu-card__title">{{ item.name }}</h3>
                             <p class="menu-card__description">{{ item.description }}</p>
-                            <a href="{% url 'accounts:login' %}" class="menu-card__cta" aria-label="Reserve {{ item.name }}">Reserve this item</a>
+                            <a href="{% url 'accounts:login' %}" class="menu-card__cta" aria-label="Order {{ item.name }}">Order this item</a>
                         </div>
                     </article>
                     {% endfor %}

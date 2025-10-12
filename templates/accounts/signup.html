@@ -8,18 +8,25 @@
 <section aria-labelledby="signup-title" class="auth-card">
     <h1 id="signup-title" class="hero-heading auth-title">Create your Brews &amp; Chews account</h1>
 
-    <form action="#" method="post" class="auth-form" novalidate data-signup-form>
+    {% if form.non_field_errors %}
+    <div class="auth-alert" role="alert">
+        {{ form.non_field_errors|join:" " }}
+    </div>
+    {% endif %}
+
+    <form action="{% url 'accounts:signup' %}" method="post" class="auth-form" novalidate data-signup-form>
+
         {% csrf_token %}
         <div class="auth-field">
             <label for="su-username" class="auth-label">Username</label>
-            <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Choose a username" class="auth-input">
-            <p class="auth-error" role="alert" data-field-error="username" hidden></p>
+            <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Choose a username" class="auth-input" value="{{ form.username.value|default_if_none:'' }}">
+            <p class="auth-error" role="alert" data-field-error="username" {% if not form.errors.username %}hidden{% endif %}>{{ form.errors.username|join:" " }}</p>
         </div>
 
         <div class="auth-field">
             <label for="su-email" class="auth-label">Email</label>
-            <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input">
-            <p class="auth-error" role="alert" data-field-error="email" hidden></p>
+            <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input" value="{{ form.email.value|default_if_none:'' }}">
+            <p class="auth-error" role="alert" data-field-error="email" {% if not form.errors.email %}hidden{% endif %}>{{ form.errors.email|join:" " }}</p>
         </div>
 
         <div class="auth-field">
@@ -39,13 +46,13 @@
                     <li data-requirement="special" data-valid="false">Includes a special character (!@#$%^&amp;*)</li>
                 </ul>
             </div>
-            <p class="auth-error" role="alert" data-field-error="password" hidden></p>
+            <p class="auth-error" role="alert" data-field-error="password" {% if not form.errors.password %}hidden{% endif %}>{{ form.errors.password|join:" " }}</p>
         </div>
 
         <div class="auth-field">
             <label for="su-confirm" class="auth-label">Confirm Password</label>
             <input id="su-confirm" name="confirm_password" type="password" autocomplete="new-password" required placeholder="Re-enter your password" class="auth-input">
-            <p class="auth-error" role="alert" data-field-error="confirm" hidden></p>
+            <p class="auth-error" role="alert" data-field-error="confirm" {% if not form.errors.confirm_password %}hidden{% endif %}>{{ form.errors.confirm_password|join:" " }}</p>
         </div>
 
         <button type="submit" class="btn" style="width: 100%;">Create Account</button>

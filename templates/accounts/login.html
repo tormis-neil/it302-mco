@@ -8,14 +8,14 @@
 <section aria-labelledby="login-title" class="auth-card">
     <h1 id="login-title" class="hero-heading auth-title">Sign In to Your Account</h1>
 
-    <div class="auth-alert" role="alert" aria-live="polite" data-auth-alert hidden>
-        Invalid username or password. Please try again.
-    </div>
+    <div class="auth-alert" role="alert" aria-live="polite" data-auth-alert {% if not alert_message %}hidden{% endif %}>
+        {{ alert_message|default:"Invalid username or password. Please try again." }}
 
-    <form action="#" method="post" class="auth-form" data-login-form>
+    <form action="{% url 'accounts:login' %}" method="post" class="auth-form" data-login-form>
+        {% csrf_token %}
         <div class="auth-field">
             <label for="login-identifier" class="auth-label">Username or Email</label>
-            <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input">
+            <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input" value="{{ form.identifier.value|default_if_none:'' }}">
         </div>
 
         <div class="auth-field">

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Brews &amp; Chews — Specialty Coffee Reservations{% endblock %}
+{% block title %}Brews &amp; Chews – Specialty Coffee Reservations{% endblock %}
 
 {% block main_class %}page-main home-main{% endblock %}
 
@@ -8,7 +8,7 @@
 <section id="hero-section" class="hero">
     <div class="hero-content">
         <h1 class="hero-heading">Your Coffee, Your Way</h1>
-        <p class="hero-line">“Behind every successful person is a substantial amount of coffee.”</p>
+        <p class="hero-line">"Behind every successful person is a substantial amount of coffee."</p>
         <div class="hero-action-btn-container">
             <a href="{% url 'accounts:signup' %}" class="btn" aria-label="Create an account to reserve">Get Started</a>
             <a href="{% url 'accounts:login' %}" class="btn btn-secondary" aria-label="Sign in to manage reservations">Sign In</a>
@@ -23,32 +23,32 @@
         <p class="section-subtitle">Everything you need for the perfect coffee experience</p>
         <ul class="offer-list" aria-label="Key features">
             <li>
-                <a href="{% url 'accounts:signup' %}" class="offer-item">
+                <div class="offer-item">
                     <i class="fa fa-chair" aria-hidden="true"></i>
                     <h3>Table reservations</h3>
                     <p>Book your spot ahead for a hassle-free visit.</p>
-                </a>
+                </div>
             </li>
             <li>
-                <a href="{% url 'pages:menu' %}" class="offer-item">
+                <div class="offer-item">
                     <i class="fa fa-mug-hot" aria-hidden="true"></i>
                     <h3>View cafe menu online</h3>
                     <p>Browse drinks and bites anytime, anywhere.</p>
-                </a>
+                </div>
             </li>
             <li>
-                <a href="{% url 'accounts:signup' %}" class="offer-item">
+                <div class="offer-item">
                     <i class="fa fa-credit-card" aria-hidden="true"></i>
                     <h3>Online payments</h3>
                     <p>Pay securely with your preferred method.</p>
-                </a>
+                </div>
             </li>
             <li>
-                <a href="{% url 'accounts:signup' %}" class="offer-item">
+                <div class="offer-item">
                     <i class="fa fa-lock" aria-hidden="true"></i>
                     <h3>Secure and easy to use</h3>
                     <p>Your data stays safe while you enjoy coffee.</p>
-                </a>
+                </div>
             </li>
         </ul>
     </div>

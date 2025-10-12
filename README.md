@@ -1,89 +1,174 @@
-# online-cafe-ordering-system
-# Brews & Chews – Online Cafe Ordering System
+# Brews & Chews – Online Café Ordering System
 
-This repository contains the in-progress implementation of the Brews & Chews web application. The current iteration introduces a Django project structure to support upcoming authentication and profile features while keeping the marketing and menu preview pages available for stakeholders.
+A Django-based web application for managing café orders with secure user authentication and profile management.
 
-## Project layout
+---
 
-```
-it302-mco/
-├── brewschews/           # Django project configuration
-├── accounts/             # Authentication app with secure signup/login and profiles
-├── menu/                 # Authenticated menu UI fed by seeded catalog data
-├── orders/               # Read-only cart, checkout, and history dashboard views
-├── pages/                # Public marketing and menu views
-├── templates/            # HTML templates grouped by app
-├── static/               # Consolidated CSS and image assets
-├── manage.py             # Django management utility
-├── requirements.txt      # Python dependencies
-└── .env.example          # Sample environment configuration
-```
+## 🎯 **Project Status**
 
-## Getting started
+### ✅ **Fully Implemented Features**
+- **User Authentication**
+  - Sign up with email validation and strong password requirements
+  - Sign in using username OR email
+  - Password strength indicator with real-time validation
+  - Account lockout after 5 failed login attempts (60-minute lockout)
+  - Rate limiting on signup and login attempts
+  - Secure logout functionality
 
-1. **Create a virtual environment** (recommended):
+- **User Profile Management**
+  - View account information (username, email, join date, last login)
+  - Edit profile details (display name, phone number, favorite drink, bio)
+  - Change username with password confirmation
+  - Change password with current password verification
+  - Delete account with confirmation modal
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # Linux/macOS
-   .venv\\Scripts\\activate   # Windows
-   ```
+- **Menu Display**
+  - Browse café menu items organized by categories
+  - View item descriptions and prices
+  - Responsive grid layout
 
-2. **Install dependencies:**
+- **Security Features**
+  - Audit logging for all authentication events
+  - IP-based rate limiting
+  - Strong password validation (12+ chars, uppercase, numbers, special characters)
+  - Session management
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 🎨 **UI-Only Features (Visual Prototypes)**
+These features have working interfaces but no backend functionality yet:
+- Shopping Cart (shows placeholder data)
+- Checkout Flow (form display only)
+- Order History (shows sample orders)
 
-3. **Configure environment variables:**
+### ❌ **Not Implemented**
+- Add to cart functionality
+- Real order processing
+- Payment integration
+- Email notifications
+- Password reset via email
+- Admin/staff dashboard
 
-   - Copy `.env.example` to `.env` and adjust the values as needed (secret key, debug flag, allowed hosts, database name).
-   - Optionally set `ACCOUNT_EMAIL_ENCRYPTION_KEY` to a base64-encoded 32-byte key if you need to rotate the default derived from
-     the secret key. This key powers the AES-256 encryption used for stored email addresses.
+---
 
-4. **Run migrations and start the development server:**
+## 🛠️ **Tech Stack**
 
-   ```bash
-   python manage.py migrate
-   python manage.py runserver
-   ```
+- **Backend:** Django 4.2+
+- **Database:** SQLite3 (development)
+- **Authentication:** Custom User model with Django's auth system
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript
+- **Password Hashing:** Argon2
+- **Security:** Rate limiting, audit logging, CSRF protection
 
-5. **Access the site:**
+---
 
-   Visit `http://127.0.0.1:8000/` for the landing page, `http://127.0.0.1:8000/pages/menu/preview/` for the public menu preview,
-   and sign in to explore the authenticated dashboard at `/menu/`, `/orders/cart/`, `/orders/checkout/`, and `/orders/history/`.
+## 📋 **Prerequisites**
 
-## Authenticated user journey
+Before setting up the project, ensure you have:
 
-The current build focuses on finalizing the secure authentication experience while presenting the post-login UI as a clickable
-prototype. The expected flow is:
+- **Python 3.8+** installed ([Download Python](https://www.python.org/downloads/))
+- **pip** (comes with Python)
+- **Git** installed ([Download Git](https://git-scm.com/downloads))
+- A code editor (VS Code, PyCharm, etc.)
 
-1. Browse the **Menu Preview** without signing in to see a snapshot of the café offerings.
-2. Create an account or sign in—rate limiting and audit logging are enabled to satisfy the security requirements.
-3. After authentication, explore the **Order Menu**, **Cart**, **Checkout**, and **History** pages. Buttons and forms are
-   intentionally disabled while the transactional back-end is still under construction.
-4. Visit the **Profile** page to review and update account details that are stored securely in the database.
-5. Sign out using the navigation menu when finished.
+### Check Your Python Version:
+```bash
+python --version
+# or
+python3 --version
 
-## Database management
+### Set Up Instructions:
 
-The project uses SQLite by default so new contributors can get started quickly without provisioning external services. The database file is intentionally excluded from version control—run `python manage.py migrate` locally to create or upgrade your own `db.sqlite3` after pulling new migrations.
+git clone https://github.com/YOUR_USERNAME/online-cafe-ordering-system.git
+cd online-cafe-ordering-system
 
-You can change the database location by updating `DJANGO_DB_NAME` in your `.env`. For production deployments, point `DJANGO_DB_NAME` at a persistent volume or switch to a managed service such as PostgreSQL by adjusting `DATABASES` in `brewschews/settings.py` and setting the appropriate environment variables.
+# Create a Virtual Environment
+- Windows (PowerShell):
+- bashpython -m venv .venv
+- .venv\Scripts\Activate.ps1
 
-## Security highlights
+# Install Dependecies
+- pip install -r requirements.txt
 
-- **Encrypted email addresses** – the custom user model stores email addresses using AES-256-GCM. Only the SHA-256 digest is used for lookups, protecting the plaintext value.
-- **Strong password policy** – the signup form enforces Django’s configured password validators (12+ characters, complexity checks, similarity checks) alongside additional uppercase/number/special-character requirements.
-- **Audit logging and throttling** – every login and signup attempt is persisted with IP information, while rate limiting and account lockouts protect against brute-force attacks.
+# Run Database Migrations
+- python manage.py migrate
 
-## Testing
+This will:
 
-- Run `python manage.py test` to execute the Django unit tests that cover signup, login, profile updates, and logout.
-- Use `python manage.py check` to run Django’s system checks before deployment.
+- Create the SQLite database (db.sqlite3)
+- Set up all required tables
+- Populate the menu with sample items
 
-## Next steps
+# Start the Development Server
+python manage.py runserver
 
-- Connect the cart, checkout, and history interfaces to the underlying order models.
-- Add staff tooling for managing menu availability and order status updates.
-- Expand automated test coverage to include front-end interactions and regression checks.
+You Should See:
+- Starting development server at http://127.0.0.1:8000/
+- Quit the server with CTRL-BREAK.
+
+### Common Issues & Solutions
+
+# "ModuleNotFoundError: No module named 'django'"
+- Windows PowerShell
+.venv\Scripts\Activate.ps1
+- macOS/Linux
+source .venv/bin/activate
+
+# "python: command not found"
+- python3 -m venv .venv
+- python3 manage.py runserver
+
+# "Execution of scripts is disabled on this system" (Windows)
+# Run PowerShell as Administrator, then:
+- Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Or use Command Prompt instead:
+- .venv\Scripts\activate.bat
+
+#  "No such table" errors
+# Delete database
+rm db.sqlite3         # macOS/Linux
+del db.sqlite3        # Windows
+
+# Re-run migrations
+python manage.py migrate
+
+### Project Structure
+online-cafe-ordering-system/
+├── .venv/                      # Virtual environment (not in git)
+├── brewschews/                 # Django project settings
+│   ├── settings.py             # Main configuration
+│   ├── urls.py                 # Root URL routing
+│   ├── wsgi.py                 # WSGI config for deployment
+│   └── asgi.py                 # ASGI config (async)
+├── accounts/                   # User authentication app
+│   ├── models.py               # User, Profile, AuthenticationEvent models
+│   ├── views.py                # Login, signup, profile views
+│   ├── forms.py                # Authentication forms
+│   ├── urls.py                 # Account-related URLs
+│   └── migrations/             # Database migrations
+├── menu/                       # Menu catalog app
+│   ├── models.py               # Category, MenuItem models
+│   ├── views.py                # Menu display views
+│   └── migrations/             # Database migrations (includes seed data)
+├── orders/                     # Cart & order management (UI only)
+│   ├── models.py               # Cart, Order models
+│   ├── views.py                # Placeholder views
+│   └── migrations/             # Database migrations
+├── pages/                      # Public-facing pages
+│   ├── views.py                # Home page view
+│   └── urls.py                 # Public URLs
+├── templates/                  # HTML templates
+│   ├── base.html               # Base template with navigation
+│   ├── accounts/               # Login, signup, profile templates
+│   ├── menu/                   # Menu display template
+│   ├── orders/                 # Cart, checkout, history templates
+│   └── pages/                  # Home page template
+├── static/                     # Static assets
+│   ├── css/                    # Stylesheets
+│   ├── js/                     # JavaScript files
+│   └── img/                    # Images (logo, backgrounds)
+├── db.sqlite3                  # SQLite database (not in git)
+├── manage.py                   # Django management script
+├── requirements.txt            # Python dependencies
+├── .env.example                # Example environment variables
+├── .gitignore                  # Git ignore rules
+└── README.md                   # This file

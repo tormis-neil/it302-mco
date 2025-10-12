@@ -9,7 +9,7 @@ from django import forms
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 
-from .models import Profile, User, digest_email
+from .models import Profile, User
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]{3,30}$")
 PASSWORD_SPECIAL_PATTERN = re.compile(r"[!@#$%^&*]")
@@ -35,7 +35,7 @@ class SignupForm(forms.Form):
 
     def clean_email(self) -> str:
         email = self.cleaned_data["email"].strip().lower()
-        if User.objects.filter(email_digest=digest_email(email)).exists():
+        if User.objects.filter(email__iexact=email).exists():
             raise ValidationError("That email is already registered.")
         return email
 
@@ -104,8 +104,7 @@ class LoginForm(forms.Form):
         identifier = self.get_identifier()
         user: Optional[User]
         if "@" in identifier:
-            email_digest = digest_email(identifier.lower())
-            user = User.objects.filter(email_digest=email_digest).first()
+            user = User.objects.filter(email__iexact=identifier.lower()).first()
         else:
             user = User.objects.filter(username__iexact=identifier).first()
         return user

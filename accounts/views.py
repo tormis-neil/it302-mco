@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .forms import LoginForm, ProfileForm, SignupForm
-from .models import AuthenticationEvent, Profile, User, digest_email
+from .models import AuthenticationEvent, Profile, User
 from .utils import get_client_ip
 
 SIGNUP_RATE_LIMIT = 5
@@ -32,13 +32,12 @@ def _record_event(
     ip_address: str,
     user_agent: str,
     username: str = "",
-    email: Optional[str] = None,
+    email: Optional[str] = None,  # ← Keep this
     user: Optional[User] = None,
     successful: bool,
     reason: Optional[str] = None,
 ) -> None:
     """Persist an authentication audit event."""
-
     metadata = {"reason": reason} if reason else {}
     try:
         AuthenticationEvent.objects.create(
@@ -46,7 +45,7 @@ def _record_event(
             ip_address=ip_address,
             user_agent=user_agent[:255],
             username_submitted=username,
-            email_digest=digest_email(email) if email else None,
+            email_submitted=email or "",
             user=user,
             successful=successful,
             metadata=metadata,

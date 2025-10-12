@@ -1,57 +1,123 @@
 from decimal import Decimal
-
 from django.db import migrations
-
-from pages.menu_data import MENU_CATEGORIES
-
-PRICES = {
-    "Maple Cocoa Nibs Oatmilk Shaken Espresso": Decimal("195.00"),
-    "Frappuccino": Decimal("185.00"),
-    "Drip Coffee": Decimal("120.00"),
-    "Cold Brew": Decimal("150.00"),
-    "Espresso Shot": Decimal("110.00"),
-    "Cappuccino": Decimal("145.00"),
-    "Chai Tea Cream Frappuccino": Decimal("175.00"),
-    "Caramel Cream Frappuccino": Decimal("180.00"),
-    "Full Leaf Brewed Tea": Decimal("105.00"),
-    "Iced Black Tea Latte": Decimal("160.00"),
-    "Lemonade": Decimal("95.00"),
-    "Iced Cucumber": Decimal("115.00"),
-    "Glazed Chicken": Decimal("210.00"),
-    "Buttered Chicken": Decimal("225.00"),
-    "Chocolate Dipped Doughnut": Decimal("85.00"),
-    "Bacon Belgian Waffle": Decimal("165.00"),
-    "Cheesy Tuna Sandwich": Decimal("155.00"),
-    "Egg Sandwich": Decimal("140.00"),
-}
 
 
 def seed_menu(apps, schema_editor):
     Category = apps.get_model("menu", "Category")
     MenuItem = apps.get_model("menu", "MenuItem")
 
+    # Don't seed if data already exists
     if Category.objects.exists():
         return
 
-    for order, category_data in enumerate(MENU_CATEGORIES, start=1):
-        category = Category.objects.create(
-            name=category_data.title,
-            slug=category_data.slug,
-            description=category_data.blurb,
-            kind="drink" if category_data.kind == "drinks" else "food",
-            display_order=order,
-            is_featured=category_data.kind == "drinks" and order == 1,
-        )
-        for item_order, item in enumerate(category_data.items, start=1):
-            MenuItem.objects.create(
-                category=category,
-                name=item.name,
-                slug="{}-{}".format(category.slug, item_order),
-                description=item.description,
-                base_price=PRICES.get(item.name, Decimal("150.00")),
-                image=item.image,
-                display_order=item_order,
-            )
+    # Featured Drinks
+    featured = Category.objects.create(
+        name="Featured Drinks",
+        slug="featured-drinks",
+        description="Seasonal favorites curated by our baristas.",
+        kind="drink",
+        display_order=1,
+        is_featured=True,
+    )
+    MenuItem.objects.create(
+        category=featured,
+        name="Maple Cocoa Nibs Oatmilk Shaken Espresso",
+        slug="featured-drinks-1",
+        description="A cozy blend of maple, cocoa nibs, and velvety oatmilk shaken over ice.",
+        base_price=Decimal("195.00"),
+        image="img/bg.jpg",
+        display_order=1,
+    )
+    MenuItem.objects.create(
+        category=featured,
+        name="Frappuccino",
+        slug="featured-drinks-2",
+        description="Our signature blended beverage with whipped cream and caramel drizzle.",
+        base_price=Decimal("185.00"),
+        image="img/bg.jpg",
+        display_order=2,
+    )
+
+    # Brewed Coffee
+    brewed = Category.objects.create(
+        name="Brewed Coffee",
+        slug="brewed-coffee",
+        description="Slow brewed classics to jump-start your day.",
+        kind="drink",
+        display_order=2,
+    )
+    MenuItem.objects.create(
+        category=brewed,
+        name="Drip Coffee",
+        slug="brewed-coffee-1",
+        description="Freshly brewed medium roast with a smooth finish.",
+        base_price=Decimal("120.00"),
+        image="img/bg.jpg",
+        display_order=1,
+    )
+    MenuItem.objects.create(
+        category=brewed,
+        name="Cold Brew",
+        slug="brewed-coffee-2",
+        description="Steeped for 20 hours for a naturally sweet, less acidic cup.",
+        base_price=Decimal("150.00"),
+        image="img/bg.jpg",
+        display_order=2,
+    )
+
+    # Espresso
+    espresso = Category.objects.create(
+        name="Espresso",
+        slug="espresso",
+        description="Pulled-to-order shots and milk-based espresso favorites.",
+        kind="drink",
+        display_order=3,
+    )
+    MenuItem.objects.create(
+        category=espresso,
+        name="Espresso Shot",
+        slug="espresso-1",
+        description="A concentrated shot with rich crema and balanced sweetness.",
+        base_price=Decimal("110.00"),
+        image="img/bg.jpg",
+        display_order=1,
+    )
+    MenuItem.objects.create(
+        category=espresso,
+        name="Cappuccino",
+        slug="espresso-2",
+        description="Equal parts espresso, steamed milk, and foam dusted with cocoa.",
+        base_price=Decimal("145.00"),
+        image="img/bg.jpg",
+        display_order=2,
+    )
+
+    # Bakery
+    bakery = Category.objects.create(
+        name="Bakery",
+        slug="bakery",
+        description="Freshly baked goods made in-house every morning.",
+        kind="food",
+        display_order=4,
+    )
+    MenuItem.objects.create(
+        category=bakery,
+        name="Chocolate Dipped Doughnut",
+        slug="bakery-1",
+        description="Yeast doughnut dipped in rich dark chocolate glaze.",
+        base_price=Decimal("85.00"),
+        image="img/bg.jpg",
+        display_order=1,
+    )
+    MenuItem.objects.create(
+        category=bakery,
+        name="Egg Sandwich",
+        slug="bakery-2",
+        description="Soft brioche filled with scrambled eggs and cheddar cheese.",
+        base_price=Decimal("140.00"),
+        image="img/bg.jpg",
+        display_order=2,
+    )
 
 
 def unseed_menu(apps, schema_editor):
@@ -60,7 +126,6 @@ def unseed_menu(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("menu", "0001_initial"),
     ]

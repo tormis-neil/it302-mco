@@ -1,7 +1,5 @@
 """Database models for the accounts app."""
-from __future__ import annotations
 
-import hashlib
 from typing import Optional
 
 from django.conf import settings
@@ -11,39 +9,29 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from .security import decrypt_email, encrypt_email
-
-
-def digest_email(value: str) -> str:
-    """Return a deterministic SHA-256 digest for the supplied email."""
-    normalized = value.strip().lower()
-    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-    return digest
-
-
 class UserManager(BaseUserManager):
-    """Custom manager that understands the encrypted email workflow."""
+    """Custom manager for user creation."""
 
     use_in_migrations = True
 
-    def _create_user(self, username: str, email: Optional[str], password: Optional[str], **extra_fields):
+    def _create_user(self, username: str, email: str, password: Optional[str], **extra_fields):
         if not username:
             raise ValueError("The username must be set")
+        if not email:
+            raise ValueError("The email must be set")
 
-        user = self.model(username=username, **extra_fields)
+        email = self.normalize_email(email)
+        user = self.model(username=username, email=email, **extra_fields)
         user.set_password(password)
-        if email:
-            email = self.normalize_email(email)
-            user.email = email
         user.save(using=self._db)
         return user
 
-    def create_user(self, username: str, email: Optional[str] = None, password: Optional[str] = None, **extra_fields):
+    def create_user(self, username: str, email: str, password: Optional[str] = None, **extra_fields):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
         return self._create_user(username, email, password, **extra_fields)
 
-    def create_superuser(self, username: str, email: Optional[str] = None, password: Optional[str] = None, **extra_fields):
+    def create_superuser(self, username: str, email: str, password: Optional[str] = None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
@@ -52,51 +40,22 @@ class UserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser must have is_superuser=True.")
 
-        # Email is optional - can be added later via shell
         return self._create_user(username, email, password, **extra_fields)
 
-
 class User(AbstractUser):
-    """Custom user storing encrypted email addresses and lockout metadata."""
-
-    # Remove the parent email field
-    email = None
+    """Custom user with security features."""
     
-    # Our custom encrypted fields
-    encrypted_email = models.BinaryField(blank=True, null=True, editable=False)
-    email_digest = models.CharField(max_length=64, unique=True, blank=True, null=True, editable=False)
+    # Use standard Django email field (removed encryption)
+    email = models.EmailField(unique=True, blank=False)
     
-    # Security fields
+    # Security fields (keep these)
     failed_login_attempts = models.PositiveIntegerField(default=0)
     locked_until = models.DateTimeField(blank=True, null=True)
     last_failed_login_at = models.DateTimeField(blank=True, null=True)
 
-    objects = UserManager()
-
-    # IMPORTANT: Tell Django not to use 'email' as the email field
-    # since it's now a property, not a database field
-    EMAIL_FIELD = None  # ← Changed from "email"
-    REQUIRED_FIELDS = []  # ← Changed from ["email"]
-
-    @property
-    def email(self) -> str:  # type: ignore[override]
-        """Decrypt and return the email address."""
-        return decrypt_email(self.encrypted_email)
-
-    @email.setter
-    def email(self, value: Optional[str]) -> None:  # type: ignore[override]
-        """Encrypt and store the email address."""
-        normalized = self.__class__.objects.normalize_email(value)
-        if normalized:
-            self.encrypted_email = encrypt_email(normalized)
-            self.email_digest = digest_email(normalized)
-        else:
-            self.encrypted_email = b""
-            self.email_digest = None
-
-    def get_email_field_name(self):
-        """Override to prevent Django from looking for 'email' field."""
-        return None
+    # Standard Django configuration
+    EMAIL_FIELD = 'email'
+    REQUIRED_FIELDS = ['email']
 
     def mark_login_failure(self) -> None:
         """Record a failed login attempt and update lockout metadata."""
@@ -131,7 +90,7 @@ class AuthenticationEvent(models.Model):
     event_type = models.CharField(max_length=16, choices=EventType.choices)
     ip_address = models.GenericIPAddressField()
     username_submitted = models.CharField(max_length=150, blank=True)
-    email_digest = models.CharField(max_length=64, blank=True, null=True)
+    email_submitted = models.EmailField(blank=True)  # ← CHANGED: was email_digest
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -150,7 +109,7 @@ class AuthenticationEvent(models.Model):
             models.Index(fields=["event_type", "ip_address", "created_at"]),
         ]
 
-    def __str__(self) -> str:  # pragma: no cover - human-readable debugging only
+    def __str__(self) -> str:
         status = "success" if self.successful else "failure"
         return f"{self.get_event_type_display()} {status} from {self.ip_address}"
 

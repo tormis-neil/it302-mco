@@ -1,7 +1,7 @@
 const REQUIREMENTS = [
   {
     key: 'length',
-    test: (value) => value.length >= 8,
+    test: (value) => value.length >= 12,
   },
   {
     key: 'uppercase',

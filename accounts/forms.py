@@ -1,5 +1,4 @@
-"""Custom authentication forms will live here once backend work begins."""
-"""End-user forms for authentication workflows."""
+"""End-user authentication forms for the Brews & Chews project."""
 
 from __future__ import annotations
 

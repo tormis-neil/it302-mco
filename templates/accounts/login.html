@@ -10,6 +10,7 @@
 
     <div class="auth-alert" role="alert" aria-live="polite" data-auth-alert {% if not alert_message %}hidden{% endif %}>
         {{ alert_message|default:"Invalid username or password. Please try again." }}
+    </div>
 
     <form action="{% url 'accounts:login' %}" method="post" class="auth-form" data-login-form>
         {% csrf_token %}

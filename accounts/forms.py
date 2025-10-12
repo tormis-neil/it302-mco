@@ -6,6 +6,7 @@ import re
 from typing import Optional
 
 from django import forms
+from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 
 from .models import Profile, User, digest_email
@@ -43,20 +44,30 @@ class SignupForm(forms.Form):
         password = data.get("password", "")
         confirm = data.get("confirm_password", "")
         if password:
-            self._validate_password_strength(password)
+            try:
+                password_validation.validate_password(password)
+            except ValidationError as exc:
+                self.add_error("password", exc)
+            try:
+                self._validate_password_strength(password)
+            except ValidationError as exc:
+                self.add_error("password", exc)
         if password and confirm and password != confirm:
             self.add_error("confirm_password", "Passwords do not match.")
         return data
 
     def _validate_password_strength(self, password: str) -> None:
-        if len(password) < 8:
-            raise ValidationError({"password": "Password must be at least 8 characters long."})
+        errors = []
+        if len(password) < 12:
+            errors.append("Password must be at least 12 characters long.")
         if password.lower() == password:
-            raise ValidationError({"password": "Include at least one uppercase letter."})
+            errors.append("Include at least one uppercase letter.")
         if not any(ch.isdigit() for ch in password):
-            raise ValidationError({"password": "Include at least one number."})
+            errors.append("Include at least one number.")
         if not PASSWORD_SPECIAL_PATTERN.search(password):
-            raise ValidationError({"password": "Include at least one special character (!@#$%^&*)."})
+            errors.append("Include at least one special character (!@#$%^&*).")
+        if errors:
+            raise ValidationError(errors)
 
     def save(self) -> User:
         if not self.is_valid():  # pragma: no cover - guard for misuse

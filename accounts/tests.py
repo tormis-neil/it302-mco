@@ -71,6 +71,21 @@ class SignupViewTests(TestCase):
         user = User.objects.get(username="argonuser")
         self.assertTrue(user.password.startswith("argon2"))
 
+    def test_signup_rejects_passwords_that_fail_validators(self) -> None:
+        response = self.client.post(
+            self.url,
+            {
+                "username": "weakpass",
+                "email": "weak@example.com",
+                "password": "Short1!",
+                "confirm_password": "Short1!",
+            },
+            REMOTE_ADDR="198.51.100.14",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Password must be at least 12 characters long.")
+        self.assertFalse(User.objects.filter(username="weakpass").exists())
+
     def test_signup_rate_limit_blocks_submission(self) -> None:
         ip_address = "198.51.100.12"
         for _ in range(5):

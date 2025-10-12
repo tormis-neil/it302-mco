@@ -38,6 +38,8 @@ it302-mco/
 3. **Configure environment variables:**
 
    - Copy `.env.example` to `.env` and adjust the values as needed (secret key, debug flag, allowed hosts, database name).
+   - Optionally set `ACCOUNT_EMAIL_ENCRYPTION_KEY` to a base64-encoded 32-byte key if you need to rotate the default derived from
+     the secret key. This key powers the AES-256 encryption used for stored email addresses.
 
 4. **Run migrations and start the development server:**
 
@@ -60,7 +62,7 @@ prototype. The expected flow is:
 2. Create an account or sign in—rate limiting and audit logging are enabled to satisfy the security requirements.
 3. After authentication, explore the **Order Menu**, **Cart**, **Checkout**, and **History** pages. Buttons and forms are
    intentionally disabled while the transactional back-end is still under construction.
-4. Visit the **Profile** page to update account details or delete the account; these actions are fully wired to the database.
+4. Visit the **Profile** page to review and update account details that are stored securely in the database.
 5. Sign out using the navigation menu when finished.
 
 ## Database management
@@ -69,20 +71,16 @@ The project uses SQLite by default so new contributors can get started quickly w
 
 You can change the database location by updating `DJANGO_DB_NAME` in your `.env`. For production deployments, point `DJANGO_DB_NAME` at a persistent volume or switch to a managed service such as PostgreSQL by adjusting `DATABASES` in `brewschews/settings.py` and setting the appropriate environment variables.
 
-## Syncing these updates with your local clone
+## Security highlights
 
-Because the code lives only in this workspace right now, there is no `work` branch on GitHub for you to pull. You have three ways to get the files locally:
+- **Encrypted email addresses** – the custom user model stores email addresses using AES-256-GCM. Only the SHA-256 digest is used for lookups, protecting the plaintext value.
+- **Strong password policy** – the signup form enforces Django’s configured password validators (12+ characters, complexity checks, similarity checks) alongside additional uppercase/number/special-character requirements.
+- **Audit logging and throttling** – every login and signup attempt is persisted with IP information, while rate limiting and account lockouts protect against brute-force attacks.
 
-1. **Apply the patch** – download `docs/work-update.patch` from this repo snapshot (or copy its contents) and run
-   `git apply work-update.patch`. This recreates the Django restructure in your clone while preserving history. Full
-   instructions live in [`docs/manual-sync-instructions.md`](docs/manual-sync-instructions.md).
-2. **Import from a bundle** – if you receive an accompanying `it302-mco.bundle`, fetch it with
-   `git fetch path/to/it302-mco.bundle work:agent-work` and merge/cherry-pick.
-3. **Manual recreation** – only as a last resort, follow the manual steps in the same document to scaffold Django and move
-   the templates/static assets by hand.
+## Testing
 
-Once the changes exist on your machine, commit them to your own branch so future pulls work normally. When you're ready,
-push that branch to GitHub and open a PR into `main`.
+- Run `python manage.py test` to execute the Django unit tests that cover signup, login, profile updates, and logout.
+- Use `python manage.py check` to run Django’s system checks before deployment.
 
 ## Next steps
 

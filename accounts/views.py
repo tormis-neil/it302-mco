@@ -233,8 +233,27 @@ def signup_view(request: HttpRequest) -> HttpResponse:
 @login_required
 @require_http_methods(["GET", "POST"])
 def profile_view(request: HttpRequest) -> HttpResponse:
-    """Render and update the authenticated user's profile."""
-
+    """
+    Display and update user profile information.
+    
+    Handles three types of updates:
+    1. Profile information (display name, phone, bio)
+    2. Username change (requires password confirmation)
+    3. Password change (requires current password)
+    
+    Args:
+        request: HTTP request object
+        
+    Returns:
+        Rendered profile page with forms and user data
+        
+    Security:
+        - Requires authentication (@login_required)
+        - Password confirmation for username changes
+        - Current password verification for password changes
+        - Session maintained after password change via update_session_auth_hash
+    """
+    # Get or create profile for current user
     profile, _ = Profile.objects.get_or_create(
         user=request.user,
         defaults={"display_name": request.user.username},
@@ -248,7 +267,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     update_success = False
     update_message = ""
     
-    # Handle profile update
+    # Handle profile information update
     if request.method == "POST" and "update_profile" in request.POST:
         if profile_form.is_valid():
             profile_form.save()
@@ -260,7 +279,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
         username_form = ChangeUsernameForm(request.user, request.POST)
         if username_form.is_valid():
             request.user.username = username_form.cleaned_data["new_username"]
-            request.user.save()
+            request.user.save(update_fields=['username'])
             update_success = True
             update_message = "Username changed successfully."
     
@@ -268,12 +287,18 @@ def profile_view(request: HttpRequest) -> HttpResponse:
     elif request.method == "POST" and "change_password" in request.POST:
         password_form = ChangePasswordForm(request.user, request.POST)
         if password_form.is_valid():
+            # Save the new password (uses set_password internally)
             password_form.save()
-            # Re-authenticate user after password change
+            
+            # CRITICAL: Update the session hash so user stays logged in
+            # Without this, the user's session becomes invalid
+            from django.contrib.auth import update_session_auth_hash
             update_session_auth_hash(request, request.user)
+            
             update_success = True
             update_message = "Password changed successfully."
     
+    # Get recent orders for display
     recent_orders = request.user.orders.all()[:3]
 
     context = {

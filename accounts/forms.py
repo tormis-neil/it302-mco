@@ -104,7 +104,7 @@ class LoginForm(forms.Form):
         identifier = self.get_identifier()
         user: Optional[User]
         if "@" in identifier:
-            user = User.objects.filter(email__iexact=identifier.lower()).first()
+            user = User.objects.filter(email__iexact=identifier).first()
         else:
             user = User.objects.filter(username__iexact=identifier).first()
         return user
@@ -134,8 +134,9 @@ class ProfileForm(forms.ModelForm):
             classes = field.widget.attrs.get("class", "")
             field.widget.attrs["class"] = f"dashboard-input {classes}".strip()
 
+
 class ChangeUsernameForm(forms.Form):
-    """Form for changing username."""
+    """Form for changing username with password confirmation."""
     
     new_username = forms.CharField(
         max_length=150,
@@ -151,6 +152,10 @@ class ChangeUsernameForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
+        # Add CSS classes
+        for field in self.fields.values():
+            classes = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"dashboard-input {classes}".strip()
 
     def clean_new_username(self) -> str:
         username = self.cleaned_data["new_username"].strip()
@@ -179,48 +184,76 @@ class ChangeUsernameForm(forms.Form):
 
 
 class ChangePasswordForm(forms.Form):
-    """Form for changing password."""
+    """
+    Form for securely changing user password.
+    
+    Validates:
+    - Current password is correct
+    - New password meets strength requirements
+    - Password confirmation matches
+    
+    Requirements:
+    - 12+ characters
+    - At least one uppercase letter
+    - At least one number
+    - At least one special character (!@#$%^&*)
+    """
     
     current_password = forms.CharField(
         widget=forms.PasswordInput,
-        label="Current Password"
+        label="Current Password",
+        help_text="Enter your current password"
     )
     new_password = forms.CharField(
         widget=forms.PasswordInput,
-        label="New Password"
+        label="New Password",
+        help_text="Must be at least 12 characters with uppercase, number, and special character"
     )
     confirm_password = forms.CharField(
         widget=forms.PasswordInput,
-        label="Confirm New Password"
+        label="Confirm New Password",
+        help_text="Re-enter your new password"
     )
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
+        # Add CSS classes
+        for field in self.fields.values():
+            classes = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"dashboard-input {classes}".strip()
 
     def clean_current_password(self) -> str:
+        """Verify the current password is correct."""
         password = self.cleaned_data.get("current_password")
         if not self.user.check_password(password):
             raise ValidationError("Current password is incorrect.")
         return password
 
+    def clean_new_password(self) -> str:
+        """Validate new password meets all requirements."""
+        password = self.cleaned_data.get("new_password", "")
+        
+        if password:
+            # Use Django's built-in validators
+            try:
+                password_validation.validate_password(password, self.user)
+            except ValidationError as exc:
+                raise exc
+            
+            # Apply custom strength requirements
+            try:
+                self._validate_password_strength(password)
+            except ValidationError as exc:
+                raise exc
+        
+        return password
+
     def clean(self) -> dict:
+        """Validate password confirmation matches."""
         data = super().clean()
         new_password = data.get("new_password", "")
         confirm = data.get("confirm_password", "")
-        
-        if new_password:
-            # Validate password strength
-            try:
-                password_validation.validate_password(new_password, self.user)
-            except ValidationError as exc:
-                self.add_error("new_password", exc)
-            
-            # Check custom requirements
-            try:
-                self._validate_password_strength(new_password)
-            except ValidationError as exc:
-                self.add_error("new_password", exc)
         
         if new_password and confirm and new_password != confirm:
             self.add_error("confirm_password", "Passwords do not match.")
@@ -228,23 +261,39 @@ class ChangePasswordForm(forms.Form):
         return data
 
     def _validate_password_strength(self, password: str) -> None:
-        """Same validation as signup."""
+        """
+        Validate custom password strength requirements.
+        Same validation rules as signup form.
+        """
         errors = []
+        
         if len(password) < 12:
             errors.append("Password must be at least 12 characters long.")
+        
         if password.lower() == password:
             errors.append("Include at least one uppercase letter.")
+        
         if not any(ch.isdigit() for ch in password):
             errors.append("Include at least one number.")
+        
         if not PASSWORD_SPECIAL_PATTERN.search(password):
             errors.append("Include at least one special character (!@#$%^&*).")
+        
         if errors:
             raise ValidationError(errors)
 
-    def save(self):
-        """Update user password."""
-        self.user.set_password(self.cleaned_data["new_password"])
-        self.user.save()
+    def save(self) -> None:
+        """
+        Update user password securely.
+        Uses Django's set_password() which handles hashing with Argon2.
+        """
+        new_password = self.cleaned_data["new_password"]
+        
+        # Use Django's built-in method for secure password hashing
+        self.user.set_password(new_password)
+        
+        # Save to database
+        self.user.save(update_fields=['password'])
 
 
 __all__ = ["SignupForm", "LoginForm", "ProfileForm", "ChangeUsernameForm", "ChangePasswordForm"]

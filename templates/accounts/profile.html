@@ -148,7 +148,7 @@
 <section class="dashboard-hero">
     <div>
         <p class="dashboard-eyebrow">Account Center</p>
-        <h1 class="dashboard-title">Hi, {{ request.user.first_name|default:request.user.username }}!</h1>
+        <h1 class="dashboard-title">Hi, {{ request.user.profile.display_name|default:request.user.username }}!</h1>
         <p class="dashboard-subtitle">Manage your account settings and preferences.</p>
     </div>
     <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Back to menu</a>

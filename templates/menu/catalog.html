@@ -11,7 +11,7 @@
 {% block content %}
 <section class="dashboard-hero">
     <div>
-        <p class="dashboard-eyebrow">Welcome back, {{ request.user.first_name|default:request.user.username }}</p>
+        <p class="dashboard-eyebrow">Welcome back, {{ request.user.profile.display_name|default:request.user.username }}</p>
         <h1 class="dashboard-title">Order Your Favorites</h1>
         <p class="dashboard-subtitle">Our ordering engine is almost ready. Explore the curated menu below—buttons are disabled while we finalize the checkout experience.</p>
     </div>

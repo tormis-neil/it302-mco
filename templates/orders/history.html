@@ -1,56 +1,124 @@
+{# 
+============================================================
+ORDER HISTORY PAGE
+============================================================
+Shows preview of how past orders will appear once live.
+Currently displays sample order data.
+
+Features:
+- Order cards with reference numbers
+- Status badges (pending, confirmed, ready, cancelled)
+- Item lists with quantities and prices
+- Total amounts
+- Special instructions display
+- Timestamps
+
+Status: Preview with sample data
+Coming Soon: Real order data from database
+
+Related:
+- View: orders/views.py → history()
+- CSS: static/css/dashboard.css
+- URL: /orders/history/
+#}
+
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Order History - Brews &amp; Chews{% endblock %}
 
+{# Load dashboard-specific styles #}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% endblock %}
 
+{# Use dashboard layout wrapper #}
 {% block main_class %}dashboard-main{% endblock %}
 
 {% block content %}
+
+{# ========================================
+    HERO SECTION
+    Order history header
+======================================== #}
 <section class="dashboard-hero">
     <div>
         <p class="dashboard-eyebrow">Order History</p>
         <h1 class="dashboard-title">Track your recent activity</h1>
+        
+        {# Status message #}
         <p class="dashboard-subtitle">This section showcases how your orders will appear once fulfillment goes live.</p>
     </div>
+    
+    {# Link to place new order #}
     <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Place another order</a>
 </section>
 
+{# ========================================
+    ORDER HISTORY SECTION
+======================================== #}
 <section class="dashboard-section" aria-labelledby="history-list">
     <h2 id="history-list" class="dashboard-section__title">Recent orders</h2>
+    
+    {# ========================================
+        ORDERS LIST
+        Display if there are orders
+    ======================================== #}
     {% if history_entries %}
     <ul class="history-list">
+        
+        {# Loop through each order #}
         {% for entry in history_entries %}
         <li class="history-card">
-            <!-- Header: Order ID + Status -->
+            
+            {# ========================================
+                ORDER HEADER
+                Reference number and status
+            ======================================== #}
             <header class="history-card__header">
                 <div class="history-card__header-info">
+                    {# Order reference number #}
                     <h3 class="history-card__title">Order {{ entry.reference }}</h3>
+                    
+                    {# Order timestamp #}
                     <p class="history-card__meta">
                         <i class="fa fa-clock" aria-hidden="true"></i> 
                         Placed on {{ entry.placed_at|date:"M d, Y g:i a" }}
                     </p>
                 </div>
+                
+                {# Status badge (color-coded by status) #}
                 <span class="history-card__status history-card__status--{{ entry.status }}">
                     {{ entry.status_label }}
                 </span>
             </header>
 
-            <!-- Items List -->
+            {# ========================================
+                ITEMS LIST
+                Show all items in this order
+            ======================================== #}
             <ul class="history-card__items">
                 {% for item in entry.items %}
                 <li>
+                    {# Item name #}
                     <strong>{{ item.name }}</strong>
+                    
+                    {# Quantity #}
                     <span class="history-card__items-meta">Qty {{ item.quantity }}</span>
+                    
+                    {# Line total #}
                     <span>₱{{ item.line_total|floatformat:2 }}</span>
                 </li>
                 {% endfor %}
             </ul>
 
-            <!-- Footer: Total + Notes -->
+            {# ========================================
+                ORDER FOOTER
+                Total and special notes
+            ======================================== #}
             <footer class="history-card__footer">
+                
+                {# Order total #}
                 <dl>
                     <div class="history-card__total">
                         <dt>Order Total</dt>
@@ -58,6 +126,7 @@
                     </div>
                 </dl>
                 
+                {# Special instructions (if provided) #}
                 {% if entry.notes %}
                 <dl class="history-card__notes">
                     <dt>Special Instructions</dt>
@@ -68,6 +137,11 @@
         </li>
         {% endfor %}
     </ul>
+    
+    {# ========================================
+        EMPTY STATE
+        Show if no orders exist
+    ======================================== #}
     {% else %}
     <div class="dashboard-empty">
         <p>Once live orders are placed, their status will be displayed here.</p>
@@ -75,4 +149,5 @@
     </div>
     {% endif %}
 </section>
+
 {% endblock %}

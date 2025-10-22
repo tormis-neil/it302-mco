@@ -1,65 +1,154 @@
+{# 
+============================================================
+CHECKOUT PAGE
+============================================================
+Preview UI for checkout process (not yet functional).
+Shows contact form and order summary.
+
+Features:
+- Contact information form (disabled)
+- Order summary sidebar
+- Special instructions textarea
+- Total price calculation
+
+Status: Staging mode - submission disabled
+Coming Soon: Payment processing, order confirmation
+
+Related:
+- View: orders/views.py → checkout()
+- CSS: static/css/dashboard.css
+- URL: /orders/checkout/
+#}
+
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Checkout - Brews &amp; Chews{% endblock %}
 
+{# Load dashboard-specific styles #}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% endblock %}
 
+{# Use dashboard layout wrapper #}
 {% block main_class %}dashboard-main{% endblock %}
 
 {% block content %}
+
+{# ========================================
+    HERO SECTION
+    Checkout header
+======================================== #}
 <section class="dashboard-hero">
     <div>
         <p class="dashboard-eyebrow">Secure Checkout</p>
         <h1 class="dashboard-title">Confirm your order</h1>
+        
+        {# Status message #}
         <p class="dashboard-subtitle">Checkout is in staging mode. Review the layout below—submission will be enabled after the ordering workflow is finalized.</p>
     </div>
+    
+    {# Back to cart link #}
     <a href="{% url 'orders:cart' %}" class="btn dashboard-cta">Back to cart</a>
 </section>
 
+{# ========================================
+    CHECKOUT LAYOUT
+    Two-column: Form left, Summary right
+======================================== #}
 <section class="dashboard-section checkout-layout" aria-labelledby="checkout-details">
+    
+    {# ========================================
+        LEFT COLUMN: Contact Form
+    ======================================== #}
     <div class="checkout-form-wrapper">
         <h2 id="checkout-details" class="dashboard-section__title">Contact information</h2>
+        
+        {# Contact form (disabled in preview mode) #}
         <form class="profile-form profile-form--preview" aria-describedby="checkout-preview-note">
+            
+            {# Preview mode notice #}
             <p id="checkout-preview-note" class="cart-preview-note">Fields are disabled while we complete the secure processing logic.</p>
+            
+            {# Full name field #}
             <div class="profile-form__field">
                 <label for="preview_contact_name">Full name</label>
-                <input id="preview_contact_name" type="text" value="{{ contact_example.name }}" disabled>
+                <input id="preview_contact_name" 
+                       type="text" 
+                       value="{{ contact_example.name }}" 
+                       disabled>
             </div>
+            
+            {# Phone number field (optional) #}
             <div class="profile-form__field">
-                <label for="preview_contact_phone">Phone number <span class="profile-form__hint">Optional</span></label>
-                <input id="preview_contact_phone" type="tel" value="{{ contact_example.phone }}" disabled>
+                <label for="preview_contact_phone">
+                    Phone number 
+                    <span class="profile-form__hint">Optional</span>
+                </label>
+                <input id="preview_contact_phone" 
+                       type="tel" 
+                       value="{{ contact_example.phone }}" 
+                       disabled>
             </div>
+            
+            {# Special instructions textarea #}
             <div class="profile-form__field">
                 <label for="preview_special_instructions">Special instructions</label>
-                <textarea id="preview_special_instructions" rows="3" disabled>{{ contact_example.instructions }}</textarea>
+                <textarea id="preview_special_instructions" 
+                          rows="3" 
+                          disabled>{{ contact_example.instructions }}</textarea>
             </div>
+            
+            {# Submit button (disabled) #}
             <button type="button" class="btn profile-form__submit btn-disabled" disabled>Place order</button>
         </form>
     </div>
+    
+    {# ========================================
+        RIGHT COLUMN: Order Summary
+    ======================================== #}
     <aside class="checkout-summary" aria-labelledby="checkout-summary">
         <h2 id="checkout-summary" class="dashboard-section__title">Order summary</h2>
+        
+        {# ========================================
+            ITEMS LIST
+            Show each item with quantity and price
+        ======================================== #}
         <ul class="checkout-items">
             {% for entry in sample_items %}
             <li class="checkout-items__entry">
                 <div>
+                    {# Item name #}
                     <strong>{{ entry.menu_item.name }}</strong>
+                    
+                    {# Quantity #}
                     <span class="checkout-items__meta">Qty {{ entry.quantity }}</span>
                 </div>
+                
+                {# Line total #}
                 <span>₱{{ entry.line_total|floatformat:2 }}</span>
             </li>
             {% endfor %}
         </ul>
+        
+        {# ========================================
+            TOTALS BREAKDOWN
+        ======================================== #}
         <dl class="cart-summary__list">
+            
+            {# Subtotal #}
             <div class="cart-summary__row">
                 <dt>Subtotal</dt>
                 <dd>₱{{ subtotal|floatformat:2 }}</dd>
             </div>
+            
+            {# Tax (8%) #}
             <div class="cart-summary__row">
                 <dt>Tax (8%)</dt>
                 <dd>₱{{ tax|floatformat:2 }}</dd>
             </div>
+            
+            {# Grand total #}
             <div class="cart-summary__row cart-summary__total">
                 <dt>Total</dt>
                 <dd>₱{{ total|floatformat:2 }}</dd>
@@ -67,4 +156,5 @@
         </dl>
     </aside>
 </section>
+
 {% endblock %}

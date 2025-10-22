@@ -1,44 +1,158 @@
+{# 
+============================================================
+SIGNUP PAGE
+============================================================
+New user registration with password strength validation.
+
+Features:
+- Username field (3-30 chars, alphanumeric + ._-)
+- Email field with validation
+- Password field with real-time strength meter
+- Password requirements checklist (12+ chars, uppercase, number, special)
+- Confirm password field with match validation
+- Client-side validation before submission
+
+Password Requirements:
+- At least 12 characters
+- Contains uppercase letter
+- Includes a number
+- Includes special character (!@#$%^&*)
+
+Related:
+- View: accounts/views.py → signup_view()
+- JS: static/js/auth.js (validation logic)
+- CSS: static/css/style.css (auth styles)
+- URL: /accounts/signup/
+#}
+
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Create Account - Brews & Chews{% endblock %}
 
+{# Use authentication page layout #}
 {% block main_class %}auth-main{% endblock %}
 
 {% block content %}
+
+{# ========================================
+    SIGNUP CARD
+    Centered registration form
+======================================== #}
 <section aria-labelledby="signup-title" class="auth-card">
+    
+    {# Page title #}
     <h1 id="signup-title" class="hero-heading auth-title">Create your Brews &amp; Chews account</h1>
 
+    {# ========================================
+        GENERAL ERRORS
+        Display non-field-specific errors
+    ======================================== #}
     {% if form.non_field_errors %}
     <div class="auth-alert" role="alert">
         {{ form.non_field_errors|join:" " }}
     </div>
     {% endif %}
 
-    <form action="{% url 'accounts:signup' %}" method="post" class="auth-form" novalidate data-signup-form>
+    {# ========================================
+        SIGNUP FORM
+        novalidate: Disables browser validation (use custom JS)
+        data-signup-form: Hook for JavaScript validation
+    ======================================== #}
+    <form action="{% url 'accounts:signup' %}" 
+          method="post" 
+          class="auth-form" 
+          novalidate 
+          data-signup-form>
 
+        {# CSRF token for security #}
         {% csrf_token %}
+        
+        {# ========================================
+            USERNAME FIELD
+            Requirements: 3-30 chars, letters/numbers/._- only
+        ======================================== #}
         <div class="auth-field">
             <label for="su-username" class="auth-label">Username</label>
-            <input id="su-username" name="username" type="text" autocomplete="username" required placeholder="Choose a username" class="auth-input" value="{{ form.username.value|default_if_none:'' }}">
-            <p class="auth-error" role="alert" aria-live="polite" aria-atomic="true" data-field-error="username" {% if not form.errors.username %}hidden{% endif %}>{{ form.errors.username|join:" " }}</p>
+            <input id="su-username" 
+                   name="username" 
+                   type="text" 
+                   autocomplete="username" 
+                   required 
+                   placeholder="Choose a username" 
+                   class="auth-input" 
+                   value="{{ form.username.value|default_if_none:'' }}">
+            
+            {# Error message container (shown/hidden by JS) #}
+            <p class="auth-error" 
+               role="alert" 
+               aria-live="polite" 
+               aria-atomic="true" 
+               data-field-error="username" 
+               {% if not form.errors.username %}hidden{% endif %}>
+                {{ form.errors.username|join:" " }}
+            </p>
         </div>
 
+        {# ========================================
+            EMAIL FIELD
+            Standard email validation
+        ======================================== #}
         <div class="auth-field">
             <label for="su-email" class="auth-label">Email</label>
-            <input id="su-email" name="email" type="email" autocomplete="email" required placeholder="Enter your email" class="auth-input" value="{{ form.email.value|default_if_none:'' }}">
-            <p class="auth-error" role="alert" aria-live="polite" aria-atomic="true" data-field-error="email" {% if not form.errors.email %}hidden{% endif %}>{{ form.errors.email|join:" " }}</p>
+            <input id="su-email" 
+                   name="email" 
+                   type="email" 
+                   autocomplete="email" 
+                   required 
+                   placeholder="Enter your email" 
+                   class="auth-input" 
+                   value="{{ form.email.value|default_if_none:'' }}">
+            
+            {# Error message container #}
+            <p class="auth-error" 
+               role="alert" 
+               aria-live="polite" 
+               aria-atomic="true" 
+               data-field-error="email" 
+               {% if not form.errors.email %}hidden{% endif %}>
+                {{ form.errors.email|join:" " }}
+            </p>
         </div>
 
+        {# ========================================
+            PASSWORD FIELD
+            With real-time strength meter and requirements
+        ======================================== #}
         <div class="auth-field">
             <label for="su-password" class="auth-label">Password</label>
-            <input id="su-password" name="password" type="password" autocomplete="new-password" required placeholder="Create a password" class="auth-input" aria-describedby="password-help">
+            <input id="su-password" 
+                   name="password" 
+                   type="password" 
+                   autocomplete="new-password" 
+                   required 
+                   placeholder="Create a password" 
+                   class="auth-input" 
+                   aria-describedby="password-help">
+            
+            {# ========================================
+                PASSWORD GUIDANCE
+                Visual feedback and requirements checklist
+            ======================================== #}
             <div class="password-guidance" id="password-help">
+                
+                {# Strength meter #}
                 <div class="password-strength" aria-live="polite">
+                    {# Visual bar (filled by JavaScript) #}
                     <div class="password-strength-meter" aria-hidden="true">
                         <span class="password-strength-bar" data-strength-bar></span>
                     </div>
+                    
+                    {# Strength label (updated by JavaScript) #}
                     <p class="password-strength-label" data-strength-label>Strength: Too weak</p>
                 </div>
+                
+                {# Requirements checklist (items update as user types) #}
                 <ul class="password-requirements" aria-label="Password requirements">
                     <li data-requirement="length" data-valid="false">At least 12 characters long</li>
                     <li data-requirement="uppercase" data-valid="false">Contains an uppercase letter</li>
@@ -46,24 +160,66 @@
                     <li data-requirement="special" data-valid="false">Includes a special character (!@#$%^&amp;*)</li>
                 </ul>
             </div>
-            <p class="auth-error" role="alert" aria-live="polite" aria-atomic="true" data-field-error="password" {% if not form.errors.password %}hidden{% endif %}>{{ form.errors.password|join:" " }}</p>
+            
+            {# Error message container #}
+            <p class="auth-error" 
+               role="alert" 
+               aria-live="polite" 
+               aria-atomic="true" 
+               data-field-error="password" 
+               {% if not form.errors.password %}hidden{% endif %}>
+                {{ form.errors.password|join:" " }}
+            </p>
         </div>
 
+        {# ========================================
+            CONFIRM PASSWORD FIELD
+            Must match password field
+        ======================================== #}
         <div class="auth-field">
             <label for="su-confirm" class="auth-label">Confirm Password</label>
-            <input id="su-confirm" name="confirm_password" type="password" autocomplete="new-password" required placeholder="Re-enter your password" class="auth-input">
-            <p class="auth-error" role="alert" aria-live="polite" aria-atomic="true" data-field-error="confirm" {% if not form.errors.confirm_password %}hidden{% endif %}>{{ form.errors.confirm_password|join:" " }}</p>
+            <input id="su-confirm" 
+                   name="confirm_password" 
+                   type="password" 
+                   autocomplete="new-password" 
+                   required 
+                   placeholder="Re-enter your password" 
+                   class="auth-input">
+            
+            {# Error message container #}
+            <p class="auth-error" 
+               role="alert" 
+               aria-live="polite" 
+               aria-atomic="true" 
+               data-field-error="confirm" 
+               {% if not form.errors.confirm_password %}hidden{% endif %}>
+                {{ form.errors.confirm_password|join:" " }}
+            </p>
         </div>
 
+        {# ========================================
+            SUBMIT BUTTON
+            Full width on mobile
+        ======================================== #}
         <button type="submit" class="btn auth-submit--full">Create Account</button>
     </form>
 
+    {# ========================================
+        LOGIN LINK
+        Redirect existing users to login
+    ======================================== #}
     <p class="auth-alt">
-        <em>Already have an account?</em> <a href="{% url 'accounts:login' %}" class="links">Sign In</a>
+        <em>Already have an account?</em> 
+        <a href="{% url 'accounts:login' %}" class="links">Sign In</a>
     </p>
 </section>
+
 {% endblock %}
 
+{# ========================================
+    JAVASCRIPT
+    Load password validation and strength meter
+======================================== #}
 {% block extra_js %}
 <script src="{% static 'js/auth.js' %}" defer></script>
 {% endblock %}

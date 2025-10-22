@@ -1,40 +1,130 @@
+{# 
+============================================================
+LOGIN PAGE
+============================================================
+User authentication page for existing accounts.
+
+Features:
+- Username or email login (flexible identifier)
+- Password field with autocomplete
+- Form validation via JavaScript
+- Error alerts for invalid credentials
+- Link to signup page for new users
+
+Security:
+- CSRF protection enabled
+- Password autocomplete for browser password managers
+- Client-side validation before submission
+
+Related:
+- View: accounts/views.py → login_view()
+- JS: static/js/auth.js
+- CSS: static/css/style.css (auth styles)
+- URL: /accounts/login/
+#}
+
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Login - Brews &amp; Chews{% endblock %}
 
+{# Use authentication page layout #}
 {% block main_class %}auth-main{% endblock %}
 
 {% block content %}
+
+{# ========================================
+    LOGIN CARD
+    Centered authentication form
+======================================== #}
 <section aria-labelledby="login-title" class="auth-card">
+    
+    {# Page title #}
     <h1 id="login-title" class="hero-heading auth-title">Sign In to Your Account</h1>
 
-    <div class="auth-alert" role="alert" aria-live="polite" aria-atomic="true" data-auth-alert {% if not alert_message %}hidden{% endif %}>
+    {# ========================================
+        ERROR ALERT
+        Shows validation/authentication errors
+        Hidden by default, shown when errors occur
+    ======================================== #}
+    <div class="auth-alert" 
+         role="alert" 
+         aria-live="polite" 
+         aria-atomic="true" 
+         data-auth-alert 
+         {% if not alert_message %}hidden{% endif %}>
+        {# Display custom alert message or default error #}
         {{ alert_message|default:"Invalid username or password. Please try again." }}
     </div>
 
-    <form action="{% url 'accounts:login' %}" method="post" class="auth-form" data-login-form>
+    {# ========================================
+        LOGIN FORM
+        Submits to login view for authentication
+    ======================================== #}
+    <form action="{% url 'accounts:login' %}" 
+          method="post" 
+          class="auth-form" 
+          data-login-form>
+        
+        {# CSRF token for security #}
         {% csrf_token %}
+        
+        {# ========================================
+            USERNAME/EMAIL FIELD
+            Accepts either username or email
+        ======================================== #}
         <div class="auth-field">
             <label for="login-identifier" class="auth-label">Username or Email</label>
-            <input id="login-identifier" name="identifier" type="text" autocomplete="username" required placeholder="Enter your username or email" class="auth-input" value="{{ form.identifier.value|default_if_none:'' }}">
+            <input id="login-identifier" 
+                   name="identifier" 
+                   type="text" 
+                   autocomplete="username" 
+                   required 
+                   placeholder="Enter your username or email" 
+                   class="auth-input" 
+                   value="{{ form.identifier.value|default_if_none:'' }}">
         </div>
 
+        {# ========================================
+            PASSWORD FIELD
+            Secure password input with autocomplete
+        ======================================== #}
         <div class="auth-field">
             <label for="login-password" class="auth-label">Password</label>
-            <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="Enter your password" class="auth-input">
+            <input id="login-password" 
+                   name="password" 
+                   type="password" 
+                   autocomplete="current-password" 
+                   required 
+                   placeholder="Enter your password" 
+                   class="auth-input">
         </div>
 
+        {# ========================================
+            SUBMIT BUTTON
+            Triggers form submission
+        ======================================== #}
         <div class="auth-actions">
             <button type="submit" class="btn auth-submit">Sign In</button>
         </div>
     </form>
 
+    {# ========================================
+        SIGNUP LINK
+        Redirect new users to registration
+    ======================================== #}
     <p class="auth-alt">
-        <em>Don’t have an account?</em> <a href="{% url 'accounts:signup' %}" class="links">Sign Up</a>
+        <em>Don't have an account?</em> 
+        <a href="{% url 'accounts:signup' %}" class="links">Sign Up</a>
     </p>
 </section>
+
 {% endblock %}
 
+{# ========================================
+    JAVASCRIPT
+    Load client-side validation
+======================================== #}
 {% block extra_js %}
 <script src="{% static 'js/auth.js' %}" defer></script>
 {% endblock %}

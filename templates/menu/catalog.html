@@ -1,119 +1,70 @@
-{# 
-============================================================
-MENU CATALOG PAGE
-============================================================
-Displays all available menu items organized by category.
-Users can browse the menu but cannot add to cart yet (coming soon).
-
-Features:
-- Hero section with welcome message
-- Categories displayed in order (Featured > Brewed > Espresso > Bakery)
-- Menu items displayed as cards with image, name, description, price
-- "Coming Soon" button placeholders (non-functional)
-
-Related:
-- View: menu/views.py → catalog()
-- CSS: static/css/dashboard.css
-- URL: /menu/
-#}
-
 {% extends "base.html" %}
 {% load static %}
 
 {% block title %}Order Menu - Brews &amp; Chews{% endblock %}
 
-{# Load dashboard-specific styles #}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% endblock %}
 
-{# Use dashboard layout wrapper #}
 {% block main_class %}dashboard-main{% endblock %}
 
 {% block content %}
 
-{# ========================================
-    HERO SECTION
-    Displays welcome message and cart link
-======================================== #}
+<!-- Hero section with welcome message -->
 <section class="dashboard-hero">
     <div>
-        {# Show user's display name or username #}
         <p class="dashboard-eyebrow">Welcome back, {{ request.user.profile.display_name|default:request.user.username }}</p>
-        
-        {# Page title #}
         <h1 class="dashboard-title">Order Your Favorites</h1>
-        
-        {# Status message explaining functionality #}
         <p class="dashboard-subtitle">Our ordering engine is almost ready. Explore the curated menu below—buttons are disabled while we finalize the checkout experience.</p>
     </div>
-    
-    {# Cart link (disabled - coming soon) #}
     <a href="{% url 'orders:cart' %}" class="btn dashboard-cta btn-disabled" aria-disabled="true">View Cart</a>
 </section>
 
-{# ========================================
-    EMPTY STATE
-    Show if no categories exist
-======================================== #}
+<!-- Empty state if no categories -->
 {% if not categories %}
 <p class="menu-order-empty">Our menu is being finalized. Please check back soon.</p>
 {% endif %}
 
-{# ========================================
-    MENU CATEGORIES LOOP
-    Display each category with its items
-======================================== #}
+<!-- Loop through each category -->
 {% for category in categories %}
 <section class="dashboard-section" aria-labelledby="category-{{ category.slug }}">
     
-    {# Category header with name and description #}
+    <!-- Category header -->
     <header class="dashboard-section__header">
         <h2 id="category-{{ category.slug }}">{{ category.name }}</h2>
-        
-        {# Show category description if available #}
         {% if category.description %}
         <p class="dashboard-section__description">{{ category.description }}</p>
         {% endif %}
     </header>
     
-    {# ========================================
-        MENU ITEMS GRID
-        Display items in responsive grid layout
-    ======================================== #}
+    <!-- Menu items grid -->
     <div class="menu-order-grid">
         
-        {# Loop through each item in category #}
+        <!-- Loop through items in category -->
         {% for item in category.items.all %}
         <article class="menu-order-card">
             
-            {# Item image (falls back to bg.jpg if no image set) #}
+            <!-- Item image -->
             <img src="{% static item.image|default:'img/bg.jpg' %}" 
                  alt="{{ item.name }} - {{ item.category.name }}" 
                  class="menu-order-card__image" 
                  loading="lazy">
             
-            {# Item details #}
+            <!-- Item details -->
             <div class="menu-order-card__content">
-                
-                {# Item name #}
                 <h3 class="menu-order-card__title">{{ item.name }}</h3>
-                
-                {# Item description #}
                 <p class="menu-order-card__description">{{ item.description }}</p>
                 
-                {# Footer with price and add button #}
+                <!-- Price and add button -->
                 <div class="menu-order-card__footer">
-                    {# Display price in Philippine Pesos with 2 decimals #}
                     <span class="menu-order-card__price">₱{{ item.base_price|floatformat:2 }}</span>
-                    
-                    {# Disabled "Add to Cart" button (functionality coming soon) #}
                     <button type="button" class="btn btn-small btn-disabled" disabled>Coming Soon</button>
                 </div>
             </div>
         </article>
         
-        {# Show message if category has no items #}
+        <!-- Empty state if no items -->
         {% empty %}
         <p class="menu-order-empty">No items are currently available in this category.</p>
         {% endfor %}

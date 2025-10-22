@@ -1,3 +1,7 @@
+/* ===================================================================
+   DASHBOARD LAYOUT
+   =================================================================== */
+
 .dashboard-main {
     width: 100%;
     max-width: 1100px;
@@ -125,6 +129,10 @@ button[disabled] {
     background: rgba(255, 255, 255, 0.08);
 }
 
+/* ===================================================================
+   MENU / CATALOG PAGE
+   =================================================================== */
+
 .menu-order-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -207,11 +215,10 @@ button[disabled] {
     border: 0;
 }
 
-/*
-   PROFILE PAGE - COMPLETE REDESIGN
-*/
+/* ===================================================================
+   PROFILE PAGE
+   =================================================================== */
 
-/* Profile Layout Container */
 .profile-layout {
     display: grid;
     grid-template-columns: 1fr;  /* ← Single column */
@@ -462,6 +469,10 @@ button[disabled] {
         justify-self: stretch;
     }
 }
+/* ===================================================================
+   CART PAGE
+   =================================================================== */
+
 .cart-preview-note {
     color: var(--text-muted);
     font-size: 0.9rem;
@@ -552,6 +563,10 @@ button[disabled] {
     font-weight: 700;
 }
 
+/* ===================================================================
+   CHECKOUT PAGE
+   =================================================================== */
+
 .checkout-layout {
     display: grid;
     grid-template-columns: 1fr 380px;
@@ -591,6 +606,10 @@ button[disabled] {
     color: var(--text-muted);
     font-size: 0.85rem;
 }
+
+/* ===================================================================
+   ORDER HISTORY PAGE
+   =================================================================== */
 
 .history-list {
     list-style: none;
@@ -809,6 +828,10 @@ button[disabled] {
 .history-list--compact .history-card {
     padding: 1.25rem 1.5rem;
 }
+
+/* ===================================================================
+   RESPONSIVE DESIGN - MEDIA QUERIES
+   =================================================================== */
 
 @media (max-width: 720px) {
     .cart-table__header {

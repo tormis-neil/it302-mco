@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- ===================================================================
+     HEAD - Meta tags, fonts, and stylesheets
+     =================================================================== -->
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -9,14 +12,14 @@
 
     <title>{% block title %}Brews &amp; Chews{% endblock %}</title>
 
-    <!-- Open Graph / Facebook -->
+    <!-- SEO & Social Media Meta Tags -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <meta property="og:title" content="{% block og_title %}Brews &amp; Chews{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Reserve your spot at Brews & Chews - Browse our specialty coffee menu, book tables, and enjoy a seamless ordering experience.{% endblock %}">
     <meta property="og:image" content="{% block og_image %}{% static 'img/logo.png' %}{% endblock %}">
 
-    <!-- Twitter -->
+    <!-- Twitter Card Tags -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ request.build_absolute_uri }}">
     <meta property="twitter:title" content="{% block twitter_title %}Brews &amp; Chews{% endblock %}">
@@ -24,17 +27,23 @@
     <meta property="twitter:image" content="{% block twitter_image %}{% static 'img/logo.png' %}{% endblock %}">
     {% load static %}
 
-    <!-- Global typography and iconography -->
+    <!-- Fonts and Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 
-    <!-- Base stylesheet -->
+    <!-- Stylesheets -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
+
+<!-- ===================================================================
+     BODY - Page content and structure
+     =================================================================== -->
 <body class="{% block body_class %}{% endblock %}">
+
+    <!-- Header / Navigation -->
     <header class="site-header">
         <nav class="navbar" aria-label="Primary">
             <a href="{% if request.user.is_authenticated %}{% url 'menu:catalog' %}{% else %}{% url 'pages:home' %}{% endif %}" class="navbar-brand" aria-label="Brews &amp; Chews home">
@@ -83,10 +92,12 @@
         </nav>
     </header>
 
+    <!-- Main Content Area -->
     <main id="main-content" class="{% block main_class %}page-main{% endblock %}">
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Footer -->
     {% block footer %}
     <footer class="footer">
         <div class="container">
@@ -102,6 +113,7 @@
     </footer>
     {% endblock %}
 
+    <!-- JavaScript -->
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,3 +1,7 @@
+/* ===================================================================
+   CSS CUSTOM PROPERTIES (VARIABLES)
+   =================================================================== */
+
 :root {
     --bg-color: #0f0b0a;
     --bg-accent: linear-gradient(135deg, rgba(44, 28, 23, 0.92), rgba(15, 11, 10, 0.92));
@@ -15,6 +19,10 @@
     --transition-base: 0.2s ease;
     color-scheme: dark;
 }
+
+/* ===================================================================
+   GLOBAL RESET & BASE STYLES
+   =================================================================== */
 
 * {
     box-sizing: border-box;
@@ -41,6 +49,7 @@ a {
     text-decoration: none;
 }
 
+/* Focus styles for accessibility */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -49,9 +58,9 @@ textarea:focus-visible {
     outline-offset: 4px;
 }
 
-.skip-to-content:focus {
-    top: 0;
-}
+/* ===================================================================
+   HEADER & NAVIGATION
+   =================================================================== */
 
 .site-header {
     position: sticky;
@@ -146,6 +155,10 @@ textarea:focus-visible {
     color: inherit;
 }
 
+/* ===================================================================
+   MAIN CONTENT LAYOUT
+   =================================================================== */
+
 .page-main {
     width: 100%;
     max-width: 1200px;
@@ -159,6 +172,10 @@ textarea:focus-visible {
 .home-main {
     gap: clamp(4rem, 10vw, 6rem);
 }
+
+/* ===================================================================
+   HOMEPAGE - HERO SECTION
+   =================================================================== */
 
 .hero {
     display: grid;
@@ -197,6 +214,10 @@ textarea:focus-visible {
     filter: drop-shadow(0 20px 35px rgba(0, 0, 0, 0.5));
 }
 
+/* ===================================================================
+   BUTTONS
+   =================================================================== */
+
 .btn {
     display: inline-flex;
     align-items: center;
@@ -229,6 +250,10 @@ textarea:focus-visible {
 .btn-secondary:focus-visible {
     background: rgba(198, 154, 99, 0.18);
 }
+
+/* ===================================================================
+   HOMEPAGE - SECTIONS & OFFERS
+   =================================================================== */
 
 .section {
     display: grid;
@@ -303,6 +328,7 @@ textarea:focus-visible {
     background: rgba(198, 154, 99, 0.12);
 }
 
+/* Call-to-action section */
 .cta-wrap {
     text-align: center;
     display: grid;
@@ -321,6 +347,10 @@ textarea:focus-visible {
     line-height: 1.6;
     margin-inline: auto;
 }
+
+/* ===================================================================
+   FOOTER
+   =================================================================== */
 
 .footer {
     margin-top: auto;
@@ -354,6 +384,10 @@ textarea:focus-visible {
 .footer a {
     color: inherit;
 }
+
+/* ===================================================================
+   AUTHENTICATION PAGES (Login/Signup)
+   =================================================================== */
 
 .auth-main {
     display: flex;
@@ -494,6 +528,7 @@ textarea:focus-visible {
     display: none !important;
 }
 
+/* Password strength indicator */
 .password-guidance {
     display: grid;
     gap: 0.85rem;
@@ -570,6 +605,10 @@ textarea:focus-visible {
     background: rgba(255, 99, 71, 0.12);
     color: #ffb4a5;
 }
+
+/* ===================================================================
+   RESPONSIVE DESIGN - MEDIA QUERIES
+   =================================================================== */
 
 @media (max-width: 1024px) {
     .offer-list {

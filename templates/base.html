@@ -4,7 +4,24 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block meta_description %}Reserve your spot at Brews & Chews - Browse our specialty coffee menu, book tables, and enjoy a seamless ordering experience.{% endblock %}">
+    <meta name="theme-color" content="#c69a63">
+
     <title>{% block title %}Brews &amp; Chews{% endblock %}</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:title" content="{% block og_title %}Brews &amp; Chews{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Reserve your spot at Brews & Chews - Browse our specialty coffee menu, book tables, and enjoy a seamless ordering experience.{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% static 'img/logo.png' %}{% endblock %}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.build_absolute_uri }}">
+    <meta property="twitter:title" content="{% block twitter_title %}Brews &amp; Chews{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}Reserve your spot at Brews & Chews - Browse our specialty coffee menu, book tables, and enjoy a seamless ordering experience.{% endblock %}">
+    <meta property="twitter:image" content="{% block twitter_image %}{% static 'img/logo.png' %}{% endblock %}">
     {% load static %}
 
     <!-- Global typography and iconography -->
@@ -18,6 +35,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
     <header class="site-header">
         <nav class="navbar" aria-label="Primary">
             <a href="{% if request.user.is_authenticated %}{% url 'menu:catalog' %}{% else %}{% url 'pages:home' %}{% endif %}" class="navbar-brand" aria-label="Brews &amp; Chews home">

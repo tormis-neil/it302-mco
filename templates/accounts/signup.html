@@ -55,7 +55,7 @@
             <p class="auth-error" role="alert" data-field-error="confirm" {% if not form.errors.confirm_password %}hidden{% endif %}>{{ form.errors.confirm_password|join:" " }}</p>
         </div>
 
-        <button type="submit" class="btn" style="width: 100%;">Create Account</button>
+        <button type="submit" class="btn auth-submit--full">Create Account</button>
     </form>
 
     <p class="auth-alt">

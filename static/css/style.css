@@ -74,6 +74,11 @@ textarea:focus-visible {
     padding-block: 0.45rem;
 }
 
+.site-header.is-hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+}
+
 .navbar-brand {
     display: inline-flex;
     align-items: center;
@@ -94,7 +99,6 @@ textarea:focus-visible {
 .links-container {
     list-style: none;
     display: flex;
-    align-items: center;
     align-items: center;
     gap: clamp(0.9rem, 2.2vw, 1.75rem);
 }
@@ -421,19 +425,6 @@ textarea:focus-visible {
     transition: border-color var(--transition-base), box-shadow var(--transition-base);
     outline: 2px solid var(--brand-primary);
     outline-offset: 4px;
-}
-
-.auth-checkbox {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.65rem;
-    font-size: 0.95rem;
-    color: var(--text-muted);
-}
-
-.auth-checkbox input {
-    width: 1.1rem;
-    height: 1.1rem;
 }
 
 .auth-actions {

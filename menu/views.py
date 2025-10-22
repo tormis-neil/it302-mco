@@ -33,29 +33,20 @@ def _available_categories():
     1. Filter items: Only show is_available=True
     2. Filter categories: Only show categories that have available items
     3. Prefetch items: Optimize database queries (avoid N+1 problem)
-    4. Order by: display_order, then name
+    4. Use distinct() to prevent duplicates from JOIN
+    5. Order by: display_order, then name
     
     Returns:
         QuerySet of Category objects with prefetched available items
-    
-    Example:
-        categories = _available_categories()
-        for category in categories:
-            print(f"{category.name}:")
-            for item in category.items.all():
-                print(f"  - {item.name} (₱{item.base_price})")
-    
-    Database Queries:
-        Without prefetch: N+1 queries (1 for categories + N for each category's items)
-        With prefetch: 2 queries total (1 for categories + 1 for all items)
     """
     # Create queryset for available items only
     item_queryset = MenuItem.objects.filter(is_available=True)
     
     # Get categories that have at least one available item
-    # Prefetch their items to avoid multiple database hits
+    # .distinct() prevents duplicates from the JOIN
     return (
         Category.objects.filter(items__is_available=True)
+        .distinct()  # ← ADD THIS LINE - Removes duplicates!
         .prefetch_related(Prefetch("items", queryset=item_queryset))
         .order_by("display_order", "name")
     )

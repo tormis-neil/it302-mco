@@ -2,12 +2,10 @@
     --bg-color: #0f0b0a;
     --bg-accent: linear-gradient(135deg, rgba(44, 28, 23, 0.92), rgba(15, 11, 10, 0.92));
     --text-color: #f8f5f0;
-    --text-muted: rgba(248, 245, 240, 0.72);
+    --text-muted: rgba(248, 245, 240, 0.85);
     --brand-primary: #c69a63;
     --brand-secondary: #8f5a2a;
     --brand-dark: rgba(0, 0, 0, 0.35);
-    --accent-color: #f3c892;
-    --accent-color-strong: #ffd7a6;
     --accent-color: #f3c892;
     --accent-color-strong: #ffd7a6;
     --card-bg: rgba(28, 20, 17, 0.82);
@@ -417,17 +415,12 @@ textarea:focus-visible {
     height: 1.1rem;
 }
 
-.textarea:focus-visible {
+textarea:focus-visible {
     background: rgba(0, 0, 0, 0.35);
     color: var(--text-color);
     transition: border-color var(--transition-base), box-shadow var(--transition-base);
-}
-
-.auth-input:focus,
-.auth-card input:focus,
-.auth-card textarea:focus {
-    border-color: rgba(198, 154, 99, 0.6);
-    box-shadow: 0 0 0 4px rgba(198, 154, 99, 0.15);
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 4px;
 }
 
 .auth-checkbox {

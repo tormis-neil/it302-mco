@@ -33,7 +33,7 @@
     <div class="menu-order-grid">
         {% for item in category.items.all %}
         <article class="menu-order-card">
-            <img src="{% static item.image|default:'img/bg.jpg' %}" alt="{{ item.name }}" class="menu-order-card__image">
+            <img src="{% static item.image|default:'img/bg.jpg' %}" alt="{{ item.name }} - {{ item.category.name }}" class="menu-order-card__image" loading="lazy">
             <div class="menu-order-card__content">
                 <h3 class="menu-order-card__title">{{ item.name }}</h3>
                 <p class="menu-order-card__description">{{ item.description }}</p>

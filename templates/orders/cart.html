@@ -32,14 +32,14 @@
         </div>
         {% for entry in sample_items %}
         <div class="cart-table__row" role="row">
-            <span class="cart-table__cell cart-table__item" role="cell">
+            <span class="cart-table__cell cart-table__item" role="cell" data-label="Item">
                 <strong>{{ entry.menu_item.name }}</strong>
                 <small class="cart-table__muted">{{ entry.menu_item.category.name }}</small>
             </span>
-            <span class="cart-table__cell" role="cell">₱{{ entry.menu_item.base_price|floatformat:2 }}</span>
-            <span class="cart-table__cell" role="cell">{{ entry.quantity }}</span>
-            <span class="cart-table__cell" role="cell">₱{{ entry.line_total|floatformat:2 }}</span>
-            <span class="cart-table__cell cart-table__actions" role="cell">
+            <span class="cart-table__cell" role="cell" data-label="Price">₱{{ entry.menu_item.base_price|floatformat:2 }}</span>
+            <span class="cart-table__cell" role="cell" data-label="Quantity">{{ entry.quantity }}</span>
+            <span class="cart-table__cell" role="cell" data-label="Total">₱{{ entry.line_total|floatformat:2 }}</span>
+            <span class="cart-table__cell cart-table__actions" role="cell" data-label="Actions">
                 <button type="button" class="btn btn-small" disabled>Update</button>
                 <button type="button" class="btn btn-link" disabled>Remove</button>
             </span>

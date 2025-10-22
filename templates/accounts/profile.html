@@ -1,11 +1,43 @@
+{# 
+============================================================
+PROFILE PAGE
+============================================================
+User account management with tabbed interface.
+
+Tabs:
+1. Account Details - View info + update profile
+2. Change Username - Update username with password confirmation
+3. Change Password - Change password with validation
+4. Delete Account - Permanently delete account (with confirmation modal)
+
+Features:
+- Tab navigation with keyboard accessibility
+- Success/error alerts
+- Form validation
+- Confirmation modal for dangerous actions
+- Profile customization (display name, phone, favorite drink, bio)
+
+Related:
+- View: accounts/views.py → profile()
+- CSS: static/css/dashboard.css + inline styles
+- URL: /accounts/profile/
+#}
+
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Your Profile - Brews &amp; Chews{% endblock %}
 
+{# ========================================
+    CSS STYLES
+    Dashboard styles + inline tab/modal styles
+======================================== #}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 <style>
-/* Tab System Styling */
+/* ========================================
+   TAB SYSTEM STYLING
+======================================== */
 .profile-tabs {
     display: flex;
     gap: 0.75rem;
@@ -15,6 +47,7 @@
     padding-bottom: 0;
 }
 
+/* Individual tab button */
 .profile-tab {
     padding: 0.85rem 1.75rem;
     background: none;
@@ -29,16 +62,19 @@
     letter-spacing: 0.02em;
 }
 
+/* Tab hover state */
 .profile-tab:hover {
     color: var(--text-color);
     background: rgba(198, 154, 99, 0.08);
 }
 
+/* Active tab state */
 .profile-tab.active {
     color: var(--brand-primary);
     background: rgba(198, 154, 99, 0.12);
 }
 
+/* Active tab underline indicator */
 .profile-tab.active::after {
     content: "";
     position: absolute;
@@ -50,21 +86,27 @@
     border-radius: 999px 999px 0 0;
 }
 
+/* Tab content panels (hidden by default) */
 .profile-tab-content {
     display: none;
     animation: fadeIn 0.3s ease;
 }
 
+/* Active tab content (visible) */
 .profile-tab-content.active {
     display: block;
 }
 
+/* Fade-in animation for tab switching */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Modal Styling */
+/* ========================================
+   MODAL STYLING
+   For delete account confirmation
+======================================== */
 .modal {
     display: none;
     position: fixed;
@@ -76,10 +118,12 @@
     backdrop-filter: blur(4px);
 }
 
+/* Modal visible state */
 .modal.active {
     display: flex;
 }
 
+/* Modal dialog box */
 .modal-content {
     background: var(--card-bg);
     border-radius: var(--radius-base);
@@ -90,6 +134,7 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
+/* Modal header with title and close button */
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -99,6 +144,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Modal title */
 .modal-header h2 {
     font-size: 1.5rem;
     font-weight: 800;
@@ -106,6 +152,7 @@
     margin: 0;
 }
 
+/* Close button (X) */
 .modal-close {
     background: none;
     border: none;
@@ -123,11 +170,13 @@
     transition: all var(--transition-base);
 }
 
+/* Close button hover state */
 .modal-close:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-color);
 }
 
+/* Modal body content */
 .modal-body {
     margin-bottom: 1.5rem;
 }
@@ -137,13 +186,18 @@
     color: var(--text-muted);
 }
 
+/* Modal action buttons */
 .modal-actions {
     display: flex;
     gap: 1rem;
     justify-content: flex-end;
 }
 
+/* ========================================
+   MOBILE RESPONSIVE
+======================================== */
 @media (max-width: 640px) {
+    /* Horizontal scrolling tabs on mobile */
     .profile-tabs {
         overflow-x: auto;
         flex-wrap: nowrap;
@@ -154,6 +208,7 @@
         padding-bottom: 2px;
     }
     
+    /* Smaller tabs on mobile */
     .profile-tab {
         white-space: nowrap;
         font-size: 0.88rem;
@@ -161,14 +216,17 @@
         scroll-snap-align: start;
     }
     
+    /* Smaller modal padding */
     .modal-content {
         padding: 1.5rem;
     }
     
+    /* Stack modal buttons vertically */
     .modal-actions {
         flex-direction: column-reverse;
     }
     
+    /* Full-width modal buttons */
     .modal-actions .btn {
         width: 100%;
     }
@@ -176,63 +234,125 @@
 </style>
 {% endblock %}
 
+{# Use dashboard layout wrapper #}
 {% block main_class %}dashboard-main{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
+
+{# ========================================
+    HERO SECTION
+    Welcome message and navigation
+======================================== #}
 <section class="dashboard-hero">
     <div>
         <p class="dashboard-eyebrow">Account Center</p>
+        
+        {# Personalized greeting with display name or username #}
         <h1 class="dashboard-title">Hi, {{ request.user.profile.display_name|default:request.user.username }}!</h1>
+        
         <p class="dashboard-subtitle">Manage your account settings and preferences.</p>
     </div>
+    
+    {# Back to menu link #}
     <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Back to menu</a>
 </section>
 
-<!-- Success Alert -->
+{# ========================================
+    SUCCESS ALERT
+    Shows after successful profile updates
+======================================== #}
 {% if update_success %}
 <div class="profile-alert" role="status" aria-live="polite">
     {{ update_message }}
 </div>
 {% endif %}
 
-<!-- Main Profile Section -->
+{# ========================================
+    MAIN PROFILE SECTION
+    Contains tabs and all profile management
+======================================== #}
 <section class="dashboard-section">
-    <!-- Tab Navigation -->
+    
+    {# ========================================
+        TAB NAVIGATION
+        Keyboard accessible with ARIA attributes
+    ======================================== #}
     <div class="profile-tabs" role="tablist" aria-label="Profile sections">
-        <button class="profile-tab active" data-tab="details" role="tab" aria-selected="true" aria-controls="details-panel">
+        
+        {# Tab 1: Account Details (default active) #}
+        <button class="profile-tab active" 
+                data-tab="details" 
+                role="tab" 
+                aria-selected="true" 
+                aria-controls="details-panel">
             Account Details
         </button>
-        <button class="profile-tab" data-tab="username" role="tab" aria-selected="false" aria-controls="username-panel">
+        
+        {# Tab 2: Change Username #}
+        <button class="profile-tab" 
+                data-tab="username" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="username-panel">
             Change Username
         </button>
-        <button class="profile-tab" data-tab="password" role="tab" aria-selected="false" aria-controls="password-panel">
+        
+        {# Tab 3: Change Password #}
+        <button class="profile-tab" 
+                data-tab="password" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="password-panel">
             Change Password
         </button>
-        <button class="profile-tab" data-tab="danger" role="tab" aria-selected="false" aria-controls="danger-panel">
+        
+        {# Tab 4: Delete Account #}
+        <button class="profile-tab" 
+                data-tab="danger" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="danger-panel">
             Delete Account
         </button>
     </div>
 
-    <!-- Tab 1: Account Details -->
-    <div class="profile-tab-content active" data-content="details" id="details-panel" role="tabpanel">
+    {# ========================================
+        TAB 1: ACCOUNT DETAILS
+        View account info + update profile
+    ======================================== #}
+    <div class="profile-tab-content active" 
+         data-content="details" 
+         id="details-panel" 
+         role="tabpanel">
+        
         <div class="profile-layout">
-            <!-- Left: Account Summary -->
+            
+            {# ========================================
+                YOUR INFORMATION
+                Read-only account details
+            ======================================== #}
             <div class="profile-summary">
                 <h2>Your Information</h2>
                 <dl>
+                    {# Username #}
                     <div>
                         <dt>Username</dt>
                         <dd>{{ request.user.username }}</dd>
                     </div>
+                    
+                    {# Email address #}
                     <div>
                         <dt>Email Address</dt>
                         <dd>{{ user_email }}</dd>
                     </div>
+                    
+                    {# Registration date #}
                     <div>
                         <dt>Member Since</dt>
                         <dd>{{ request.user.date_joined|date:"F j, Y" }}</dd>
                     </div>
+                    
+                    {# Last login timestamp #}
                     <div>
                         <dt>Last Sign-In</dt>
                         <dd>
@@ -246,138 +366,254 @@
                 </dl>
             </div>
 
-            <!-- Right: Update Profile Form -->
+            {# ========================================
+                UPDATE PROFILE FORM
+                Edit display name, phone, favorite drink, bio
+            ======================================== #}
             <div class="profile-form-wrapper">
                 <h2>Update Profile</h2>
                 <p>Customize how you appear to baristas and in your order history.</p>
+                
                 <form action="" method="post" class="profile-form">
+                    {# CSRF token #}
                     {% csrf_token %}
+                    
+                    {# Hidden field to identify this form #}
                     <input type="hidden" name="update_profile" value="1">
                     
+                    {# Loop through profile form fields #}
                     {% for field in profile_form %}
                     <div class="profile-form__field">
+                        
+                        {# Field label #}
                         <label for="{{ field.id_for_label }}">
                             {{ field.label }}
+                            
+                            {# Show (Optional) for non-required fields #}
                             {% if not field.field.required %}
                                 <span class="profile-form__hint">(Optional)</span>
                             {% endif %}
                         </label>
+                        
+                        {# Field input (rendered by Django) #}
                         {{ field }}
+                        
+                        {# Help text (if provided) #}
                         {% if field.help_text %}
                             <span class="profile-form__hint">{{ field.help_text }}</span>
                         {% endif %}
+                        
+                        {# Error messages (if any) #}
                         {% for error in field.errors %}
                             <p class="profile-form__error">{{ error }}</p>
                         {% endfor %}
                     </div>
                     {% endfor %}
                     
+                    {# Submit button (right-aligned) #}
                     <button type="submit" class="btn profile-form__submit">Save Changes</button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Tab 2: Change Username -->
-    <div class="profile-tab-content" data-content="username" id="username-panel" role="tabpanel">
+    {# ========================================
+        TAB 2: CHANGE USERNAME
+        Update username with password confirmation
+    ======================================== #}
+    <div class="profile-tab-content" 
+         data-content="username" 
+         id="username-panel" 
+         role="tabpanel">
+        
         <div class="profile-form-wrapper">
             <h2>Change Username</h2>
             <p>Your username is how you'll sign in and how others will see you. Choose carefully—it represents your identity on Brews & Chews.</p>
             
             <form action="" method="post" class="profile-form">
+                {# CSRF token #}
                 {% csrf_token %}
+                
+                {# Hidden field to identify this form #}
                 <input type="hidden" name="change_username" value="1">
                 
+                {# Loop through username form fields (new_username + password) #}
                 {% for field in username_form %}
                 <div class="profile-form__field">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
+                    
+                    {# Help text #}
                     {% if field.help_text %}
                         <span class="profile-form__hint">{{ field.help_text }}</span>
                     {% endif %}
+                    
+                    {# Error messages #}
                     {% for error in field.errors %}
                         <p class="profile-form__error">{{ error }}</p>
                     {% endfor %}
                 </div>
                 {% endfor %}
                 
+                {# Submit button #}
                 <button type="submit" class="btn profile-form__submit">Update Username</button>
             </form>
         </div>
     </div>
 
-    <!-- Tab 3: Change Password -->
-    <div class="profile-tab-content" data-content="password" id="password-panel" role="tabpanel">
+    {# ========================================
+        TAB 3: CHANGE PASSWORD
+        Update password with strength requirements
+    ======================================== #}
+    <div class="profile-tab-content" 
+         data-content="password" 
+         id="password-panel" 
+         role="tabpanel">
+        
         <div class="profile-form-wrapper">
             <h2>Change Password</h2>
             <p>Choose a strong password with at least 12 characters, including uppercase letters, numbers, and special characters.</p>
             
             <form action="" method="post" class="profile-form">
+                {# CSRF token #}
                 {% csrf_token %}
+                
+                {# Hidden field to identify this form #}
                 <input type="hidden" name="change_password" value="1">
                 
+                {# Loop through password form fields (old + new + confirm) #}
                 {% for field in password_form %}
                 <div class="profile-form__field">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
+                    
+                    {# Help text #}
                     {% if field.help_text %}
                         <span class="profile-form__hint">{{ field.help_text }}</span>
                     {% endif %}
+                    
+                    {# Error messages #}
                     {% for error in field.errors %}
                         <p class="profile-form__error">{{ error }}</p>
                     {% endfor %}
                 </div>
                 {% endfor %}
                 
+                {# Submit button #}
                 <button type="submit" class="btn profile-form__submit">Update Password</button>
             </form>
         </div>
     </div>
 
-    <!-- Tab 4: Delete Account -->
-    <div class="profile-tab-content" data-content="danger" id="danger-panel" role="tabpanel">
+    {# ========================================
+        TAB 4: DELETE ACCOUNT
+        Danger zone with confirmation modal
+    ======================================== #}
+    <div class="profile-tab-content" 
+         data-content="danger" 
+         id="danger-panel" 
+         role="tabpanel">
+        
         <div class="danger-zone">
+            {# Warning heading #}
             <h3>⚠️ Delete Account</h3>
+            
+            {# Warning message #}
             <p>Once you delete your account, there is no going back. This action will permanently remove your profile, order history, and all associated data from our systems.</p>
-            <button type="button" class="btn btn-danger" data-delete-trigger>Delete My Account</button>
+            
+            {# Delete button (opens confirmation modal) #}
+            <button type="button" 
+                    class="btn btn-danger" 
+                    data-delete-trigger>Delete My Account</button>
         </div>
     </div>
 </section>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal" id="deleteModal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+{# ========================================
+    DELETE CONFIRMATION MODAL
+    Requires password to confirm deletion
+======================================== #}
+<div class="modal" 
+     id="deleteModal" 
+     role="dialog" 
+     aria-labelledby="modal-title" 
+     aria-modal="true">
+    
     <div class="modal-content">
+        
+        {# Modal header #}
         <div class="modal-header">
             <h2 id="modal-title">Confirm Account Deletion</h2>
-            <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
+            
+            {# Close button (X) #}
+            <button type="button" 
+                    class="modal-close" 
+                    data-modal-close 
+                    aria-label="Close modal">&times;</button>
         </div>
+        
+        {# Modal body #}
         <div class="modal-body">
+            {# Warning message #}
             <p style="margin-bottom: 1rem; color: #ff6b6b; font-weight: 700;">⚠️ This action cannot be undone!</p>
+            
+            {# Instructions #}
             <p style="margin-bottom: 1.5rem;">Please enter your password to confirm that you want to permanently delete your account:</p>
-            <form id="deleteForm" action="{% url 'accounts:delete_account' %}" method="post" class="profile-form">
+            
+            {# Password confirmation form #}
+            <form id="deleteForm" 
+                  action="{% url 'accounts:delete_account' %}" 
+                  method="post" 
+                  class="profile-form">
+                {# CSRF token #}
                 {% csrf_token %}
+                
+                {# Password field #}
                 <div class="profile-form__field">
                     <label for="delete-password">Current Password</label>
-                    <input type="password" id="delete-password" name="password" placeholder="Enter your password" required>
+                    <input type="password" 
+                           id="delete-password" 
+                           name="password" 
+                           placeholder="Enter your password" 
+                           required>
                 </div>
             </form>
         </div>
+        
+        {# Modal actions #}
         <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
-            <button type="submit" form="deleteForm" class="btn btn-danger">Yes, Delete My Account</button>
+            {# Cancel button #}
+            <button type="button" 
+                    class="btn btn-secondary" 
+                    data-modal-close>Cancel</button>
+            
+            {# Confirm delete button #}
+            <button type="submit" 
+                    form="deleteForm" 
+                    class="btn btn-danger">Yes, Delete My Account</button>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
+{# ========================================
+    JAVASCRIPT
+    Tab switching and modal functionality
+======================================== #}
 {% block extra_js %}
 <script>
-// Tab switching functionality
+/*
+========================================
+TAB SWITCHING FUNCTIONALITY
+========================================
+Handles switching between profile tabs
+*/
 document.querySelectorAll('.profile-tab').forEach(tab => {
     tab.addEventListener('click', () => {
         const targetTab = tab.dataset.tab;
         
-        // Update tabs
+        // Update tabs (remove active from all, add to clicked)
         document.querySelectorAll('.profile-tab').forEach(t => {
             t.classList.remove('active');
             t.setAttribute('aria-selected', 'false');
@@ -385,7 +621,7 @@ document.querySelectorAll('.profile-tab').forEach(tab => {
         tab.classList.add('active');
         tab.setAttribute('aria-selected', 'true');
         
-        // Update content
+        // Update content panels (hide all, show target)
         document.querySelectorAll('.profile-tab-content').forEach(content => {
             content.classList.remove('active');
         });
@@ -393,38 +629,58 @@ document.querySelectorAll('.profile-tab').forEach(tab => {
     });
 });
 
-// Delete modal functionality
+/*
+========================================
+DELETE MODAL FUNCTIONALITY
+========================================
+Handles opening/closing confirmation modal
+*/
+
+// Get modal elements
 const modal = document.getElementById('deleteModal');
 const deleteTrigger = document.querySelector('[data-delete-trigger]');
 const modalCloses = document.querySelectorAll('[data-modal-close]');
 
+/**
+ * Open the delete confirmation modal
+ * - Shows modal overlay
+ * - Prevents body scroll
+ * - Focuses password input
+ */
 function openModal() {
     modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    // Focus first input in modal
-    modal.querySelector('input')?.focus();
+    document.body.style.overflow = 'hidden';  // Prevent background scroll
+    modal.querySelector('input')?.focus();    // Focus password field
 }
 
+/**
+ * Close the delete confirmation modal
+ * - Hides modal overlay
+ * - Restores body scroll
+ * - Returns focus to delete button
+ */
 function closeModal() {
     modal.classList.remove('active');
-    document.body.style.overflow = '';
-    deleteTrigger?.focus(); // Return focus
+    document.body.style.overflow = '';        // Restore scroll
+    deleteTrigger?.focus();                   // Return focus for accessibility
 }
 
+// Open modal when "Delete My Account" clicked
 deleteTrigger?.addEventListener('click', openModal);
 
+// Close modal when close button(s) clicked
 modalCloses.forEach(close => {
     close.addEventListener('click', closeModal);
 });
 
-// Close modal on outside click
+// Close modal when clicking outside (on backdrop)
 modal?.addEventListener('click', (e) => {
     if (e.target === modal) {
         closeModal();
     }
 });
 
-// Close modal on ESC key
+// Close modal when pressing ESC key
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal?.classList.contains('active')) {
         closeModal();

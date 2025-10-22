@@ -1,3 +1,12 @@
+/**
+ * Authentication form validation and password strength module
+ * Handles client-side validation for login and signup forms
+ */
+
+/**
+ * Password validation requirements configuration
+ * @type {Array<{key: string, test: function(string): boolean}>}
+ */
 const REQUIREMENTS = [
   {
     key: 'length',
@@ -17,6 +26,10 @@ const REQUIREMENTS = [
   },
 ];
 
+/**
+ * Password strength levels with thresholds and visual styling
+ * @type {Array<{threshold: number, label: string, color: string}>}
+ */
 const STRENGTH_LEVELS = [
   { threshold: 0, label: 'Strength: Too weak', color: '#d14343' },
   { threshold: 2, label: 'Strength: Fair', color: '#f4a259' },
@@ -24,6 +37,11 @@ const STRENGTH_LEVELS = [
   { threshold: 4, label: 'Strength: Strong', color: '#2ecc71' },
 ];
 
+/**
+ * Evaluates password strength based on requirements
+ * @param {string} value - The password to evaluate
+ * @returns {{score: number, level: {threshold: number, label: string, color: string}}}
+ */
 function evaluateStrength(value) {
   let score = 0;
   for (const requirement of REQUIREMENTS) {
@@ -42,7 +60,18 @@ function evaluateStrength(value) {
   return { score, level };
 }
 
+/**
+ * Updates password strength indicators and requirement checkmarks in the UI
+ * @param {HTMLFormElement} form - The signup form element
+ * @param {string} password - The password value to evaluate
+ * @returns {{score: number, level: object}} The evaluation result
+ */
 function updateRequirementIndicators(form, password) {
+  if (!form) {
+    console.warn('updateRequirementIndicators: form element is null');
+    return { score: 0, level: STRENGTH_LEVELS[0] };
+  }
+
   const result = evaluateStrength(password);
   const { level, score } = result;
 
@@ -69,6 +98,12 @@ function updateRequirementIndicators(form, password) {
   return result;
 }
 
+/**
+ * Displays or hides field error messages
+ * @param {HTMLFormElement} form - The form containing the field
+ * @param {string} field - The field identifier (matches data-field-error attribute)
+ * @param {string} message - Error message to display (empty string to clear)
+ */
 function setFieldError(form, field, message) {
   const errorElement = form.querySelector(`[data-field-error="${field}"]`);
   if (!errorElement) return;
@@ -81,6 +116,11 @@ function setFieldError(form, field, message) {
   }
 }
 
+/**
+ * Validates username format
+ * @param {string} value - Username to validate
+ * @returns {string} Error message or empty string if valid
+ */
 function validateUsername(value) {
   if (!value.trim()) return 'Username is required.';
   if (!/^[A-Za-z0-9._-]{3,30}$/.test(value.trim())) {
@@ -89,6 +129,11 @@ function validateUsername(value) {
   return '';
 }
 
+/**
+ * Validates email format
+ * @param {string} value - Email to validate
+ * @returns {string} Error message or empty string if valid
+ */
 function validateEmail(value) {
   if (!value.trim()) return 'Email is required.';
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -98,6 +143,11 @@ function validateEmail(value) {
   return '';
 }
 
+/**
+ * Validates password meets all requirements
+ * @param {string} password - Password to validate
+ * @returns {string} Error message or empty string if valid
+ */
 function validatePassword(password) {
   const { score } = evaluateStrength(password);
   if (!password) return 'Password is required.';
@@ -107,12 +157,21 @@ function validatePassword(password) {
   return '';
 }
 
+/**
+ * Validates password confirmation matches
+ * @param {string} password - Original password
+ * @param {string} confirm - Confirmation password
+ * @returns {string} Error message or empty string if valid
+ */
 function validateConfirm(password, confirm) {
   if (!confirm) return 'Confirm your password.';
   if (password !== confirm) return 'Passwords do not match.';
   return '';
 }
 
+/**
+ * Initializes signup form validation and password strength indicators
+ */
 function setupSignupForm() {
   const form = document.querySelector('[data-signup-form]');
   if (!form) return;
@@ -180,6 +239,9 @@ function setupSignupForm() {
   updateRequirementIndicators(form, password?.value ?? '');
 }
 
+/**
+ * Initializes login form validation
+ */
 function setupLoginForm() {
   const form = document.querySelector('[data-login-form]');
   if (!form) return;
@@ -207,9 +269,16 @@ function setupLoginForm() {
   });
 }
 
+/**
+ * Initializes all authentication form handlers
+ */
 function init() {
-  setupSignupForm();
-  setupLoginForm();
+  try {
+    setupSignupForm();
+    setupLoginForm();
+  } catch (error) {
+    console.error('Error initializing authentication forms:', error);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

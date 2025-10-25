@@ -7,12 +7,25 @@ from django.http import HttpRequest
 
 
 def get_client_ip(request: HttpRequest) -> str:
-    """Return the best-effort client IP address for rate limiting."""
+    """
+    Get client IP address for rate limiting.
 
-    forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded_for:
-        parts = [part.strip() for part in forwarded_for.split(",") if part.strip()]
-        if parts:
-            return parts[0]
+    Security Note:
+    Uses REMOTE_ADDR which cannot be spoofed by the client, ensuring
+    rate limiting cannot be bypassed by sending fake X-Forwarded-For headers.
+
+    For academic demonstration, this prevents the IP spoofing attack where
+    an attacker could bypass rate limits by cycling through fake IP addresses.
+
+    Production deployment behind a reverse proxy (nginx, Cloudflare, etc.)
+    would require configuring trusted proxy IPs to safely use X-Forwarded-For.
+    See: https://docs.djangoproject.com/en/4.2/ref/settings/#secure-proxy-ssl-header
+
+    Args:
+        request: Django HttpRequest object
+
+    Returns:
+        Client IP address as string (e.g., "127.0.0.1")
+    """
     remote_addr: Optional[str] = request.META.get("REMOTE_ADDR")
     return remote_addr or "0.0.0.0"

@@ -74,6 +74,8 @@ class User(AbstractUser):
     """
     
     # Email is unique and required
+    # Note: Stored as plaintext for usability (frequently accessed for login).
+    # For production requiring PII encryption, consider django-encrypted-model-fields.
     email = models.EmailField(unique=True, blank=False)
     
     # Security: Track failed login attempts

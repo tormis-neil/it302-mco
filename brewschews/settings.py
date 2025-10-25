@@ -48,11 +48,30 @@ load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Used for: Cryptographic signing (sessions, CSRF tokens, password reset)
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-change-me")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+
+# Auto-generate a key for development if not provided
+if not SECRET_KEY:
+    import uuid
+    from django.core.exceptions import ImproperlyConfigured
+
+    # In development, auto-generate (shows warning)
+    if os.environ.get("DJANGO_DEBUG", "0") == "1":
+        SECRET_KEY = "dev-only-" + str(uuid.uuid4())
+        print("⚠️  WARNING: Using auto-generated SECRET_KEY for development only!")
+        print("   For production, set DJANGO_SECRET_KEY in your environment variables.")
+    else:
+        # In production, fail loudly if missing
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY environment variable is required!\n"
+            "Generate one with: python -c 'from django.core.management.utils "
+            "import get_random_secret_key; print(get_random_secret_key())'"
+        )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Debug mode shows detailed error pages with sensitive information
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
+# Changed default from "1" to "0" for security (must explicitly enable debug)
+DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
 
 # List of hosts/domains this site can serve
 # Example: ['brewschews.com', 'www.brewschews.com']
@@ -334,3 +353,38 @@ LOGIN_REDIRECT_URL = "menu:catalog"
 # URL to redirect to after logout
 # Where users go after clicking logout
 LOGOUT_REDIRECT_URL = "pages:home"
+
+# ═══════════════════════════════════════════════════════════════════
+# SECURITY HEADERS & COOKIE PROTECTION
+# ═══════════════════════════════════════════════════════════════════
+"""
+These settings implement defense-in-depth security for session and CSRF cookies.
+
+HTTPONLY cookies prevent JavaScript from accessing sensitive cookies, protecting
+against XSS attacks that attempt to steal session tokens.
+
+SAMESITE='Lax' prevents cookies from being sent on cross-site requests, which
+protects against CSRF attacks initiated from external websites.
+
+In production with HTTPS, additional SECURE flags should be enabled to ensure
+cookies are only transmitted over encrypted connections.
+"""
+
+# Cookie security flags (work in both development and production)
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript from reading session cookie
+CSRF_COOKIE_HTTPONLY = True     # Prevent JavaScript from reading CSRF token
+SESSION_COOKIE_SAMESITE = 'Lax' # Prevent CSRF via cross-site requests
+CSRF_COOKIE_SAMESITE = 'Lax'    # Prevent CSRF via cross-site requests
+
+# Additional security settings for production (HTTPS required)
+# Uncomment these when deploying with HTTPS:
+# if not DEBUG:
+#     SECURE_SSL_REDIRECT = True              # Force all traffic to HTTPS
+#     SECURE_HSTS_SECONDS = 31536000          # Tell browsers to use HTTPS for 1 year
+#     SECURE_HSTS_INCLUDE_SUBDOMAINS = True   # Apply HSTS to all subdomains
+#     SECURE_HSTS_PRELOAD = True              # Enable HSTS preload
+#     SESSION_COOKIE_SECURE = True            # Only send session cookie over HTTPS
+#     CSRF_COOKIE_SECURE = True               # Only send CSRF cookie over HTTPS
+#     SECURE_CONTENT_TYPE_NOSNIFF = True      # Prevent MIME type sniffing
+#     SECURE_BROWSER_XSS_FILTER = True        # Enable browser XSS filtering
+#     X_FRAME_OPTIONS = 'DENY'                # Prevent clickjacking attacks

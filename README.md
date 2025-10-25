@@ -139,27 +139,33 @@ pip install -r requirements.txt
 
 ---
 
-### **Step 4: Set Up Environment Variables (Optional)**
+### **Step 4: Set Up Environment Variables (REQUIRED for Development)**
 
 Create a `.env` file in the project root:
 
 ```bash
-# Windows
+# Windows PowerShell
+copy .env.example .env
+
+# Windows Command Prompt
 copy .env.example .env
 
 # macOS/Linux
 cp .env.example .env
 ```
 
-**Edit `.env` and set:**
+**The `.env` file should contain:**
 ```env
-DJANGO_SECRET_KEY=your-secret-key-here
 DJANGO_DEBUG=1
+DJANGO_SECRET_KEY=
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 DJANGO_DB_NAME=db.sqlite3
 ```
 
-**⚠️ Note:** If you skip this step, the app will auto-generate a SECRET_KEY with a warning message (safe for development).
+**⚠️ IMPORTANT:**
+- `DJANGO_DEBUG=1` is **REQUIRED** for development mode
+- `DJANGO_SECRET_KEY` can be left empty (will auto-generate with a warning - safe for development)
+- Skipping this step will cause `ImproperlyConfigured` errors
 
 ---
 
@@ -302,15 +308,34 @@ python manage.py runserver 8080
 
 ---
 
-### **Issue 6: "WARNING: Using auto-generated SECRET_KEY"**
+### **Issue 6: "ImproperlyConfigured: DJANGO_SECRET_KEY environment variable is required!"**
+
+**Solution:** You need to create a `.env` file with `DJANGO_DEBUG=1`
+```bash
+# Windows
+copy .env.example .env
+
+# macOS/Linux
+cp .env.example .env
+```
+
+**Make sure your `.env` contains:**
+```env
+DJANGO_DEBUG=1
+```
+
+This tells Django to run in development mode (which auto-generates SECRET_KEY).
+
+---
+
+### **Issue 7: "WARNING: Using auto-generated SECRET_KEY"**
 
 **Solution:** This is normal for development. To remove the warning:
-1. Create a `.env` file (see Step 4)
-2. Generate a secret key:
+1. Generate a secret key:
    ```bash
    python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
    ```
-3. Add it to `.env`:
+2. Add it to your `.env` file:
    ```
    DJANGO_SECRET_KEY=your-generated-key-here
    ```

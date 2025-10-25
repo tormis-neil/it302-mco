@@ -56,7 +56,7 @@ if not SECRET_KEY:
     from django.core.exceptions import ImproperlyConfigured
 
     # In development, auto-generate (shows warning)
-    if os.environ.get("DJANGO_DEBUG", "0") == "1":
+    if os.environ.get("DJANGO_DEBUG", "1") == "1":
         SECRET_KEY = "dev-only-" + str(uuid.uuid4())
         print("⚠️  WARNING: Using auto-generated SECRET_KEY for development only!")
         print("   For production, set DJANGO_SECRET_KEY in your environment variables.")
@@ -70,8 +70,9 @@ if not SECRET_KEY:
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # Debug mode shows detailed error pages with sensitive information
-# Changed default from "1" to "0" for security (must explicitly enable debug)
-DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
+# Defaults to "1" (debug on) for easy development setup
+# Set DJANGO_DEBUG=0 in production environment
+DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
 # List of hosts/domains this site can serve
 # Example: ['brewschews.com', 'www.brewschews.com']

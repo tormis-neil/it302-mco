@@ -8,7 +8,7 @@ from django.db.utils import OperationalError
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from .models import AuthenticationEvent, Profile, digest_email
+from .models import AuthenticationEvent, Profile
 
 User = get_user_model()
 
@@ -35,25 +35,6 @@ class SignupViewTests(TestCase):
         user = User.objects.get(username="newuser")
         self.assertTrue(user.check_password("StrongPass1!"))
         self.assertEqual(AuthenticationEvent.objects.filter(user=user, successful=True).count(), 1)
-
-    def test_signup_encrypts_email_and_stores_digest(self) -> None:
-        email = "cipher@example.com"
-        response = self.client.post(
-            self.url,
-            {
-                "username": "cipheruser",
-                "email": email,
-                "password": "StrongPass1!",
-                "confirm_password": "StrongPass1!",
-            },
-            REMOTE_ADDR="198.51.100.11",
-        )
-        self.assertEqual(response.status_code, 302)
-
-        user = User.objects.get(username="cipheruser")
-        self.assertNotEqual(user.encrypted_email, email.encode("utf-8"))
-        self.assertEqual(user.email, email)
-        self.assertEqual(user.email_digest, digest_email(email))
 
     def test_signup_password_hashed_with_argon2(self) -> None:
         response = self.client.post(
@@ -242,6 +223,7 @@ class ProfileViewTests(TestCase):
                 "phone_number": "+639171234567",
                 "favorite_drink": "Cold Brew",
                 "bio": "Prefers light roast beans.",
+                "update_profile": "true",  # Required to identify which form is being submitted
             },
         )
         self.assertEqual(response.status_code, 200)

@@ -6,7 +6,7 @@ This document summarizes the relational structure that currently powers the Brew
 
 | Model | Purpose | Key Fields |
 | --- | --- | --- |
-| `accounts.User` | Custom user model extending `AbstractUser` while encrypting email addresses at rest. | `username`, `encrypted_email` (AES-256-GCM), `email_digest` (SHA-256), `password` (Argon2 hash), lockout metadata |
+| `accounts.User` | Custom user model extending `AbstractUser` with enhanced security features. | `username`, `email` (plaintext EmailField), `password` (Argon2 hash), lockout metadata (`failed_login_attempts`, `locked_until`) |
 | `accounts.AuthenticationEvent` | Persists every signup/login attempt for auditing and rate limiting. | `event_type`, `ip_address`, `user`, `successful`, `metadata`, `created_at` |
 | `accounts.Profile` | Stores profile details surfaced on the dashboard. | `user` one-to-one FK, `display_name`, `phone_number`, `favorite_drink`, `bio`, timestamps |
 | `menu.Category` | High-level grouping for drinks and food. | `name`, `slug`, `description`, ordering fields |
@@ -17,7 +17,7 @@ This document summarizes the relational structure that currently powers the Brew
 ## Security Considerations
 
 * **Password hashing**: `PASSWORD_HASHERS` is anchored on Argon2 with secure fallbacks. Signup enforces Django's password validators (12+ characters, similarity checks, numeric guard) plus uppercase/number/special-character requirements.
-* **Email protection**: Email addresses are encrypted using AES-256-GCM with a per-installation key sourced from `ACCOUNT_EMAIL_ENCRYPTION_KEY`. Only the digest is used for uniqueness checks.
+* **Email storage**: Email addresses are stored as plaintext for usability (frequently accessed for login). For production deployments requiring PII encryption, consider implementing field-level encryption with `django-encrypted-model-fields` or similar.
 * **Rate limiting**: Authentication events feed IP-based throttling and hour-long lockouts after repeated failures.
 * **PII safeguards**: Profiles expose only opt-in contact data, while order history pulls from immutable snapshots that omit payment details.
 

@@ -25,7 +25,7 @@ def seed_menu(apps, schema_editor):
         slug="featured-drinks-1",
         description="A cozy blend of maple, cocoa nibs, and velvety oatmilk shaken over ice.",
         base_price=Decimal("195.00"),
-        image="img/bg.jpg",
+        image="img/menu/maple-oatmilk.jpg",
         display_order=1,
     )
     MenuItem.objects.create(
@@ -34,7 +34,7 @@ def seed_menu(apps, schema_editor):
         slug="featured-drinks-2",
         description="Our signature blended beverage with whipped cream and caramel drizzle.",
         base_price=Decimal("185.00"),
-        image="img/bg.jpg",
+        image="img/menu/frappuccino.jpg",
         display_order=2,
     )
 
@@ -52,7 +52,7 @@ def seed_menu(apps, schema_editor):
         slug="brewed-coffee-1",
         description="Freshly brewed medium roast with a smooth finish.",
         base_price=Decimal("120.00"),
-        image="img/bg.jpg",
+        image="img/menu/drip-coffee.jpg",
         display_order=1,
     )
     MenuItem.objects.create(
@@ -61,7 +61,7 @@ def seed_menu(apps, schema_editor):
         slug="brewed-coffee-2",
         description="Steeped for 20 hours for a naturally sweet, less acidic cup.",
         base_price=Decimal("150.00"),
-        image="img/bg.jpg",
+        image="img/menu/cold-brew.jpg",
         display_order=2,
     )
 
@@ -79,7 +79,7 @@ def seed_menu(apps, schema_editor):
         slug="espresso-1",
         description="A concentrated shot with rich crema and balanced sweetness.",
         base_price=Decimal("110.00"),
-        image="img/bg.jpg",
+        image="img/menu/espresso.jpg",
         display_order=1,
     )
     MenuItem.objects.create(
@@ -88,7 +88,7 @@ def seed_menu(apps, schema_editor):
         slug="espresso-2",
         description="Equal parts espresso, steamed milk, and foam dusted with cocoa.",
         base_price=Decimal("145.00"),
-        image="img/bg.jpg",
+        image="img/menu/cappuccino.jpg",
         display_order=2,
     )
 
@@ -106,7 +106,7 @@ def seed_menu(apps, schema_editor):
         slug="bakery-1",
         description="Yeast doughnut dipped in rich dark chocolate glaze.",
         base_price=Decimal("85.00"),
-        image="img/bg.jpg",
+        image="img/menu/chocolate-donut.jpg",
         display_order=1,
     )
     MenuItem.objects.create(
@@ -115,7 +115,7 @@ def seed_menu(apps, schema_editor):
         slug="bakery-2",
         description="Soft brioche filled with scrambled eggs and cheddar cheese.",
         base_price=Decimal("140.00"),
-        image="img/bg.jpg",
+        image="img/menu/egg-sandwich.jpg",
         display_order=2,
     )
 

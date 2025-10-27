@@ -83,13 +83,13 @@ def _is_rate_limited(
 ) -> bool:
     """
     Check if IP has exceeded rate limit.
-    
+
     How it works:
     1. Calculate cutoff time (now - window)
     2. Count events from this IP since cutoff
     3. Return True if count >= limit
-    
-    Example: 
+
+    Example:
     - window = 15 minutes, limit = 5
     - Counts failed logins from IP in last 15 minutes
     - Returns True if 5 or more found
@@ -109,16 +109,54 @@ def _is_rate_limited(
         return False
 
 
+def _get_rate_limit_reset_time(
+    *,
+    event_type: str,
+    ip_address: str,
+    window: timedelta,
+    successful: Optional[bool] = None,
+) -> Optional[timezone.datetime]:
+    """
+    Get when the rate limit will reset (when oldest event expires).
+
+    Returns:
+        DateTime when rate limit resets, or None if not rate limited
+
+    Example:
+        If oldest event was at 2:00 PM and window is 15 minutes,
+        returns 2:15 PM (when that event expires from the window)
+    """
+    cutoff = timezone.now() - window
+    try:
+        queryset = AuthenticationEvent.objects.filter(
+            event_type=event_type,
+            ip_address=ip_address,
+            created_at__gte=cutoff,
+        )
+        if successful is not None:
+            queryset = queryset.filter(successful=successful)
+
+        # Get the oldest event in the window
+        oldest_event = queryset.order_by('created_at').first()
+        if oldest_event:
+            # Rate limit resets when the oldest event expires
+            return oldest_event.created_at + window
+        return None
+    except DatabaseError:
+        logger.exception("Unable to calculate rate limit reset time")
+        return None
+
+
 @require_http_methods(["GET", "POST"])
 def login_view(request: HttpRequest) -> HttpResponse:
     """
     Handle user login with security checks.
-    
+
     Security features:
     1. Rate limiting: Block IP after 5 failed attempts in 15 min
     2. Account lockout: Lock account after 5 wrong passwords
     3. Audit logging: Record all attempts
-    
+
     Flow:
     - GET: Show login form
     - POST: Validate credentials and login
@@ -127,6 +165,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
     user_agent = request.META.get("HTTP_USER_AGENT", "")
     form = LoginForm(request.POST or None)
     alert_message = ""
+    lockout_seconds = None
 
     if request.method == "POST":
         # Security Check 1: IP rate limiting
@@ -138,7 +177,18 @@ def login_view(request: HttpRequest) -> HttpResponse:
             limit=LOGIN_RATE_LIMIT,
             successful=False,
         ):
-            alert_message = "Too many sign-in attempts. Please try again in 15 minutes."
+            # Calculate when rate limit will reset
+            reset_time = _get_rate_limit_reset_time(
+                event_type=AuthenticationEvent.EventType.LOGIN,
+                ip_address=ip_address,
+                window=LOGIN_RATE_WINDOW,
+                successful=False,
+            )
+            if reset_time:
+                lockout_seconds = int((reset_time - timezone.now()).total_seconds())
+                lockout_seconds = max(1, lockout_seconds)  # At least 1 second
+
+            alert_message = "Too many sign-in attempts. Please wait before trying again."
             _record_event(
                 event_type=AuthenticationEvent.EventType.LOGIN,
                 ip_address=ip_address,
@@ -167,9 +217,13 @@ def login_view(request: HttpRequest) -> HttpResponse:
             # Check 2: Account locked?
             elif user.is_locked():
                 # Calculate remaining lockout time
-                remaining_seconds = int((user.locked_until - timezone.now()).total_seconds()) if user.locked_until else 0
-                remaining_minutes = max(1, remaining_seconds // 60) if remaining_seconds > 0 else 60
-                alert_message = f"Your account is locked. Try again in {remaining_minutes} minutes."
+                if user.locked_until:
+                    lockout_seconds = int((user.locked_until - timezone.now()).total_seconds())
+                    lockout_seconds = max(1, lockout_seconds)  # At least 1 second
+                else:
+                    lockout_seconds = 3600  # Default to 1 hour if not set
+
+                alert_message = "Your account is locked. Please wait before trying again."
                 _record_event(
                     event_type=AuthenticationEvent.EventType.LOGIN,
                     ip_address=ip_address,
@@ -227,6 +281,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
     context = {
         "form": form,
         "alert_message": alert_message,
+        "lockout_seconds": lockout_seconds,
     }
     return render(request, "accounts/login.html", context)
 
@@ -235,12 +290,12 @@ def login_view(request: HttpRequest) -> HttpResponse:
 def signup_view(request: HttpRequest) -> HttpResponse:
     """
     Handle user registration.
-    
+
     Security features:
     - Rate limiting: Max 5 signups per hour per IP
     - Password validation: 12+ chars, uppercase, number, special char
     - Audit logging: Record all attempts
-    
+
     Flow:
     - GET: Show signup form
     - POST: Validate, create user, auto-login
@@ -248,6 +303,7 @@ def signup_view(request: HttpRequest) -> HttpResponse:
     ip_address = get_client_ip(request)
     user_agent = request.META.get("HTTP_USER_AGENT", "")
     form = SignupForm(request.POST or None)
+    lockout_seconds = None
 
     if request.method == "POST":
         # Security: Check IP rate limit
@@ -257,7 +313,17 @@ def signup_view(request: HttpRequest) -> HttpResponse:
             window=SIGNUP_RATE_WINDOW,
             limit=SIGNUP_RATE_LIMIT,
         ):
-            form.add_error(None, "Too many sign-up attempts from this network. Please try again later.")
+            # Calculate when rate limit will reset
+            reset_time = _get_rate_limit_reset_time(
+                event_type=AuthenticationEvent.EventType.SIGNUP,
+                ip_address=ip_address,
+                window=SIGNUP_RATE_WINDOW,
+            )
+            if reset_time:
+                lockout_seconds = int((reset_time - timezone.now()).total_seconds())
+                lockout_seconds = max(1, lockout_seconds)  # At least 1 second
+
+            form.add_error(None, "Too many sign-up attempts from this network. Please wait before trying again.")
             _record_event(
                 event_type=AuthenticationEvent.EventType.SIGNUP,
                 ip_address=ip_address,
@@ -299,6 +365,7 @@ def signup_view(request: HttpRequest) -> HttpResponse:
 
     context = {
         "form": form,
+        "lockout_seconds": lockout_seconds,
     }
     return render(request, "accounts/signup.html", context)
 

@@ -14,13 +14,18 @@
     <h1 id="login-title" class="hero-heading auth-title">Sign In to Your Account</h1>
 
     <!-- Error alert (hidden by default) -->
-    <div class="auth-alert" 
-         role="alert" 
-         aria-live="polite" 
-         aria-atomic="true" 
-         data-auth-alert 
+    <div class="auth-alert"
+         role="alert"
+         aria-live="polite"
+         aria-atomic="true"
+         data-auth-alert
          {% if not alert_message %}hidden{% endif %}>
         {{ alert_message|default:"Invalid username or password. Please try again." }}
+        {% if lockout_seconds %}
+        <div class="lockout-timer" data-lockout-timer="{{ lockout_seconds }}">
+            <p>Time remaining: <strong><span id="timer-display">--:--</span></strong></p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Login form -->

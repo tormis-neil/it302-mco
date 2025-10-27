@@ -606,6 +606,35 @@ textarea:focus-visible {
     color: #ffb4a5;
 }
 
+/* Lockout timer styling */
+.lockout-timer {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: rgba(244, 162, 89, 0.15);
+    border: 1px solid rgba(244, 162, 89, 0.3);
+    text-align: center;
+}
+
+.lockout-timer p {
+    margin: 0;
+    font-size: 1rem;
+    color: #f4a259;
+}
+
+.lockout-timer strong {
+    font-size: 1.5rem;
+    color: #f7d154;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    font-family: 'Courier New', monospace;
+}
+
+#timer-display {
+    display: inline-block;
+    min-width: 5ch;
+}
+
 /* ===================================================================
    RESPONSIVE DESIGN - MEDIA QUERIES
    =================================================================== */

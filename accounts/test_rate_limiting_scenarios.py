@@ -178,7 +178,7 @@ class RateLimitingScenariosTest(TestCase):
                 self.assertContains(response, "Invalid username or password")
 
         # 5th attempt should trigger lockout
-        self.assertContains(response, "locked for 60 minutes")
+        self.assertContains(response, "Your account is locked")
 
         # Verify alice is locked
         self.alice.refresh_from_db()

@@ -168,54 +168,15 @@ def login_view(request: HttpRequest) -> HttpResponse:
     lockout_seconds = None
 
     if request.method == "POST":
-        # Security Check 1: IP rate limiting
-        # Block if too many failed attempts from this IP
-        if _is_rate_limited(
-            event_type=AuthenticationEvent.EventType.LOGIN,
-            ip_address=ip_address,
-            window=LOGIN_RATE_WINDOW,
-            limit=LOGIN_RATE_LIMIT,
-            successful=False,
-        ):
-            # Calculate when rate limit will reset
-            reset_time = _get_rate_limit_reset_time(
-                event_type=AuthenticationEvent.EventType.LOGIN,
-                ip_address=ip_address,
-                window=LOGIN_RATE_WINDOW,
-                successful=False,
-            )
-            if reset_time:
-                lockout_seconds = int((reset_time - timezone.now()).total_seconds())
-                lockout_seconds = max(1, lockout_seconds)  # At least 1 second
-
-            alert_message = "Too many sign-in attempts. Please wait before trying again."
-            _record_event(
-                event_type=AuthenticationEvent.EventType.LOGIN,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                username=form.data.get("identifier", ""),
-                successful=False,
-                reason="ip_rate_limited",
-            )
-        elif form.is_valid():
+        # PRIORITY CHECK: If form is valid, check account lockout FIRST
+        # Account-specific lockouts should take priority over IP rate limiting
+        if form.is_valid():
             identifier = form.get_identifier()
             password = form.get_password()
             user = form.find_user()  # Find by username or email
 
-            # Check 1: User exists?
-            if user is None:
-                alert_message = "Invalid username or password."
-                _record_event(
-                    event_type=AuthenticationEvent.EventType.LOGIN,
-                    ip_address=ip_address,
-                    user_agent=user_agent,
-                    username=identifier,
-                    successful=False,
-                    reason="unknown_identifier",
-                )
-            
-            # Check 2: Account locked?
-            elif user.is_locked():
+            # PRIORITY: Check if this specific account is locked
+            if user and user.is_locked():
                 # Calculate remaining lockout time
                 if user.locked_until:
                     lockout_seconds = int((user.locked_until - timezone.now()).total_seconds())
@@ -233,12 +194,46 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     successful=False,
                     reason="account_locked",
                 )
-            
-            # Check 3: Password correct?
+
+            # Check 2: IP rate limiting (after account lockout check)
+            elif _is_rate_limited(
+                event_type=AuthenticationEvent.EventType.LOGIN,
+                ip_address=ip_address,
+                window=LOGIN_RATE_WINDOW,
+                limit=LOGIN_RATE_LIMIT,
+                successful=False,
+            ):
+                # Calculate when rate limit will reset
+                reset_time = _get_rate_limit_reset_time(
+                    event_type=AuthenticationEvent.EventType.LOGIN,
+                    ip_address=ip_address,
+                    window=LOGIN_RATE_WINDOW,
+                    successful=False,
+                )
+                if reset_time:
+                    lockout_seconds = int((reset_time - timezone.now()).total_seconds())
+                    lockout_seconds = max(1, lockout_seconds)
+
+                alert_message = "Too many sign-in attempts. Please wait before trying again."
+                # DO NOT record another event when rate limited
+
+            # Check 3: User exists?
+            elif user is None:
+                alert_message = "Invalid username or password."
+                _record_event(
+                    event_type=AuthenticationEvent.EventType.LOGIN,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    username=identifier,
+                    successful=False,
+                    reason="unknown_identifier",
+                )
+
+            # Check 4: Password correct?
             elif not user.check_password(password):
                 # Wrong password: increment failed attempts
                 user.mark_login_failure()
-                
+
                 # Check if we should lock the account now
                 locked_now = False
                 if user.failed_login_attempts >= LOGIN_LOCK_THRESHOLD:
@@ -247,8 +242,13 @@ def login_view(request: HttpRequest) -> HttpResponse:
                     user.save(update_fields=["failed_login_attempts"])
                     locked_now = True
 
+                    # Show timer when account gets locked
+                    if user.locked_until:
+                        lockout_seconds = int((user.locked_until - timezone.now()).total_seconds())
+                        lockout_seconds = max(1, lockout_seconds)
+
                 alert_message = (
-                    "Too many failed attempts. Your account is locked for 60 minutes."
+                    "Too many failed attempts. Your account is locked. Please wait before trying again."
                     if locked_now
                     else "Invalid username or password."
                 )
@@ -324,15 +324,7 @@ def signup_view(request: HttpRequest) -> HttpResponse:
                 lockout_seconds = max(1, lockout_seconds)  # At least 1 second
 
             form.add_error(None, "Too many sign-up attempts from this network. Please wait before trying again.")
-            _record_event(
-                event_type=AuthenticationEvent.EventType.SIGNUP,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                username=form.data.get("username", ""),
-                email=form.data.get("email"),
-                successful=False,
-                reason="ip_rate_limited",
-            )
+            # DO NOT record another event when rate limited - prevents infinite loop
         elif form.is_valid():
             # Create user (password automatically hashed)
             user = form.save()

@@ -192,7 +192,7 @@ class LoginViewTests(TestCase):
                 REMOTE_ADDR=ip_address,
             )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "locked for 60 minutes")
+        self.assertContains(response, "Your account is locked")
 
         self.user.refresh_from_db()
         self.assertTrue(self.user.is_locked())

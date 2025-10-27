@@ -14,9 +14,16 @@
     <h1 id="signup-title" class="hero-heading auth-title">Create your Brews &amp; Chews account</h1>
 
     <!-- General error messages -->
-    {% if form.non_field_errors %}
+    {% if form.non_field_errors or lockout_seconds %}
     <div class="auth-alert" role="alert">
+        {% if form.non_field_errors %}
         {{ form.non_field_errors|join:" " }}
+        {% endif %}
+        {% if lockout_seconds %}
+        <div class="lockout-timer" data-lockout-timer="{{ lockout_seconds }}">
+            <p>Time remaining: <strong><span id="timer-display">--:--</span></strong></p>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 

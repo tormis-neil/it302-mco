@@ -270,12 +270,90 @@ function setupLoginForm() {
 }
 
 /**
+ * Initializes countdown timer for rate limiting and account lockout
+ * Shows remaining time and automatically refreshes the page when timer expires
+ */
+function setupLockoutTimer() {
+  const timerElement = document.querySelector('[data-lockout-timer]');
+  if (!timerElement) return;
+
+  const initialSeconds = parseInt(timerElement.dataset.lockoutTimer, 10);
+  if (isNaN(initialSeconds) || initialSeconds <= 0) return;
+
+  const displayElement = document.getElementById('timer-display');
+  if (!displayElement) return;
+
+  // Disable form submission during lockout
+  const form = document.querySelector('[data-login-form], [data-signup-form]');
+  const submitButton = form?.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.style.opacity = '0.5';
+    submitButton.style.cursor = 'not-allowed';
+  }
+
+  let remainingSeconds = initialSeconds;
+
+  /**
+   * Formats seconds into MM:SS format
+   * @param {number} seconds - Total seconds
+   * @returns {string} Formatted time string
+   */
+  function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Updates the timer display
+   */
+  function updateDisplay() {
+    displayElement.textContent = formatTime(remainingSeconds);
+  }
+
+  // Update display immediately
+  updateDisplay();
+
+  // Start countdown
+  const intervalId = setInterval(() => {
+    remainingSeconds -= 1;
+
+    if (remainingSeconds <= 0) {
+      clearInterval(intervalId);
+      displayElement.textContent = '00:00';
+
+      // Re-enable the form
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+      }
+
+      // Show message that user can try again
+      const alertBox = document.querySelector('[data-auth-alert]');
+      if (alertBox) {
+        alertBox.innerHTML = '<p style="color: #2ecc71;">You can now try again!</p>';
+      }
+
+      // Auto-refresh after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } else {
+      updateDisplay();
+    }
+  }, 1000);
+}
+
+/**
  * Initializes all authentication form handlers
  */
 function init() {
   try {
     setupSignupForm();
     setupLoginForm();
+    setupLockoutTimer();
   } catch (error) {
     console.error('Error initializing authentication forms:', error);
   }

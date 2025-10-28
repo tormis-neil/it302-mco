@@ -19,6 +19,7 @@ from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 
 from .models import Profile, User
+from .encryption import generate_email_digest
 
 # Validation patterns
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]{3,30}$")
@@ -64,16 +65,25 @@ class SignupForm(forms.Form):
     def clean_email(self) -> str:
         """
         Validate email format and uniqueness.
-        
+
         Process:
         - Strip whitespace, convert to lowercase
-        - Check if already registered
+        - Generate SHA-256 digest
+        - Check if already registered (using digest for encrypted emails)
+
+        Note: Uses email_digest field for uniqueness check since emails
+        are encrypted and can't be directly compared.
         """
         email = self.cleaned_data["email"].strip().lower()
-        
-        if User.objects.filter(email__iexact=email).exists():
+
+        # Generate digest to check uniqueness
+        # This works with encrypted emails since digest is deterministic
+        email_digest = generate_email_digest(email)
+
+        # Check if digest already exists (means email is registered)
+        if User.objects.filter(email_digest=email_digest).exists():
             raise ValidationError("That email is already registered.")
-        
+
         return email
 
     def clean(self) -> dict[str, str]:
@@ -185,25 +195,29 @@ class LoginForm(forms.Form):
     def find_user(self) -> Optional[User]:
         """
         Find user by username or email.
-        
+
         Logic:
-        - If identifier contains @: Search by email
+        - If identifier contains @: Search by email (using digest)
         - Otherwise: Search by username
         - Case-insensitive search
+
+        Note: Email search uses email_digest field since emails are encrypted.
+        The digest is deterministic (same email -> same digest) so lookups work.
         """
         if not self.is_valid():
             return None
-        
+
         identifier = self.get_identifier()
         user: Optional[User]
-        
+
         if "@" in identifier:
-            # Search by email
-            user = User.objects.filter(email__iexact=identifier).first()
+            # Search by email using digest (for encrypted emails)
+            email_digest = generate_email_digest(identifier)
+            user = User.objects.filter(email_digest=email_digest).first()
         else:
             # Search by username
             user = User.objects.filter(username__iexact=identifier).first()
-        
+
         return user
 
 

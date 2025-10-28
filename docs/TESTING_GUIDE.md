@@ -41,7 +41,6 @@ This document provides comprehensive testing procedures for the Brews & Chews on
 This testing guide covers:
 - ✅ User registration and authentication
 - ✅ Profile CRUD operations
-- ✅ Security features (rate limiting, account lockout)
 - ✅ Database operations
 - ✅ Password hashing and validation
 - ❌ Payment processing (not implemented)
@@ -186,38 +185,8 @@ Verification
 python manage.py shell
 >>> from accounts.models import User
 >>> user = User.objects.get(username='testuser1')
->>> print(f"Failed attempts: {user.failed_login_attempts}")
->>> # Should show 1
+>>> # User exists and login attempt was logged
 >>> exit()
-
-### Test 2.4 - Account lockout
-Steps:
-- Attempt login with wrong password 5 times in a row
-- On 6th attempt, try with correct password
-
-Expected Result After 5 Failures:
-🔒 Account locked
-Error message: "Your account is locked. Try again in X minutes."
-Cannot login even with correct password
-
-Verification
-python manage.py shell
->>> from accounts.models import User
->>> from django.utils import timezone
->>> user = User.objects.get(username='testuser1')
->>> print(f"Is locked: {user.is_locked()}")
->>> print(f"Locked until: {user.locked_until}")
->>> print(f"Time remaining: {user.locked_until - timezone.now()}")
->>> exit()
-
-### Test 2.5 - Rate limiting
-Steps:
-- Open 5 different Incognito/Private browser windows
-- Attempt login from same IP 6 times
-
-Expected Result:
-- After 5 attempts: "Too many sign-in attempts. Please try again in 15 minutes."
-- Rate limit based on IP address
 
 ## PROFILE MANAGEMENT TESTING
 
@@ -413,8 +382,6 @@ print(f"✓ Password NOT plaintext: {'TestPassword123!' not in user.password}")
 print(f"✓ Password check works: {user.check_password('TestPassword123!')}")
 
 # Check fields
-print(f"✓ Failed login attempts: {user.failed_login_attempts}")
-print(f"✓ Is locked: {user.is_locked()}")
 print(f"✓ Date joined: {user.date_joined}")
 
 # Cleanup
@@ -429,8 +396,6 @@ Expected output:
 ✓ Password algorithm: argon2
 ✓ Password NOT plaintext: True
 ✓ Password check works: True
-✓ Failed login attempts: 0
-✓ Is locked: False
 ✓ Date joined: 2025-10-12 12:34:56
 ✓ Test complete - user deleted
 
@@ -622,19 +587,8 @@ def run_all_tests():
         print(f"  ✗ ChangePasswordForm failed: {password_form.errors}")
         test_results['failed'] += 1
     
-    # Test 7: Account Lockout
-    print("\n[TEST 7] Account Lockout Mechanism")
-    user.failed_login_attempts = 5
-    user.lock_for(timedelta(hours=1))
-    if user.is_locked():
-        print("  ✓ Account lockout working")
-        test_results['passed'] += 1
-    else:
-        print("  ✗ Account lockout failed")
-        test_results['failed'] += 1
-    
-    # Test 8: Database Counts
-    print("\n[TEST 8] Database Integrity")
+    # Test 7: Database Integrity
+    print("\n[TEST 7] Database Integrity")
     user_count = User.objects.count()
     profile_count = Profile.objects.count()
     event_count = AuthenticationEvent.objects.count()
@@ -650,8 +604,8 @@ def run_all_tests():
         print("  ⚠ Some users may be missing profiles")
         test_results['warnings'] += 1
     
-    # Test 9: SQL Injection Prevention
-    print("\n[TEST 9] SQL Injection Prevention")
+    # Test 8: SQL Injection Prevention
+    print("\n[TEST 8] SQL Injection Prevention")
     malicious = "admin' OR '1'='1"
     result = User.objects.filter(username__iexact=malicious).first()
     if result is None:

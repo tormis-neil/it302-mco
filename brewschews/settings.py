@@ -168,12 +168,62 @@ DATABASES = {
     }
 }
 
-# Email encryption key (optional feature, not currently used)
-# If implemented, would encrypt email addresses at rest using AES-256-GCM
+# ═══════════════════════════════════════════════════════════════════
+# EMAIL ENCRYPTION CONFIGURATION (MCO 1)
+# ═══════════════════════════════════════════════════════════════════
+"""
+Email Encryption Settings
+
+User email addresses are encrypted at rest using AES-256-GCM for PII protection.
+
+Key Management:
+- Set ACCOUNT_EMAIL_ENCRYPTION_KEY in .env file (recommended)
+- Key must be 32 bytes (256 bits), base64-encoded
+- If not set, falls back to derived key from SECRET_KEY (not recommended for production)
+
+Generate a secure key:
+    python -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
+
+Security Notes:
+- Back up this key securely - if lost, emails cannot be decrypted!
+- Never commit encryption keys to version control
+- Use different keys for dev/staging/production
+- Rotate keys periodically (requires re-encryption)
+"""
+
+# Get encryption key from environment or derive from SECRET_KEY
 ACCOUNT_EMAIL_ENCRYPTION_KEY = os.environ.get(
-    "ACCOUNT_EMAIL_ENCRYPTION_KEY", 
+    "ACCOUNT_EMAIL_ENCRYPTION_KEY",
     _derive_default_account_key(SECRET_KEY)
 )
+
+# Validate encryption key format
+try:
+    _key_bytes = base64.b64decode(ACCOUNT_EMAIL_ENCRYPTION_KEY)
+    if len(_key_bytes) != 32:
+        raise ValueError(f"Key must be 32 bytes, got {len(_key_bytes)}")
+
+    # Warn if using derived key (not explicitly set)
+    if not os.environ.get("ACCOUNT_EMAIL_ENCRYPTION_KEY"):
+        if DEBUG:
+            print("⚠️  WARNING: Using derived encryption key from SECRET_KEY")
+            print("   For production, set ACCOUNT_EMAIL_ENCRYPTION_KEY explicitly!")
+            print("   Generate with: python -c \"from accounts.encryption import generate_encryption_key; print(generate_encryption_key())\"")
+        else:
+            # In production, require explicit key
+            from django.core.exceptions import ImproperlyConfigured
+            raise ImproperlyConfigured(
+                "ACCOUNT_EMAIL_ENCRYPTION_KEY environment variable is required in production!\n"
+                "Generate one with: python -c \"from accounts.encryption import generate_encryption_key; print(generate_encryption_key())\""
+            )
+
+except Exception as e:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        f"Invalid ACCOUNT_EMAIL_ENCRYPTION_KEY: {e}\n"
+        "Key must be base64-encoded 32 bytes (256 bits).\n"
+        "Generate with: python -c \"from accounts.encryption import generate_encryption_key; print(generate_encryption_key())\""
+    )
 
 # ═══════════════════════════════════════════════════════════════════
 # AUTHENTICATION & SECURITY SETTINGS

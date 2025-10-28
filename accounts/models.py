@@ -3,7 +3,7 @@ Database models for the accounts app.
 
 Models:
 - UserManager: Handles user creation
-- User: Custom user with security features (lockout, failed attempts tracking)
+- User: Custom user with email encryption
 - AuthenticationEvent: Logs all login/signup attempts
 - Profile: User preferences and contact info
 
@@ -81,12 +81,9 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     """
-    Custom user with security features.
+    Custom user with email encryption.
 
     Security features:
-    - Tracks failed login attempts
-    - Locks account after 5 failures
-    - Auto-unlocks after 60 minutes
     - AES-256-GCM email encryption (MCO 1)
     - SHA-256 email digest for lookups
 
@@ -120,63 +117,11 @@ class User(AbstractUser):
         help_text="SHA-256 digest of email for lookups"
     )
 
-    # Security: Track failed login attempts
-    failed_login_attempts = models.PositiveIntegerField(default=0)
-
-    # Security: Store when lockout expires
-    locked_until = models.DateTimeField(blank=True, null=True)
-
-    # Security: Track last failed attempt
-    last_failed_login_at = models.DateTimeField(blank=True, null=True)
-
     EMAIL_FIELD = 'email'
     REQUIRED_FIELDS = ['email']
 
     # Cache for decrypted email (avoid repeated decryption)
     _email_cache: Optional[str] = None
-
-    def mark_login_failure(self) -> None:
-        """
-        Record a failed login attempt.
-        
-        Called when: User enters wrong password
-        Updates: Increments counter, sets timestamp
-        """
-        self.failed_login_attempts += 1
-        self.last_failed_login_at = timezone.now()
-        self.save(update_fields=["failed_login_attempts", "last_failed_login_at"])
-
-    def reset_login_failures(self) -> None:
-        """
-        Clear failed attempts and unlock account.
-        
-        Called when: Successful login
-        Updates: Resets counter to 0, clears lockout
-        """
-        self.failed_login_attempts = 0
-        self.locked_until = None
-        self.last_failed_login_at = None
-        self.save(update_fields=["failed_login_attempts", "locked_until", "last_failed_login_at"])
-
-    def lock_for(self, duration) -> None:
-        """
-        Lock account for specified duration.
-        
-        Called when: 5 failed login attempts reached
-        How: Sets locked_until = now + duration
-        Example: lock_for(timedelta(hours=1)) locks for 60 minutes
-        """
-        self.locked_until = timezone.now() + duration
-        self.save(update_fields=["locked_until"])
-
-    def is_locked(self) -> bool:
-        """
-        Check if account is currently locked.
-
-        Returns True if: locked_until exists and is in the future
-        Returns False if: Not locked or lockout expired
-        """
-        return bool(self.locked_until and self.locked_until > timezone.now())
 
     # ===== Email Encryption Methods (MCO 1) =====
 
@@ -317,9 +262,8 @@ class User(AbstractUser):
 class AuthenticationEvent(models.Model):
     """
     Audit log for all authentication attempts.
-    
+
     Purpose:
-    - Rate limiting (count attempts per IP)
     - Security monitoring
     - Track login history
     """

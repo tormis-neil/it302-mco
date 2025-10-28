@@ -11,8 +11,6 @@ A Django-based web application for managing café orders with secure user authen
   - Sign up with email validation and strong password requirements
   - Sign in using username OR email
   - Password strength indicator with real-time validation
-  - Account lockout after 5 failed login attempts (60-minute lockout)
-  - Rate limiting on signup and login attempts
   - Secure logout functionality
 
 - **User Profile Management**
@@ -29,7 +27,6 @@ A Django-based web application for managing café orders with secure user authen
 
 - **Security Features**
   - Audit logging for all authentication events
-  - IP-based rate limiting
   - Strong password validation (12+ chars, uppercase, numbers, special characters)
   - Session management
 
@@ -56,7 +53,7 @@ These features have working interfaces but no backend functionality yet:
 - **Authentication:** Custom User model with Django's auth system
 - **Frontend:** HTML5, CSS3, Vanilla JavaScript
 - **Password Hashing:** Argon2
-- **Security:** Rate limiting, audit logging, CSRF protection
+- **Security:** Audit logging, CSRF protection
 
 ---
 

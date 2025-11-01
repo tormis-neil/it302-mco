@@ -638,9 +638,9 @@ if user is None or not user.check_password(password):
 
 ## 7. Database Security
 
-### Encryption at Rest (Future)
+### Encryption at Rest
 
-**Current**: SQLite file on disk (unencrypted)
+**Current**: SQLite file on disk (unencrypted, suitable for development)
 
 **Production Recommendation**:
 - Full disk encryption (LUKS, BitLocker)
@@ -821,56 +821,9 @@ python manage.py test accounts.tests
 - Audit logging (track database access)
 - Key management (separate from database)
 
-## Future Security Enhancements
+## Security Compliance
 
-1. **Two-Factor Authentication (2FA)**
-   - TOTP (Google Authenticator)
-   - SMS verification
-   - Backup codes
-
-2. **Rate Limiting** (previously implemented, consider re-adding)
-   - Max 5 failed logins per 15 minutes
-   - Account lockout after 10 failures
-   - IP-based throttling
-
-3. **HTTPS Enforcement**
-   - SSL/TLS certificates
-   - HSTS headers
-   - Secure cookies
-
-4. **Security Headers**
-   - Content-Security-Policy
-   - X-Frame-Options
-   - X-Content-Type-Options
-
-5. **Breach Detection**
-   - Check passwords against HaveIBeenPwned
-   - Alert users of compromised credentials
-   - Forced password reset
-
-6. **Advanced Monitoring**
-   - Anomaly detection (unusual login patterns)
-   - Geolocation tracking
-   - Device fingerprinting
-
-7. **Regular Security Audits**
-   - Penetration testing
-   - Dependency scanning
-   - Code review
-
-## Compliance Considerations
-
-**GDPR (General Data Protection Regulation)**:
-- ✓ Email encryption (data protection)
-- ✓ Audit logs (right to access)
-- ✓ Account deletion (right to be forgotten)
-- Future: Data export, consent management
-
-**PCI DSS (Payment Card Industry)**:
-- Not applicable (no payment processing yet)
-- Future: If adding payments, requires PCI compliance
-
-**OWASP Top 10 (2021)**:
+**OWASP Top 10 (2021) Coverage**:
 - ✓ A01: Broken Access Control → Session management, @login_required
 - ✓ A02: Cryptographic Failures → Argon2, AES-256-GCM
 - ✓ A03: Injection → ORM escaping, template auto-escape
@@ -881,6 +834,11 @@ python manage.py test accounts.tests
 - ✓ A08: Software & Data Integrity → CSRF protection
 - ✓ A09: Logging & Monitoring → AuthenticationEvent model
 - ✓ A10: SSRF → Not applicable (no outbound requests)
+
+**GDPR (General Data Protection Regulation)**:
+- ✓ Email encryption (data protection)
+- ✓ Audit logs (right to access)
+- ✓ Account deletion capability (right to be forgotten)
 
 ## Code References Summary
 

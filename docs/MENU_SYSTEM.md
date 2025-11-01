@@ -172,30 +172,23 @@ def save(self, *args, **kwargs):
 - "Caramel Macchiato" → "caramel-macchiato"
 - "Chocolate Chip Cookie" → "chocolate-chip-cookie"
 
-**Usage**: Future URLs like `/menu/espresso-drinks/cappuccino/`
+**Usage**: Prepared for potential detail page URLs (not implemented in MCO 1)
 
 ## Key Questions & Answers
 
 ### Q1: Why is the menu read-only?
 
-**A:** **Cart functionality not implemented yet** (Phase 2 feature).
+**A:** **Cart functionality not implemented in MCO 1**.
 
 **Current State**:
-- Menu items displayed
-- Prices shown
-- "Add to Cart" buttons present but disabled
-- No actual ordering capability
-
-**Future Implementation**:
-- Enable "Add to Cart" buttons
-- Create Cart model instances
-- Track items in user's cart
-- Proceed to checkout
+- Menu items displayed with prices
+- "Add to Cart" buttons present but disabled (placeholder for UI)
+- Focus is on displaying the menu catalog, not processing orders
 
 **Code** (`templates/menu/catalog.html`):
 ```django
 <button disabled class="btn-add-cart">Add to Cart</button>
-<!-- Disabled until cart backend implemented -->
+<!-- Disabled - cart backend not implemented -->
 ```
 
 ### Q2: How does the query optimization work?
@@ -780,46 +773,3 @@ CREATE INDEX menu_menuitem_category_idx ON menu_menuitem(category_id);
    - Prefetch related (performance security)
    - Prevents DoS via N+1 queries
    - Fast response times
-
-## Future Enhancements
-
-1. **Search Functionality**:
-   - Search bar to find items
-   - Filter by category
-   - Filter by price range
-
-2. **Item Details Page**:
-   - `/menu/espresso-drinks/cappuccino/`
-   - Full description, ingredients
-   - Nutritional information
-   - Customer reviews
-
-3. **Cart Integration**:
-   - Enable "Add to Cart" buttons
-   - AJAX add to cart (no page reload)
-   - Real-time cart total
-   - Quantity selector
-
-4. **Customization Options**:
-   - Size selection (Small, Medium, Large)
-   - Milk type (Whole, Skim, Oat, Almond)
-   - Sugar level, ice level
-   - Add-ons (extra shot, whipped cream)
-
-5. **Dietary Filters**:
-   - Vegan options
-   - Gluten-free items
-   - Allergen information
-   - Calorie count
-
-6. **Dynamic Pricing**:
-   - Time-based pricing (happy hour)
-   - Combo deals
-   - Discounts for members
-   - Seasonal promotions
-
-7. **Inventory Management**:
-   - Real-time stock levels
-   - "Low stock" indicators
-   - Auto-disable when out of stock
-   - Restock notifications

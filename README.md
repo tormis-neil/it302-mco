@@ -363,18 +363,31 @@ Destroying test database for alias 'default'...
 
 **Test email encryption:**
 ```bash
-python accounts/test_encryption.py
+python manage.py test accounts.test_encryption
 ```
 
 **Expected output:**
 ```
-=== Email Encryption Test ===
-Original email: test@example.com
-Encrypted (base64): ABC123...
-Encrypted size: 48 bytes
-SHA-256 digest: b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514
-Decrypted email: test@example.com
-Roundtrip successful: True
+Found 20 test(s).
+Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+....................
+----------------------------------------------------------------------
+Ran 20 tests in 1.234s
+
+OK
+Destroying test database for alias 'default'...
+```
+
+**Manual encryption test:**
+```bash
+python manage.py shell
+```
+```python
+from accounts.encryption import test_encryption_roundtrip
+test_encryption_roundtrip()
+# Should print: "Roundtrip successful: True"
+exit()
 ```
 
 ---

@@ -40,13 +40,14 @@ python manage.py test orders
 
 **Run specific test class**:
 ```bash
-python manage.py test accounts.tests.SignupTestCase
-python manage.py test accounts.tests.LoginTestCase
+python manage.py test accounts.tests.SignupViewTests
+python manage.py test accounts.tests.LoginViewTests
+python manage.py test accounts.test_encryption.EncryptionUtilitiesTestCase
 ```
 
 **Run specific test method**:
 ```bash
-python manage.py test accounts.tests.SignupTestCase.test_valid_signup
+python manage.py test accounts.tests.SignupViewTests.test_password_hashed_with_argon2
 ```
 
 **Run with verbose output**:
@@ -81,14 +82,23 @@ coverage html
 
 ### Accounts App Tests
 
-**File**: `accounts/tests.py`
+**Files**:
+- `accounts/tests.py` - Main authentication tests
+- `accounts/test_encryption.py` - Email encryption tests
 
-**Test Classes**:
-- `SignupTestCase`: User registration
-- `LoginTestCase`: User authentication
-- `ProfileTestCase`: Profile management
-- `PasswordValidationTestCase`: Password strength
-- `EmailEncryptionTestCase`: Encryption/decryption
+**Test Classes** (accounts/tests.py):
+- `SignupViewTests`: User registration
+- `LoginViewTests`: User authentication
+- `ProfileViewTests`: Profile management
+- `LogoutViewTests`: Logout functionality
+
+**Test Classes** (accounts/test_encryption.py):
+- `EncryptionUtilitiesTestCase`: Encryption/decryption utilities
+- `UserModelEncryptionTestCase`: User model with encryption
+- `SignupFormEncryptionTestCase`: Signup with encrypted emails
+- `LoginFormEncryptionTestCase`: Login with encrypted emails
+- `LoginViewEncryptionTestCase`: Login view integration
+- `SignupViewEncryptionTestCase`: Signup view integration
 
 **Key Tests**:
 
@@ -159,27 +169,46 @@ def test_email_encryption(self):
 
 ### Running Encryption Tests
 
-**Standalone test script**:
+**Run encryption test suite**:
 ```bash
-python accounts/test_encryption.py
+python manage.py test accounts.test_encryption
+```
+
+**Run specific encryption tests**:
+```bash
+# Test encryption utilities
+python manage.py test accounts.test_encryption.EncryptionUtilitiesTestCase
+
+# Test user model encryption
+python manage.py test accounts.test_encryption.UserModelEncryptionTestCase
+
+# Test signup/login with encryption
+python manage.py test accounts.test_encryption.SignupFormEncryptionTestCase
+python manage.py test accounts.test_encryption.LoginFormEncryptionTestCase
 ```
 
 **What it tests**:
-- Key generation
+- Key generation (32 bytes, base64-encoded)
 - Email encryption/decryption roundtrip
-- Digest generation
-- Case insensitivity
-- Error handling (missing key, corrupted data)
+- Digest generation (SHA-256)
+- Case insensitivity (TEST@EXAMPLE.COM == test@example.com)
+- Unique nonces (same email → different ciphertext)
+- Error handling (missing key, corrupted data, invalid data)
+- User model integration (auto-encrypt on save)
+- Form validation (duplicate email detection via digest)
+- Login functionality (find user by encrypted email)
 
 **Expected output**:
 ```
-=== Email Encryption Test ===
-Original email: test@example.com
-Encrypted (base64): ABC123...
-Encrypted size: 48 bytes
-SHA-256 digest: b4c9a289323b21a01c3e940f150eb9b8c542587f1abfd8f0e1cc1ffc5e475514
-Decrypted email: test@example.com
-Roundtrip successful: True
+Found 20 test(s).
+Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+....................
+----------------------------------------------------------------------
+Ran 20 tests in 1.234s
+
+OK
+Destroying test database for alias 'default'...
 ```
 
 ### Test Database

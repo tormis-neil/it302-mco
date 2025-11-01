@@ -188,7 +188,7 @@ The Brews & Chews database architecture implements a normalized relational schem
 
 **File**: `orders/models.py:42`
 
-**Status**: Model exists, not yet used in views (Phase 2)
+**Status**: Model defined but not implemented in MCO 1
 
 **Fields**:
 
@@ -220,7 +220,7 @@ The Brews & Chews database architecture implements a normalized relational schem
 
 **File**: `orders/models.py:102`
 
-**Status**: Model exists, not yet used in views (Phase 2)
+**Status**: Model defined but not implemented in MCO 1
 
 **Fields**:
 
@@ -252,7 +252,7 @@ The Brews & Chews database architecture implements a normalized relational schem
 
 **File**: `orders/models.py:174`
 
-**Status**: Model exists, not yet used in views (Phase 2)
+**Status**: Model defined but not implemented in MCO 1
 
 **Fields**:
 
@@ -293,7 +293,7 @@ The Brews & Chews database architecture implements a normalized relational schem
 
 **File**: `orders/models.py:304`
 
-**Status**: Model exists, not yet used in views (Phase 2)
+**Status**: Model defined but not implemented in MCO 1
 
 **Fields**:
 

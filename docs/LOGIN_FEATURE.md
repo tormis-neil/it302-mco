@@ -405,7 +405,7 @@ Digest generation normalizes: `generate_email_digest()` lowercases before hashin
 
 Run the login tests:
 ```bash
-python manage.py test accounts.tests.LoginTestCase
+python manage.py test accounts.tests.LoginViewTests
 ```
 
 **Test Coverage** (`accounts/tests.py`):

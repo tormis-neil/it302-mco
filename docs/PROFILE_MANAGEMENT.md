@@ -671,7 +671,7 @@ if not self.user.check_password(password):
 
 Run profile tests:
 ```bash
-python manage.py test accounts.tests.ProfileTestCase
+python manage.py test accounts.tests.ProfileViewTests
 ```
 
 **Test Coverage**:

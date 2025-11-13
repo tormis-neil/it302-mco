@@ -10,7 +10,13 @@ import os
 import sys
 import sqlite3
 from pathlib import Path
-from tabulate import tabulate
+
+# Make tabulate optional
+try:
+    from tabulate import tabulate
+    HAS_TABULATE = True
+except ImportError:
+    HAS_TABULATE = False
 
 # Setup Django environment
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -229,7 +235,25 @@ def export_accounts_summary():
         ])
 
     print()
-    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+
+    if HAS_TABULATE:
+        print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    else:
+        # Simple table format without tabulate
+        col_widths = [
+            max(len(str(h)), max(len(str(row[i])) for row in table_data))
+            for i, h in enumerate(headers)
+        ]
+
+        # Print header
+        header_line = " | ".join(h.ljust(col_widths[i]) for i, h in enumerate(headers))
+        print(header_line)
+        print("-" * len(header_line))
+
+        # Print rows
+        for row in table_data:
+            print(" | ".join(str(row[i]).ljust(col_widths[i]) for i in range(len(row))))
+
     print()
     print_separator()
 

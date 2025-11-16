@@ -16,9 +16,9 @@
     <div>
         <p class="dashboard-eyebrow">Welcome back, {{ request.user.profile.display_name|default:request.user.username }}</p>
         <h1 class="dashboard-title">Order Your Favorites</h1>
-        <p class="dashboard-subtitle">Our ordering engine is almost ready. Explore the curated menu below—buttons are disabled while we finalize the checkout experience.</p>
+        <p class="dashboard-subtitle">Browse our menu and add your favorite items to your cart. Ready to order? Just click "Add to Cart"!</p>
     </div>
-    <a href="{% url 'orders:cart' %}" class="btn dashboard-cta btn-disabled" aria-disabled="true">View Cart</a>
+    <a href="{% url 'orders:cart' %}" class="btn dashboard-cta">View Cart</a>
 </section>
 
 <!-- Empty state if no categories -->
@@ -59,7 +59,12 @@
                 <!-- Price and add button -->
                 <div class="menu-order-card__footer">
                     <span class="menu-order-card__price">₱{{ item.base_price|floatformat:2 }}</span>
-                    <button type="button" class="btn btn-small btn-disabled" disabled>Coming Soon</button>
+                    <form method="post" action="{% url 'orders:add_to_cart' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="menu_item_id" value="{{ item.id }}">
+                        <input type="hidden" name="quantity" value="1">
+                        <button type="submit" class="btn btn-small">Add to Cart</button>
+                    </form>
                 </div>
             </div>
         </article>

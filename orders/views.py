@@ -28,16 +28,216 @@ from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import List
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from menu.models import MenuItem
+from orders.models import Cart, CartItem
 
 # Sales tax rate for calculations (8%)
 SALES_TAX_RATE = Decimal("0.08")
+
+
+# ============================================================================
+# CART OPERATION VIEWS (Phase 1)
+# ============================================================================
+
+@login_required
+@require_POST
+@transaction.atomic
+def add_to_cart(request: HttpRequest) -> HttpResponse:
+    """
+    Add a menu item to the user's cart or update quantity if already exists.
+
+    Purpose: Handle "Add to Cart" button clicks from menu page
+
+    Process:
+    1. Get or create Cart for logged-in user
+    2. Validate menu item exists and is available
+    3. Check if item already in cart
+    4. If exists: increase quantity
+    5. If new: create CartItem
+    6. Save changes and redirect back to menu
+
+    POST Parameters:
+    - menu_item_id: ID of menu item to add (required)
+    - quantity: Number to add (default: 1)
+
+    Returns:
+        Redirect to menu page with success/error message
+
+    Error Handling:
+    - Invalid menu_item_id → 404 error
+    - Item unavailable → error message, redirect to menu
+    - Invalid quantity → validation error
+
+    URL: /orders/cart/add/
+
+    Example:
+        POST /orders/cart/add/
+        Data: {menu_item_id: 5, quantity: 2}
+        Result: Adds 2x item #5 to user's cart
+    """
+    # Get menu item ID from POST data
+    menu_item_id = request.POST.get('menu_item_id')
+
+    if not menu_item_id:
+        messages.error(request, "No item specified")
+        return redirect('menu:catalog')
+
+    # Get menu item or return 404
+    menu_item = get_object_or_404(MenuItem, pk=menu_item_id)
+
+    # Check if item is available
+    if not menu_item.is_available:
+        messages.error(request, f"{menu_item.name} is currently unavailable")
+        return redirect('menu:catalog')
+
+    # Get quantity from POST data (default: 1)
+    try:
+        quantity = int(request.POST.get('quantity', 1))
+        if quantity < 1:
+            raise ValueError("Quantity must be at least 1")
+    except (ValueError, TypeError):
+        messages.error(request, "Invalid quantity")
+        return redirect('menu:catalog')
+
+    # Get or create cart for user
+    cart, created = Cart.objects.get_or_create(user=request.user)
+
+    # Get or create cart item
+    cart_item, item_created = CartItem.objects.get_or_create(
+        cart=cart,
+        menu_item=menu_item,
+        defaults={'quantity': quantity}
+    )
+
+    # If item already exists, increase quantity
+    if not item_created:
+        cart_item.quantity += quantity
+        cart_item.save()
+        messages.success(request, f"Updated {menu_item.name} quantity to {cart_item.quantity}")
+    else:
+        messages.success(request, f"{menu_item.name} added to cart")
+
+    return redirect('menu:catalog')
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def update_cart_item(request: HttpRequest, cart_item_id: int) -> HttpResponse:
+    """
+    Update quantity of an existing cart item or delete if quantity is 0.
+
+    Purpose: Handle quantity +/- buttons in cart page
+
+    Process:
+    1. Get CartItem by ID
+    2. Verify it belongs to user's cart (security check)
+    3. Get new quantity from POST data
+    4. If quantity = 0: delete item
+    5. If quantity > 0: update item
+    6. Redirect back to cart
+
+    POST Parameters:
+    - quantity: New quantity (required)
+
+    Security:
+    - Verifies CartItem belongs to user's cart
+    - Returns 403 if user tries to modify another user's cart
+
+    Returns:
+        Redirect to cart page with success/error message
+
+    URL: /orders/cart/update/<cart_item_id>/
+
+    Example:
+        POST /orders/cart/update/5/
+        Data: {quantity: 3}
+        Result: Updates cart item #5 to quantity 3
+    """
+    # Get cart item or return 404
+    cart_item = get_object_or_404(CartItem, pk=cart_item_id)
+
+    # Security: Verify cart item belongs to user's cart
+    if cart_item.cart.user != request.user:
+        messages.error(request, "You don't have permission to modify this cart")
+        return redirect('orders:cart')
+
+    # Get new quantity from POST data
+    try:
+        new_quantity = int(request.POST.get('quantity', 0))
+        if new_quantity < 0:
+            raise ValueError("Quantity cannot be negative")
+    except (ValueError, TypeError):
+        messages.error(request, "Invalid quantity")
+        return redirect('orders:cart')
+
+    # If quantity is 0, delete the item
+    if new_quantity == 0:
+        item_name = cart_item.menu_item.name
+        cart_item.delete()
+        messages.success(request, f"{item_name} removed from cart")
+    else:
+        # Update quantity
+        cart_item.quantity = new_quantity
+        cart_item.save()
+        messages.success(request, f"Updated {cart_item.menu_item.name} quantity to {new_quantity}")
+
+    return redirect('orders:cart')
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def remove_from_cart(request: HttpRequest, cart_item_id: int) -> HttpResponse:
+    """
+    Remove an item from the user's cart.
+
+    Purpose: Handle "Remove" button clicks in cart page
+
+    Process:
+    1. Get CartItem by ID
+    2. Verify it belongs to user's cart (security check)
+    3. Delete the CartItem
+    4. Redirect back to cart
+
+    Security:
+    - Verifies CartItem belongs to user's cart
+    - Returns 403 if user tries to delete from another user's cart
+
+    Returns:
+        Redirect to cart page with success/error message
+
+    URL: /orders/cart/remove/<cart_item_id>/
+
+    Example:
+        POST /orders/cart/remove/5/
+        Result: Deletes cart item #5
+    """
+    # Get cart item or return 404
+    cart_item = get_object_or_404(CartItem, pk=cart_item_id)
+
+    # Security: Verify cart item belongs to user's cart
+    if cart_item.cart.user != request.user:
+        messages.error(request, "You don't have permission to modify this cart")
+        return redirect('orders:cart')
+
+    # Store item name before deleting
+    item_name = cart_item.menu_item.name
+
+    # Delete the cart item
+    cart_item.delete()
+
+    messages.success(request, f"{item_name} removed from cart")
+
+    return redirect('orders:cart')
 
 
 @dataclass
@@ -230,51 +430,57 @@ def _sample_history() -> list[dict[str, object]]:
 @require_GET     # Only allows GET requests
 def cart_view(request: HttpRequest) -> HttpResponse:
     """
-    Display the cart UI using placeholder data.
-    
-    Purpose: Show what cart will look like (UI prototype)
-    
+    Display the user's shopping cart with real data.
+
+    Purpose: Show user's actual cart items and totals (Phase 1 Implementation)
+
     Flow:
-    1. Generate sample cart data
-    2. Calculate totals (subtotal, tax, total)
-    3. Pass to template for display
-    
+    1. Get or create Cart for logged-in user
+    2. Query CartItems with menu item details (optimized)
+    3. Calculate totals (subtotal, tax, total)
+    4. Pass to template for display
+
     Template Context:
-    - sample_items: List of SampleCartEntry objects
+    - cart_items: QuerySet of CartItem objects
     - subtotal: Sum of all line totals
     - tax: 8% of subtotal
     - total: subtotal + tax
-    
-    Current Limitations:
-    - Shows sample data only (not user's real cart)
-    - "Update" and "Remove" buttons disabled
-    - "Proceed to Checkout" button disabled
-    - Cannot actually modify cart
-    
+    - item_count: Total number of items in cart
+
+    Query Optimization:
+    - Uses select_related('menu_item') to avoid N+1 queries
+    - Loads cart items and menu details in single query
+
     URL: /orders/cart/
-    
-    Future Implementation (Phase 2):
-    - Query user's actual Cart and CartItems
-    - Enable add/remove/update functionality
-    - Save changes to database
-    - Redirect to real checkout
-    
+
     Example:
         User visits: http://127.0.0.1:8000/orders/cart/
-        Sees: Sample items with calculated totals
-        Banner: "This is a preview mode..."
+        Sees: Their actual cart items with real totals
+        Can: Update quantities, remove items, proceed to checkout
     """
-    # Generate sample cart data
-    items, subtotal, tax, total = _sample_cart()
-    
+    # Get or create cart for user
+    cart, created = Cart.objects.get_or_create(user=request.user)
+
+    # Get cart items with menu item details (optimized query)
+    cart_items = cart.items.select_related('menu_item').all()
+
+    # Calculate totals
+    subtotal = sum(item.line_total for item in cart_items)
+    tax = (subtotal * SALES_TAX_RATE).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP
+    )
+    total = subtotal + tax
+
     # Prepare context for template
     context = {
-        "sample_items": items,
+        "cart_items": cart_items,
         "subtotal": subtotal,
         "tax": tax,
         "total": total,
+        "item_count": cart.total_items(),
     }
-    
+
     # Render cart template
     return render(request, "orders/cart.html", context)
 

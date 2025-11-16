@@ -16,21 +16,20 @@
     <div>
         <p class="dashboard-eyebrow">Cart Overview</p>
         <h1 class="dashboard-title">Review your selections</h1>
-        <p class="dashboard-subtitle">This interactive cart is in preview mode. Controls are disabled while we wire up live ordering.</p>
+        <p class="dashboard-subtitle">Review your cart and proceed to checkout when ready.</p>
     </div>
     <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Back to menu</a>
 </section>
 
 <!-- Cart contents (if not empty) -->
-{% if sample_items %}
+{% if cart_items %}
 
 <!-- Cart items table -->
 <section class="dashboard-section cart-section" aria-labelledby="cart-items">
     <h2 id="cart-items" class="dashboard-section__title">Items in your cart</h2>
-    <p class="cart-preview-note">Quantities and controls are illustrative only.</p>
-    
+
     <div class="cart-table" role="table">
-        
+
         <!-- Table header -->
         <div class="cart-table__header" role="row">
             <span class="cart-table__cell" role="columnheader">Item</span>
@@ -39,20 +38,34 @@
             <span class="cart-table__cell" role="columnheader">Line Total</span>
             <span class="cart-table__cell" role="columnheader">Actions</span>
         </div>
-        
+
         <!-- Cart items rows -->
-        {% for entry in sample_items %}
+        {% for item in cart_items %}
         <div class="cart-table__row" role="row">
             <span class="cart-table__cell cart-table__item" role="cell" data-label="Item">
-                <strong>{{ entry.menu_item.name }}</strong>
-                <small class="cart-table__muted">{{ entry.menu_item.category.name }}</small>
+                <strong>{{ item.menu_item.name }}</strong>
+                <small class="cart-table__muted">{{ item.menu_item.category.name }}</small>
             </span>
-            <span class="cart-table__cell" role="cell" data-label="Price">₱{{ entry.menu_item.base_price|floatformat:2 }}</span>
-            <span class="cart-table__cell" role="cell" data-label="Quantity">{{ entry.quantity }}</span>
-            <span class="cart-table__cell" role="cell" data-label="Total">₱{{ entry.line_total|floatformat:2 }}</span>
+            <span class="cart-table__cell" role="cell" data-label="Price">₱{{ item.menu_item.base_price|floatformat:2 }}</span>
+            <span class="cart-table__cell" role="cell" data-label="Quantity">
+                <form method="post" action="{% url 'orders:update_cart_item' item.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantity" value="{{ item.quantity|add:-1 }}">
+                    <button type="submit" class="btn btn-small" {% if item.quantity <= 1 %}disabled{% endif %}>-</button>
+                </form>
+                <span style="margin: 0 10px;">{{ item.quantity }}</span>
+                <form method="post" action="{% url 'orders:update_cart_item' item.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="quantity" value="{{ item.quantity|add:1 }}">
+                    <button type="submit" class="btn btn-small">+</button>
+                </form>
+            </span>
+            <span class="cart-table__cell" role="cell" data-label="Total">₱{{ item.line_total|floatformat:2 }}</span>
             <span class="cart-table__cell cart-table__actions" role="cell" data-label="Actions">
-                <button type="button" class="btn btn-small" disabled>Update</button>
-                <button type="button" class="btn btn-link" disabled>Remove</button>
+                <form method="post" action="{% url 'orders:remove_from_cart' item.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link">Remove</button>
+                </form>
             </span>
         </div>
         {% endfor %}
@@ -78,7 +91,7 @@
         </div>
     </dl>
     
-    <a href="{% url 'orders:checkout' %}" class="btn cart-summary__cta btn-disabled" aria-disabled="true">Checkout coming soon</a>
+    <a href="{% url 'orders:checkout' %}" class="btn cart-summary__cta btn-disabled" aria-disabled="true">Checkout (Coming in Phase 2)</a>
 </section>
 
 <!-- Empty cart state -->

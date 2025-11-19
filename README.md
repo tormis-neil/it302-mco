@@ -40,19 +40,27 @@ A Django-based web application for managing café orders with secure user authen
 - Generic error messages (prevent username enumeration)
 - Input validation and sanitization
 
-### 🎨 **UI-Only Features (Visual Prototypes)**
-These features have working interfaces but no backend functionality yet:
-- Shopping Cart (shows placeholder data)
-- Checkout Flow (form display only)
-- Order History (shows sample orders)
+**✅ Phase 1: Shopping Cart Backend (COMPLETED)**
+- Add items to cart from menu catalog
+- Update item quantities (+/- controls)
+- Remove items from cart
+- Real-time cart total calculations (subtotal, tax, total)
+- Database persistence (Cart and CartItem models)
+- Transaction-safe operations (@transaction.atomic)
 
-### ❌ **Not Implemented**
-- Add to cart functionality
-- Real order processing
-- Payment integration
+**✅ Phase 2: Checkout Flow (COMPLETED)**
+- Contact information form (name, phone, special instructions)
+- Order creation with unique reference numbers (BC-YYMMDD-NNN format)
+- Price snapshots (OrderItem stores historical pricing)
+- Order history display with real data
+- Status tracking (Pending, Confirmed, Cancelled)
+- Cart clearing after successful checkout
+
+### ❌ **Not Implemented (Planned)**
+- **Phase 3:** Admin/Staff Dashboard (order status management)
+- **Phase 4:** Payment Integration (PayMongo)
 - Email notifications
 - Password reset via email
-- Admin/staff dashboard
 - Rate limiting (removed per feedback)
 
 ---
@@ -79,9 +87,17 @@ Before setting up the project, ensure you have:
 - A code editor (VS Code, PyCharm, etc.)
 
 **Check your Python version:**
-```bash
-python --version
+
+**Windows:**
+```cmd
+py --version
 # or
+python --version
+# Should show: Python 3.8.0 or higher
+```
+
+**macOS/Linux:**
+```bash
 python3 --version
 # Should show: Python 3.8.0 or higher
 ```
@@ -102,19 +118,29 @@ cd it302-mco
 
 **Windows (PowerShell):**
 ```powershell
+py -m venv .venv
+# or
 python -m venv .venv
+
+# Activate the environment
 .venv\Scripts\Activate.ps1
 ```
 
 **Windows (Command Prompt):**
 ```cmd
+py -m venv .venv
+# or
 python -m venv .venv
+
+# Activate the environment
 .venv\Scripts\activate.bat
 ```
 
 **macOS/Linux:**
 ```bash
 python3 -m venv .venv
+
+# Activate the environment
 source .venv/bin/activate
 ```
 
@@ -190,17 +216,32 @@ ACCOUNT_EMAIL_ENCRYPTION_KEY=
 2. **DJANGO_SECRET_KEY** (Optional)
    - Can be left empty for development (auto-generates with warning)
    - For production, generate a key:
+
+     **Windows:**
+     ```cmd
+     py -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+     ```
+
+     **macOS/Linux:**
      ```bash
-     python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+     python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
      ```
 
 3. **ACCOUNT_EMAIL_ENCRYPTION_KEY** (Optional)
    - Used for AES-256-GCM email encryption
    - Can be left empty (auto-derives from SECRET_KEY with warning)
    - For proper setup, generate a key:
-     ```bash
-     python -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
+
+     **Windows:**
+     ```cmd
+     py -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
      ```
+
+     **macOS/Linux:**
+     ```bash
+     python3 -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
+     ```
+
    - Copy the output and paste into `.env` file
 
 **Example `.env` for Development:**
@@ -222,18 +263,38 @@ ACCOUNT_EMAIL_ENCRYPTION_KEY=
 
 ### **Step 5: Run Database Migrations**
 
-```bash
-python manage.py migrate
+**⚠️ CRITICAL:** You must run migrations for Phase 1 & 2 to work properly!
+
+**Windows:**
+```cmd
+py manage.py makemigrations orders
+py manage.py migrate
 ```
+
+**macOS/Linux:**
+```bash
+python3 manage.py makemigrations orders
+python3 manage.py migrate
+```
+
+**What these commands do:**
+
+1. **`makemigrations orders`** - Creates migration for order reference_number field (Phase 2 requirement)
+2. **`migrate`** - Applies all migrations to create database tables
 
 **This will:**
 - ✅ Create the SQLite database (`db.sqlite3`)
-- ✅ Set up all required tables (User, Profile, Menu, Orders, etc.)
+- ✅ Set up all required tables (User, Profile, Menu, Cart, Order, etc.)
 - ✅ Encrypt user email fields (AES-256-GCM migration)
 - ✅ Populate the menu with sample coffee/food items
+- ✅ Add reference_number field to Order model (Phase 2)
 
 **Expected output:**
 ```
+Migrations for 'orders':
+  orders/migrations/0002_order_reference_number.py
+    - Add field reference_number to order
+
 Running migrations:
   Applying contenttypes.0001_initial... OK
   Applying accounts.0001_initial... OK
@@ -243,6 +304,7 @@ Running migrations:
   Applying menu.0001_initial... OK
   Applying menu.0002_seed_menu... OK
   Applying orders.0001_initial... OK
+  Applying orders.0002_order_reference_number... OK
   ...
 ```
 
@@ -257,10 +319,17 @@ This is normal for development. For production, generate and set a proper key.
 
 ### **Step 6: Create a Test Account (Optional)**
 
-```bash
-python manage.py shell
+**Windows:**
+```cmd
+py manage.py shell
 ```
 
+**macOS/Linux:**
+```bash
+python3 manage.py shell
+```
+
+**Then run:**
 ```python
 from accounts.models import User
 
@@ -283,8 +352,14 @@ exit()
 
 ### **Step 7: Start the Development Server**
 
+**Windows:**
+```cmd
+py manage.py runserver
+```
+
+**macOS/Linux:**
 ```bash
-python manage.py runserver
+python3 manage.py runserver
 ```
 
 **You should see:**
@@ -293,7 +368,7 @@ Watching for file changes with StatReloader
 Performing system checks...
 
 System check identified no issues (0 silenced).
-October 29, 2025 - 12:00:00
+November 19, 2025 - 12:00:00
 Django version 4.2.x, using settings 'brewschews.settings'
 Starting development server at http://127.0.0.1:8000/
 Quit the server with CTRL+C.
@@ -317,7 +392,7 @@ http://127.0.0.1:8000/
 
 **✅ You should see the Brews & Chews home page!**
 
-**Try it out:**
+**Basic Workflow:**
 1. Click "Sign Up" → Create an account
 2. Fill in username, email, password (12+ chars, uppercase, number, special char)
 3. Submit → Auto-logged in, redirected to menu
@@ -328,25 +403,168 @@ http://127.0.0.1:8000/
 
 ---
 
-## 🧪 **Running Tests**
+## 🧪 **Testing Phase 1 & 2 (Cart & Checkout)**
 
-Verify everything works correctly:
+Now that the server is running, you can test the fully implemented cart and checkout features!
+
+### **Phase 1: Shopping Cart Testing**
+
+**Test adding items to cart:**
+1. Go to **Menu** (http://127.0.0.1:8000/menu/)
+2. Click **"Add to Cart"** on any menu item (e.g., Cappuccino)
+3. You should see the item added successfully
+4. Add 2-3 more items from different categories
+
+**Test viewing cart:**
+1. Click **"Cart"** in the navigation menu
+2. You should see all items you added with:
+   - Item name and category
+   - Unit price in ₱
+   - Quantity controls (+/- buttons)
+   - Line total (price × quantity)
+   - Remove button
+   - Order summary with subtotal, tax (8%), and total
+
+**Test quantity updates:**
+1. Click **"+"** button on any item → Quantity should increase, totals update
+2. Click **"-"** button on any item → Quantity should decrease, totals update
+3. Try clicking **"-"** when quantity is 1 → Button should be disabled (prevents quantity 0)
+
+**Test removing items:**
+1. Click **"Remove"** button on any item
+2. Item should disappear from cart immediately
+3. Totals should recalculate automatically
+
+**Test empty cart:**
+1. Remove all items from cart
+2. You should see: "Your cart is currently empty"
+3. Click **"Browse the menu"** → Returns to menu
+
+### **Phase 2: Checkout Flow Testing**
+
+**Test checkout process:**
+1. Add 2-3 items to cart
+2. Click **"Proceed to Checkout"** from cart page
+3. You should see:
+   - Contact information form (name, phone, special instructions)
+   - Order summary sidebar showing all cart items
+   - Subtotal, tax, and total amounts
+
+**Test order placement:**
+1. Fill in contact form:
+   - **Full name:** Your name (required, 2-120 chars)
+   - **Phone number:** Your phone (required, max 20 chars)
+   - **Special instructions:** Optional (e.g., "Extra hot", "No sugar")
+2. Click **"Place Order"**
+3. You should be redirected to **Order History**
+
+**Test order history:**
+1. After placing order, you should see your order with:
+   - **Order reference:** BC-YYMMDD-NNN format (e.g., BC-251119-001)
+   - **Placed on:** Date and time
+   - **Status:** "Pending" (yellow badge)
+   - **Items list:** All items you ordered with quantities
+   - **Order total:** Final amount you paid
+   - **Special instructions:** If you added any
+
+**Test multiple orders:**
+1. Go back to menu → Add new items → Checkout again
+2. Your cart should be empty after first checkout
+3. Place second order with different items
+4. Check order history → Should show both orders
+5. Reference numbers should increment (BC-251119-001, BC-251119-002, etc.)
+
+**Test order reference numbering:**
+1. Order reference format: **BC-YYMMDD-NNN**
+   - BC = Brews & Chews
+   - YYMMDD = Year Month Day (e.g., 251119 = November 19, 2025)
+   - NNN = Daily sequential number (001, 002, 003...)
+2. Each day starts counting from 001
+3. References are unique across all orders
+
+### **Edge Cases to Test**
+
+**Empty cart checkout:**
+1. Clear all items from cart
+2. Try to access checkout URL directly: http://127.0.0.1:8000/orders/checkout/
+3. You should be redirected to cart with message
+
+**Form validation:**
+1. In checkout, try submitting with empty name → Should show error
+2. Try submitting with empty phone → Should show error
+3. Special instructions are optional (can be blank)
+
+**Database persistence:**
+1. Add items to cart → Stop server (Ctrl+C)
+2. Restart server → Go to cart
+3. Items should still be there (cart saved in database)
+
+**Multiple users:**
+1. Create second account (different username/email)
+2. Each user has separate cart and order history
+3. User A's cart doesn't show in User B's account
+
+### **What You Should See**
+
+**Working Features:**
+- ✅ Add to cart from menu
+- ✅ Update quantities in cart
+- ✅ Remove items from cart
+- ✅ Real-time total calculations
+- ✅ Checkout form validation
+- ✅ Order creation with unique references
+- ✅ Order history display
+- ✅ Price snapshots (orders show historical prices)
+- ✅ Cart clearing after checkout
+- ✅ Transaction safety (no data loss on errors)
+
+**Current Limitations:**
+- ⏳ Order status is always "Pending" (admin dashboard coming in Phase 3)
+- ⏳ No payment processing yet (PayMongo integration in Phase 4)
+- ⏳ No email notifications (out of scope)
+
+---
+
+## 🧪 **Running Automated Tests**
+
+Verify everything works correctly with automated tests:
 
 **Run all tests:**
+
+**Windows:**
+```cmd
+py manage.py test
+```
+
+**macOS/Linux:**
 ```bash
-python manage.py test
+python3 manage.py test
 ```
 
 **Run specific app tests:**
-```bash
+
+**Windows:**
+```cmd
 # Accounts tests (signup, login, profile, encryption)
-python manage.py test accounts
+py manage.py test accounts
 
 # Menu tests
-python manage.py test menu
+py manage.py test menu
 
-# Orders tests
-python manage.py test orders
+# Orders tests (cart, checkout, order creation)
+py manage.py test orders
+```
+
+**macOS/Linux:**
+```bash
+# Accounts tests (signup, login, profile, encryption)
+python3 manage.py test accounts
+
+# Menu tests
+python3 manage.py test menu
+
+# Orders tests (cart, checkout, order creation)
+python3 manage.py test orders
 ```
 
 **Expected output:**
@@ -362,8 +580,15 @@ Destroying test database for alias 'default'...
 ```
 
 **Test email encryption:**
+
+**Windows:**
+```cmd
+py manage.py test accounts.test_encryption
+```
+
+**macOS/Linux:**
 ```bash
-python manage.py test accounts.test_encryption
+python3 manage.py test accounts.test_encryption
 ```
 
 **Expected output:**
@@ -380,9 +605,18 @@ Destroying test database for alias 'default'...
 ```
 
 **Manual encryption test:**
-```bash
-python manage.py shell
+
+**Windows:**
+```cmd
+py manage.py shell
 ```
+
+**macOS/Linux:**
+```bash
+python3 manage.py shell
+```
+
+**Then run:**
 ```python
 from accounts.encryption import test_encryption_roundtrip
 test_encryption_roundtrip()
@@ -425,8 +659,15 @@ Each document includes:
 The system encrypts user email addresses at rest using AES-256-GCM.
 
 **Generate encryption key:**
+
+**Windows:**
+```cmd
+py -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
+```
+
+**macOS/Linux:**
 ```bash
-python -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
+python3 -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
 ```
 
 **Add to `.env`:**
@@ -435,9 +676,18 @@ ACCOUNT_EMAIL_ENCRYPTION_KEY=generated_key_here
 ```
 
 **Test encryption:**
-```bash
-python manage.py shell
+
+**Windows:**
+```cmd
+py manage.py shell
 ```
+
+**macOS/Linux:**
+```bash
+python3 manage.py shell
+```
+
+**Then run:**
 ```python
 from accounts.encryption import test_encryption_roundtrip
 test_encryption_roundtrip("test@example.com")
@@ -485,9 +735,19 @@ DATABASES = {
 ```
 
 **Production:**
+
+**Windows:**
+```cmd
+# Collect static files
+py manage.py collectstatic
+
+# Configure web server (nginx, Apache) to serve /static/
+```
+
+**macOS/Linux:**
 ```bash
 # Collect static files
-python manage.py collectstatic
+python3 manage.py collectstatic
 
 # Configure web server (nginx, Apache) to serve /static/
 ```
@@ -547,20 +807,42 @@ pip list | grep Django  # Should show Django version
 **Cause:** Missing or invalid encryption key
 
 **Solution:**
+
+**Windows:**
+```cmd
+# Generate new key
+py -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
+
+# Add to .env (edit .env file manually and paste the key)
+# Or use: echo ACCOUNT_EMAIL_ENCRYPTION_KEY=generated_key_here >> .env
+
+# Restart server (Ctrl+C then py manage.py runserver)
+```
+
+**macOS/Linux:**
 ```bash
 # Generate new key
-python -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
+python3 -c "from accounts.encryption import generate_encryption_key; print(generate_encryption_key())"
 
 # Add to .env
 echo "ACCOUNT_EMAIL_ENCRYPTION_KEY=generated_key_here" >> .env
 
-# Restart server
+# Restart server (Ctrl+C then python3 manage.py runserver)
 ```
 
 **Verify:**
-```bash
-python manage.py shell
+
+**Windows:**
+```cmd
+py manage.py shell
 ```
+
+**macOS/Linux:**
+```bash
+python3 manage.py shell
+```
+
+**Then run:**
 ```python
 from accounts.encryption import test_encryption_roundtrip
 test_encryption_roundtrip()  # Should succeed
@@ -573,13 +855,25 @@ test_encryption_roundtrip()  # Should succeed
 **Cause:** Migrations not applied
 
 **Solution:**
-```bash
+
+**Windows:**
+```cmd
 # Delete database
-rm db.sqlite3  # macOS/Linux
-del db.sqlite3  # Windows
+del db.sqlite3
 
 # Re-run migrations
-python manage.py migrate
+py manage.py makemigrations orders
+py manage.py migrate
+```
+
+**macOS/Linux:**
+```bash
+# Delete database
+rm db.sqlite3
+
+# Re-run migrations
+python3 manage.py makemigrations orders
+python3 manage.py migrate
 ```
 
 ---
@@ -588,20 +882,38 @@ python manage.py migrate
 
 **Cause:** Another process using port 8000
 
-**Solution:**
-```bash
-# Use different port
-python manage.py runserver 8080
+**Solution Option 1: Use different port**
+
+**Windows:**
+```cmd
+py manage.py runserver 8080
 # Visit: http://127.0.0.1:8080/
+```
 
-# Or kill existing process
-# Windows
+**macOS/Linux:**
+```bash
+python3 manage.py runserver 8080
+# Visit: http://127.0.0.1:8080/
+```
+
+**Solution Option 2: Kill existing process**
+
+**Windows:**
+```cmd
+# Find process using port 8000
 netstat -ano | findstr :8000
-taskkill /PID <pid> /F
 
-# macOS/Linux
+# Kill the process (replace <PID> with actual process ID)
+taskkill /PID <PID> /F
+```
+
+**macOS/Linux:**
+```bash
+# Find process using port 8000
 lsof -i :8000
-kill <pid>
+
+# Kill the process (replace <PID> with actual process ID)
+kill <PID>
 ```
 
 ---
@@ -623,12 +935,23 @@ kill <pid>
 **Cause:** Database schema mismatch
 
 **Solution:**
-```bash
-# Delete test database
-rm test_db.sqlite3  # If it exists
+
+**Windows:**
+```cmd
+# Delete test database (if it exists)
+del test_db.sqlite3
 
 # Run tests with verbose output
-python manage.py test --verbosity=2
+py manage.py test --verbosity=2
+```
+
+**macOS/Linux:**
+```bash
+# Delete test database (if it exists)
+rm test_db.sqlite3
+
+# Run tests with verbose output
+python3 manage.py test --verbosity=2
 ```
 
 ---
@@ -663,11 +986,14 @@ it302-mco/
 │   └── migrations/             # Database migrations
 │       ├── 0001_initial.py
 │       └── 0002_seed_menu.py   # Sample menu data
-├── orders/                     # Cart & order management (UI only)
-│   ├── models.py               # Cart, Order models
-│   ├── views.py                # Placeholder views
-│   ├── forms.py                # Cart forms
+├── orders/                     # Cart & order management (Phase 1 & 2 complete)
+│   ├── models.py               # Cart, CartItem, Order, OrderItem models
+│   ├── views.py                # Cart operations, checkout, order history
+│   ├── forms.py                # Cart and checkout forms
+│   ├── urls.py                 # Order-related URLs
 │   └── migrations/             # Database migrations
+│       ├── 0001_initial.py
+│       └── 0002_order_reference_number.py  # Phase 2 migration
 ├── pages/                      # Public-facing pages
 │   ├── views.py                # Home page view
 │   └── urls.py                 # Public URLs
@@ -733,25 +1059,59 @@ it302-mco/
 
 ### **Pull Latest Changes**
 
+**Step 1: Pull from GitHub**
 ```bash
 # Switch to main branch
 git checkout main
 
 # Pull latest changes
 git pull origin main
+```
 
-# Activate virtual environment
-source .venv/bin/activate  # macOS/Linux
-.venv\Scripts\activate.bat  # Windows
+**Step 2: Activate virtual environment**
 
-# Update dependencies (if changed)
+**Windows (PowerShell):**
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+**Windows (Command Prompt):**
+```cmd
+.venv\Scripts\activate.bat
+```
+
+**macOS/Linux:**
+```bash
+source .venv/bin/activate
+```
+
+**Step 3: Update dependencies (if requirements.txt changed)**
+```bash
 pip install -r requirements.txt
+```
 
-# Run migrations (if new ones added)
-python manage.py migrate
+**Step 4: Run migrations (if new migrations added)**
 
-# Start server
-python manage.py runserver
+**Windows:**
+```cmd
+py manage.py migrate
+```
+
+**macOS/Linux:**
+```bash
+python3 manage.py migrate
+```
+
+**Step 5: Start server**
+
+**Windows:**
+```cmd
+py manage.py runserver
+```
+
+**macOS/Linux:**
+```bash
+python3 manage.py runserver
 ```
 
 ### **Merge Pull Requests from GitHub**

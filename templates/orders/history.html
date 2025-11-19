@@ -16,7 +16,7 @@
     <div>
         <p class="dashboard-eyebrow">Order History</p>
         <h1 class="dashboard-title">Track your recent activity</h1>
-        <p class="dashboard-subtitle">This section showcases how your orders will appear once fulfillment goes live.</p>
+        <p class="dashboard-subtitle">View all your past orders and their current status.</p>
     </div>
     <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Place another order</a>
 </section>
@@ -26,31 +26,31 @@
     <h2 id="history-list" class="dashboard-section__title">Recent orders</h2>
     
     <!-- Orders list (if exists) -->
-    {% if history_entries %}
+    {% if orders %}
     <ul class="history-list">
-        
-        {% for entry in history_entries %}
+
+        {% for order in orders %}
         <li class="history-card">
-            
+
             <!-- Order header with status -->
             <header class="history-card__header">
                 <div class="history-card__header-info">
-                    <h3 class="history-card__title">Order {{ entry.reference }}</h3>
+                    <h3 class="history-card__title">Order {{ order.reference_number|default:order.id }}</h3>
                     <p class="history-card__meta">
-                        <i class="fa fa-clock" aria-hidden="true"></i> 
-                        Placed on {{ entry.placed_at|date:"M d, Y g:i a" }}
+                        <i class="fa fa-clock" aria-hidden="true"></i>
+                        Placed on {{ order.created_at|date:"M d, Y g:i a" }}
                     </p>
                 </div>
-                <span class="history-card__status history-card__status--{{ entry.status }}">
-                    {{ entry.status_label }}
+                <span class="history-card__status history-card__status--{{ order.status }}">
+                    {{ order.get_status_display }}
                 </span>
             </header>
 
             <!-- Order items list -->
             <ul class="history-card__items">
-                {% for item in entry.items %}
+                {% for item in order.items.all %}
                 <li>
-                    <strong>{{ item.name }}</strong>
+                    <strong>{{ item.menu_item_name }}</strong>
                     <span class="history-card__items-meta">Qty {{ item.quantity }}</span>
                     <span>₱{{ item.line_total|floatformat:2 }}</span>
                 </li>
@@ -62,15 +62,15 @@
                 <dl>
                     <div class="history-card__total">
                         <dt>Order Total</dt>
-                        <dd>₱{{ entry.total|floatformat:2 }}</dd>
+                        <dd>₱{{ order.total|floatformat:2 }}</dd>
                     </div>
                 </dl>
-                
+
                 <!-- Special instructions (if any) -->
-                {% if entry.notes %}
+                {% if order.special_instructions %}
                 <dl class="history-card__notes">
                     <dt>Special Instructions</dt>
-                    <dd>{{ entry.notes }}</dd>
+                    <dd>{{ order.special_instructions }}</dd>
                 </dl>
                 {% endif %}
             </footer>
@@ -81,7 +81,7 @@
     <!-- Empty state -->
     {% else %}
     <div class="dashboard-empty">
-        <p>Once live orders are placed, their status will be displayed here.</p>
+        <p>You haven't placed any orders yet.</p>
         <a href="{% url 'menu:catalog' %}" class="btn">Order your first drink</a>
     </div>
     {% endif %}

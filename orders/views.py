@@ -37,10 +37,61 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from menu.models import MenuItem
-from orders.models import Cart, CartItem
+from orders.models import Cart, CartItem, Order, OrderItem
 
 # Sales tax rate for calculations (8%)
 SALES_TAX_RATE = Decimal("0.08")
+
+
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+def generate_order_reference() -> str:
+    """
+    Generate a unique order reference number.
+
+    Format: BC-YYMMDD-NNN
+    - BC: Brews & Chews
+    - YYMMDD: Year, Month, Day (e.g., 251116 = Nov 16, 2025)
+    - NNN: Sequential number for that day (001, 002, etc.)
+
+    Process:
+    1. Get today's date in YYMMDD format
+    2. Count existing orders created today
+    3. Increment counter and zero-pad to 3 digits
+    4. Combine into reference format
+
+    Returns:
+        Unique order reference string (e.g., "BC-251116-001")
+
+    Example:
+        First order on Nov 16, 2025 → "BC-251116-001"
+        Second order same day → "BC-251116-002"
+        First order next day → "BC-251117-001"
+    """
+    from datetime import date
+
+    # Get today's date
+    today = date.today()
+    date_str = today.strftime("%y%m%d")  # YYMMDD format
+
+    # Count orders created today
+    today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = timezone.now().replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    order_count = Order.objects.filter(
+        created_at__gte=today_start,
+        created_at__lte=today_end
+    ).count()
+
+    # Next order number (1-indexed)
+    next_number = order_count + 1
+
+    # Format: BC-YYMMDD-NNN
+    reference = f"BC-{date_str}-{next_number:03d}"
+
+    return reference
 
 
 # ============================================================================
@@ -485,121 +536,200 @@ def cart_view(request: HttpRequest) -> HttpResponse:
     return render(request, "orders/cart.html", context)
 
 
-@login_required  # Requires authentication
-@require_GET     # Only allows GET requests
+@login_required
+@transaction.atomic
 def checkout(request: HttpRequest) -> HttpResponse:
     """
-    Show the checkout layout without capturing real orders.
-    
-    Purpose: Show what checkout will look like (UI prototype)
-    
-    Flow:
-    1. Generate sample cart data
-    2. Get user's profile information for prefill
-    3. Create sample contact info
-    4. Pass to template for display
-    
-    Template Context:
-    - sample_items: Items to be ordered (from cart)
-    - subtotal, tax, total: Financial breakdown
-    - contact_example: Pre-filled contact information
-    
-    Current Limitations:
-    - Shows sample data only
-    - Form fields are disabled
-    - "Place Order" button disabled
-    - Cannot actually submit order
-    
+    Handle checkout process - display form (GET) and create order (POST).
+
+    Purpose: Convert user's cart into a completed order (Phase 2 Implementation)
+
+    GET Request Flow:
+    1. Get user's cart
+    2. If cart empty → redirect to menu with error
+    3. Load cart items and calculate totals
+    4. Pre-fill form with user's profile data
+    5. Display checkout form
+
+    POST Request Flow:
+    1. Validate checkout form data
+    2. Create Order with status='pending'
+    3. Generate unique order reference number
+    4. Copy cart items to OrderItems (with price snapshots)
+    5. Clear user's cart
+    6. Redirect to order history with success message
+
+    Template Context (GET):
+    - cart_items: User's cart items
+    - subtotal, tax, total: Calculated totals
+    - contact_info: Pre-filled contact information
+
+    POST Parameters:
+    - contact_name: Customer name (required)
+    - contact_phone: Customer phone (required)
+    - special_instructions: Order notes (optional)
+
+    Returns:
+        GET: Checkout form template
+        POST: Redirect to order history
+
     URL: /orders/checkout/
-    
-    Future Implementation (Phase 2):
-    - Load user's real cart
-    - Enable form fields
-    - Validate checkout form
-    - Create Order and OrderItems
-    - Clear cart after successful order
-    - Send confirmation email
-    - Redirect to order confirmation page
-    
-    Example:
-        User visits: http://127.0.0.1:8000/orders/checkout/
-        Sees: Sample order summary + disabled checkout form
-        Banner: "Checkout is in staging mode..."
     """
-    # Generate sample cart data
-    items, subtotal, tax, total = _sample_cart()
-    
-    # Get user's profile for contact info prefill
+    # Get user's cart
+    try:
+        cart = Cart.objects.get(user=request.user)
+    except Cart.DoesNotExist:
+        messages.error(request, "Your cart is empty. Please add items before checkout.")
+        return redirect('menu:catalog')
+
+    # Get cart items with menu details
+    cart_items = cart.items.select_related('menu_item').all()
+
+    # Check if cart is empty
+    if not cart_items.exists():
+        messages.error(request, "Your cart is empty. Please add items before checkout.")
+        return redirect('menu:catalog')
+
+    # Calculate totals
+    subtotal = sum(item.line_total for item in cart_items)
+    tax = (subtotal * SALES_TAX_RATE).quantize(
+        Decimal("0.01"),
+        rounding=ROUND_HALF_UP
+    )
+    total = subtotal + tax
+
+    # Handle POST request (create order)
+    if request.method == 'POST':
+        # Get form data
+        contact_name = request.POST.get('contact_name', '').strip()
+        contact_phone = request.POST.get('contact_phone', '').strip()
+        special_instructions = request.POST.get('special_instructions', '').strip()
+
+        # Validate form data
+        errors = []
+        if not contact_name or len(contact_name) < 2:
+            errors.append("Contact name is required (minimum 2 characters)")
+        if not contact_phone:
+            errors.append("Contact phone is required")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            # Return to form with errors
+            context = {
+                "cart_items": cart_items,
+                "subtotal": subtotal,
+                "tax": tax,
+                "total": total,
+                "contact_info": {
+                    "name": contact_name,
+                    "phone": contact_phone,
+                    "instructions": special_instructions,
+                }
+            }
+            return render(request, "orders/checkout.html", context)
+
+        # Generate order reference
+        order_reference = generate_order_reference()
+
+        # Create order
+        order = Order.objects.create(
+            user=request.user,
+            status=Order.Status.PENDING,
+            reference_number=order_reference,
+            contact_name=contact_name,
+            contact_phone=contact_phone,
+            special_instructions=special_instructions,
+            subtotal=subtotal,
+            tax=tax,
+            total=total,
+        )
+
+        # Create OrderItems from CartItems (snapshot pricing)
+        for cart_item in cart_items:
+            OrderItem.objects.create(
+                order=order,
+                menu_item=cart_item.menu_item,
+                menu_item_name=cart_item.menu_item.name,  # Snapshot name
+                unit_price=cart_item.menu_item.base_price,  # Snapshot price
+                quantity=cart_item.quantity,
+            )
+
+        # Clear cart
+        cart_items.delete()
+
+        # Success message
+        messages.success(request, f"Order {order_reference} placed successfully! Payment pending.")
+
+        # Redirect to order history
+        return redirect('orders:history')
+
+    # Handle GET request (show form)
     profile = getattr(request.user, "profile", None)
-    
-    # Build sample contact info (prefilled from profile if exists)
-    contact_example = {
+
+    # Pre-fill contact info from profile
+    contact_info = {
         "name": (
-            profile.display_name or 
-            request.user.get_full_name() or 
+            profile.display_name or
+            request.user.get_full_name() or
             request.user.username
         ) if profile else (
-            request.user.get_full_name() or 
+            request.user.get_full_name() or
             request.user.username
         ),
-        "phone": getattr(profile, "phone_number", ""),
-        "instructions": "We'll confirm your order details at the counter.",
+        "phone": getattr(profile, "phone_number", "") if profile else "",
+        "instructions": "",
     }
-    
-    # Prepare context for template
+
+    # Prepare context
     context = {
-        "sample_items": items,
+        "cart_items": cart_items,
         "subtotal": subtotal,
         "tax": tax,
         "total": total,
-        "contact_example": contact_example,
+        "contact_info": contact_info,
     }
-    
-    # Render checkout template
+
     return render(request, "orders/checkout.html", context)
 
 
-@login_required  # Requires authentication
-@require_GET     # Only allows GET requests
+@login_required
+@require_GET
 def history(request: HttpRequest) -> HttpResponse:
     """
-    Render recent order history cards with illustrative content.
-    
-    Purpose: Show what order history will look like (UI prototype)
-    
+    Display user's order history with real data.
+
+    Purpose: Show user's past orders (Phase 2 Implementation)
+
     Flow:
-    1. Generate sample order history
-    2. Pass to template for display
-    
+    1. Query user's orders from database
+    2. Include related OrderItems (optimized)
+    3. Order by newest first
+    4. Pass to template for display
+
     Template Context:
-    - history_entries: List of sample order dictionaries
-    
-    Current Limitations:
-    - Shows sample data only (not user's real orders)
-    - Cannot view order details
-    - Cannot reorder
-    - Cannot cancel orders
-    
+    - orders: QuerySet of Order objects with OrderItems
+
+    Query Optimization:
+    - Uses prefetch_related('items') to load OrderItems
+    - Avoids N+1 queries when displaying order details
+
     URL: /orders/history/
-    
-    Future Implementation (Phase 2):
-    - Query user's actual orders from database
-    - Show real order data with correct prices
-    - Enable "Reorder" functionality
-    - Enable "Cancel" for pending orders
-    - Add order detail page
-    - Add filtering (by status, date range)
-    - Add pagination for many orders
-    
+
     Example:
         User visits: http://127.0.0.1:8000/orders/history/
-        Sees: 2 sample orders with different statuses
-        Banner: "Showing sample order history..."
+        Sees: Their actual order history with real data
+        Can: View order details, status, and totals
     """
-    # Generate sample order history
+    # Query user's orders with related items (optimized)
+    orders = Order.objects.filter(
+        user=request.user
+    ).prefetch_related('items').order_by('-created_at')
+
+    # Prepare context
     context = {
-        "history_entries": _sample_history(),
+        "orders": orders,
     }
-    
+
     # Render history template
     return render(request, "orders/history.html", context)

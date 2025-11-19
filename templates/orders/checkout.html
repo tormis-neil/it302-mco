@@ -16,7 +16,7 @@
     <div>
         <p class="dashboard-eyebrow">Secure Checkout</p>
         <h1 class="dashboard-title">Confirm your order</h1>
-        <p class="dashboard-subtitle">Checkout is in staging mode. Review the layout below—submission will be enabled after the ordering workflow is finalized.</p>
+        <p class="dashboard-subtitle">Review your order details and provide contact information to complete your purchase.</p>
     </div>
     <a href="{% url 'orders:cart' %}" class="btn dashboard-cta">Back to cart</a>
 </section>
@@ -27,29 +27,28 @@
     <!-- Left column: Contact form -->
     <div class="checkout-form-wrapper">
         <h2 id="checkout-details" class="dashboard-section__title">Contact information</h2>
-        
-        <form class="profile-form profile-form--preview" aria-describedby="checkout-preview-note">
-            <p id="checkout-preview-note" class="cart-preview-note">Fields are disabled while we complete the secure processing logic.</p>
-            
+
+        <form class="profile-form" method="post" action="{% url 'orders:checkout' %}">
+            {% csrf_token %}
+
             <div class="profile-form__field">
-                <label for="preview_contact_name">Full name</label>
-                <input id="preview_contact_name" type="text" value="{{ contact_example.name }}" disabled>
+                <label for="contact_name">Full name *</label>
+                <input id="contact_name" name="contact_name" type="text" value="{{ contact_info.name }}" required minlength="2" maxlength="120">
             </div>
-            
+
             <div class="profile-form__field">
-                <label for="preview_contact_phone">
-                    Phone number 
-                    <span class="profile-form__hint">Optional</span>
+                <label for="contact_phone">
+                    Phone number *
                 </label>
-                <input id="preview_contact_phone" type="tel" value="{{ contact_example.phone }}" disabled>
+                <input id="contact_phone" name="contact_phone" type="tel" value="{{ contact_info.phone }}" required maxlength="20">
             </div>
-            
+
             <div class="profile-form__field">
-                <label for="preview_special_instructions">Special instructions</label>
-                <textarea id="preview_special_instructions" rows="3" disabled>{{ contact_example.instructions }}</textarea>
+                <label for="special_instructions">Special instructions</label>
+                <textarea id="special_instructions" name="special_instructions" rows="3" maxlength="500">{{ contact_info.instructions }}</textarea>
             </div>
-            
-            <button type="button" class="btn profile-form__submit btn-disabled" disabled>Place order</button>
+
+            <button type="submit" class="btn profile-form__submit">Place Order</button>
         </form>
     </div>
     
@@ -59,13 +58,13 @@
         
         <!-- Items list -->
         <ul class="checkout-items">
-            {% for entry in sample_items %}
+            {% for item in cart_items %}
             <li class="checkout-items__entry">
                 <div>
-                    <strong>{{ entry.menu_item.name }}</strong>
-                    <span class="checkout-items__meta">Qty {{ entry.quantity }}</span>
+                    <strong>{{ item.menu_item.name }}</strong>
+                    <span class="checkout-items__meta">Qty {{ item.quantity }}</span>
                 </div>
-                <span>₱{{ entry.line_total|floatformat:2 }}</span>
+                <span>₱{{ item.line_total|floatformat:2 }}</span>
             </li>
             {% endfor %}
         </ul>

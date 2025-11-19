@@ -233,11 +233,14 @@ class Order(models.Model):
     
     # Current order status (pending → confirmed → ready → completed)
     status = models.CharField(
-        max_length=20, 
-        choices=Status.choices, 
+        max_length=20,
+        choices=Status.choices,
         default=Status.PENDING
     )
-    
+
+    # Order reference number (e.g., BC-251116-001)
+    reference_number = models.CharField(max_length=20, unique=True, blank=True)
+
     # Customer contact information (snapshot at checkout)
     contact_name = models.CharField(max_length=120)
     contact_phone = models.CharField(max_length=20, blank=True)

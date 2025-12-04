@@ -28,19 +28,24 @@ from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from typing import List
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from menu.models import MenuItem
+from orders.forms import CheckoutForm
 from orders.models import Cart, CartItem, Order, OrderItem
 
-# Sales tax rate for calculations (8%)
-SALES_TAX_RATE = Decimal("0.08")
+# Sales tax rate from settings (default 8%)
+SALES_TAX_RATE = Decimal(getattr(settings, 'SALES_TAX_RATE', '0.08'))
+
+# Order reference prefix from settings (default 'BC')
+ORDER_PREFIX = getattr(settings, 'ORDER_REFERENCE_PREFIX', 'BC')
 
 
 # ============================================================================
@@ -88,8 +93,8 @@ def generate_order_reference() -> str:
     # Next order number (1-indexed)
     next_number = order_count + 1
 
-    # Format: BC-YYMMDD-NNN
-    reference = f"BC-{date_str}-{next_number:03d}"
+    # Format: {PREFIX}-YYMMDD-NNN (e.g., BC-251204-001)
+    reference = f"{ORDER_PREFIX}-{date_str}-{next_number:03d}"
 
     return reference
 
@@ -537,6 +542,7 @@ def cart_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 @transaction.atomic
 def checkout(request: HttpRequest) -> HttpResponse:
     """
@@ -545,50 +551,40 @@ def checkout(request: HttpRequest) -> HttpResponse:
     Purpose: Convert user's cart into a completed order (Phase 2 Implementation)
 
     GET Request Flow:
-    1. Get user's cart
-    2. If cart empty → redirect to menu with error
-    3. Load cart items and calculate totals
-    4. Pre-fill form with user's profile data
-    5. Display checkout form
+    1. Get user's cart (redirect if empty)
+    2. Load cart items and calculate totals
+    3. Pre-fill form with user's profile data
+    4. Display checkout form
 
     POST Request Flow:
-    1. Validate checkout form data
+    1. Validate checkout form using CheckoutForm
     2. Create Order with status='pending'
     3. Generate unique order reference number
     4. Copy cart items to OrderItems (with price snapshots)
     5. Clear user's cart
     6. Redirect to order history with success message
 
-    Template Context (GET):
+    Template Context:
+    - form: CheckoutForm instance
     - cart_items: User's cart items
     - subtotal, tax, total: Calculated totals
-    - contact_info: Pre-filled contact information
-
-    POST Parameters:
-    - contact_name: Customer name (required)
-    - contact_phone: Customer phone (required)
-    - special_instructions: Order notes (optional)
 
     Returns:
         GET: Checkout form template
-        POST: Redirect to order history
+        POST: Redirect to order history (success) or form with errors
 
     URL: /orders/checkout/
     """
-    # Get user's cart
-    try:
-        cart = Cart.objects.get(user=request.user)
-    except Cart.DoesNotExist:
+    # Get user's cart with items in single query
+    cart = Cart.objects.filter(user=request.user).prefetch_related('items__menu_item').first()
+
+    # Check if cart exists and has items
+    if not cart or not cart.items.exists():
         messages.error(request, "Your cart is empty. Please add items before checkout.")
         return redirect('menu:catalog')
 
-    # Get cart items with menu details
-    cart_items = cart.items.select_related('menu_item').all()
-
-    # Check if cart is empty
-    if not cart_items.exists():
-        messages.error(request, "Your cart is empty. Please add items before checkout.")
-        return redirect('menu:catalog')
+    # Get cart items (already prefetched)
+    cart_items = cart.items.all()
 
     # Calculate totals
     subtotal = sum(item.line_total for item in cart_items)
@@ -598,78 +594,12 @@ def checkout(request: HttpRequest) -> HttpResponse:
     )
     total = subtotal + tax
 
-    # Handle POST request (create order)
-    if request.method == 'POST':
-        # Get form data
-        contact_name = request.POST.get('contact_name', '').strip()
-        contact_phone = request.POST.get('contact_phone', '').strip()
-        special_instructions = request.POST.get('special_instructions', '').strip()
-
-        # Validate form data
-        errors = []
-        if not contact_name or len(contact_name) < 2:
-            errors.append("Contact name is required (minimum 2 characters)")
-        if not contact_phone:
-            errors.append("Contact phone is required")
-
-        if errors:
-            for error in errors:
-                messages.error(request, error)
-            # Return to form with errors
-            context = {
-                "cart_items": cart_items,
-                "subtotal": subtotal,
-                "tax": tax,
-                "total": total,
-                "contact_info": {
-                    "name": contact_name,
-                    "phone": contact_phone,
-                    "instructions": special_instructions,
-                }
-            }
-            return render(request, "orders/checkout.html", context)
-
-        # Generate order reference
-        order_reference = generate_order_reference()
-
-        # Create order
-        order = Order.objects.create(
-            user=request.user,
-            status=Order.Status.PENDING,
-            reference_number=order_reference,
-            contact_name=contact_name,
-            contact_phone=contact_phone,
-            special_instructions=special_instructions,
-            subtotal=subtotal,
-            tax=tax,
-            total=total,
-        )
-
-        # Create OrderItems from CartItems (snapshot pricing)
-        for cart_item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                menu_item=cart_item.menu_item,
-                menu_item_name=cart_item.menu_item.name,  # Snapshot name
-                unit_price=cart_item.menu_item.base_price,  # Snapshot price
-                quantity=cart_item.quantity,
-            )
-
-        # Clear cart
-        cart_items.delete()
-
-        # Success message
-        messages.success(request, f"Order {order_reference} placed successfully! Payment pending.")
-
-        # Redirect to order history
-        return redirect('orders:history')
-
-    # Handle GET request (show form)
+    # Get profile for pre-filling form
     profile = getattr(request.user, "profile", None)
 
-    # Pre-fill contact info from profile
-    contact_info = {
-        "name": (
+    # Pre-fill initial data from profile
+    initial_data = {
+        "contact_name": (
             profile.display_name or
             request.user.get_full_name() or
             request.user.username
@@ -677,17 +607,71 @@ def checkout(request: HttpRequest) -> HttpResponse:
             request.user.get_full_name() or
             request.user.username
         ),
-        "phone": getattr(profile, "phone_number", "") if profile else "",
-        "instructions": "",
+        "contact_phone": getattr(profile, "phone_number", "") if profile else "",
+        "special_instructions": "",
     }
+
+    # Handle POST request (create order)
+    if request.method == 'POST':
+        form = CheckoutForm(request.POST)
+
+        if form.is_valid():
+            # Generate order reference
+            order_reference = generate_order_reference()
+
+            # Create order with validated form data
+            order = Order.objects.create(
+                user=request.user,
+                status=Order.Status.PENDING,
+                reference_number=order_reference,
+                contact_name=form.cleaned_data['contact_name'],
+                contact_phone=form.cleaned_data['contact_phone'],
+                special_instructions=form.cleaned_data.get('special_instructions', ''),
+                subtotal=subtotal,
+                tax=tax,
+                total=total,
+            )
+
+            # Create OrderItems from CartItems (snapshot pricing)
+            for cart_item in cart_items:
+                OrderItem.objects.create(
+                    order=order,
+                    menu_item=cart_item.menu_item,
+                    menu_item_name=cart_item.menu_item.name,
+                    unit_price=cart_item.menu_item.base_price,
+                    quantity=cart_item.quantity,
+                )
+
+            # Clear cart
+            cart_items.delete()
+
+            # Success message
+            messages.success(request, f"Order {order_reference} placed successfully! Payment pending.")
+
+            # Redirect to order history
+            return redirect('orders:history')
+        else:
+            # Form validation failed - show errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
+    else:
+        # GET request - create form with pre-filled data
+        form = CheckoutForm(initial=initial_data)
 
     # Prepare context
     context = {
+        "form": form,
         "cart_items": cart_items,
         "subtotal": subtotal,
         "tax": tax,
         "total": total,
-        "contact_info": contact_info,
+        # Keep contact_info for backwards compatibility with template
+        "contact_info": {
+            "name": form.data.get('contact_name', initial_data['contact_name']),
+            "phone": form.data.get('contact_phone', initial_data['contact_phone']),
+            "instructions": form.data.get('special_instructions', ''),
+        }
     }
 
     return render(request, "orders/checkout.html", context)

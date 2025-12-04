@@ -438,3 +438,25 @@ CSRF_COOKIE_SAMESITE = 'Lax'    # Prevent CSRF via cross-site requests
 #     SECURE_CONTENT_TYPE_NOSNIFF = True      # Prevent MIME type sniffing
 #     SECURE_BROWSER_XSS_FILTER = True        # Enable browser XSS filtering
 #     X_FRAME_OPTIONS = 'DENY'                # Prevent clickjacking attacks
+
+
+# ═══════════════════════════════════════════════════════════════════
+# ORDER & BUSINESS CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════
+"""
+Business-related settings for orders and payments.
+
+These settings control order processing, tax calculations, and
+reference number generation. Centralized here for easy configuration.
+"""
+
+# Sales tax rate (8% for Philippines)
+# Used in cart and checkout calculations
+SALES_TAX_RATE = "0.08"
+
+# Order reference number prefix
+# Format: {PREFIX}-YYMMDD-NNN (e.g., BC-251204-001)
+ORDER_REFERENCE_PREFIX = "BC"
+
+# Maximum items per cart line (quantity limit)
+MAX_CART_ITEM_QUANTITY = 10

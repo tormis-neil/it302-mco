@@ -25,6 +25,43 @@ from .encryption import generate_email_digest
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9._-]{3,30}$")
 PASSWORD_SPECIAL_PATTERN = re.compile(r"[!@#$%^&*]")
 
+# Password requirements constants
+PASSWORD_MIN_LENGTH = 12
+
+
+def validate_password_strength(password: str) -> None:
+    """
+    Validate password meets custom strength requirements.
+
+    Requirements:
+    - At least 12 characters
+    - At least one uppercase letter
+    - At least one number
+    - At least one special character (!@#$%^&*)
+
+    Args:
+        password: The password to validate
+
+    Raises:
+        ValidationError: If password doesn't meet requirements
+    """
+    errors = []
+
+    if len(password) < PASSWORD_MIN_LENGTH:
+        errors.append(f"Password must be at least {PASSWORD_MIN_LENGTH} characters long.")
+
+    if password.lower() == password:
+        errors.append("Include at least one uppercase letter.")
+
+    if not any(ch.isdigit() for ch in password):
+        errors.append("Include at least one number.")
+
+    if not PASSWORD_SPECIAL_PATTERN.search(password):
+        errors.append("Include at least one special character (!@#$%^&*).")
+
+    if errors:
+        raise ValidationError(errors)
+
 
 class SignupForm(forms.Form):
     """
@@ -109,42 +146,15 @@ class SignupForm(forms.Form):
             
             # Our custom requirements
             try:
-                self._validate_password_strength(password)
+                validate_password_strength(password)
             except ValidationError as exc:
                 self.add_error("password", exc)
-        
+
         # Check passwords match
         if password and confirm and password != confirm:
             self.add_error("confirm_password", "Passwords do not match.")
-        
-        return data
 
-    def _validate_password_strength(self, password: str) -> None:
-        """
-        Check custom password requirements.
-        
-        Requirements:
-        - 12+ characters
-        - At least one uppercase letter
-        - At least one number
-        - At least one special character (!@#$%^&*)
-        """
-        errors = []
-        
-        if len(password) < 12:
-            errors.append("Password must be at least 12 characters long.")
-        
-        if password.lower() == password:
-            errors.append("Include at least one uppercase letter.")
-        
-        if not any(ch.isdigit() for ch in password):
-            errors.append("Include at least one number.")
-        
-        if not PASSWORD_SPECIAL_PATTERN.search(password):
-            errors.append("Include at least one special character (!@#$%^&*).")
-        
-        if errors:
-            raise ValidationError(errors)
+        return data
 
     def save(self) -> User:
         """
@@ -378,11 +388,8 @@ class ChangePasswordForm(forms.Form):
                 raise exc
             
             # Custom strength requirements
-            try:
-                self._validate_password_strength(password)
-            except ValidationError as exc:
-                raise exc
-        
+            validate_password_strength(password)
+
         return password
 
     def clean(self) -> dict:
@@ -390,34 +397,11 @@ class ChangePasswordForm(forms.Form):
         data = super().clean()
         new_password = data.get("new_password", "")
         confirm = data.get("confirm_password", "")
-        
+
         if new_password and confirm and new_password != confirm:
             self.add_error("confirm_password", "Passwords do not match.")
-        
-        return data
 
-    def _validate_password_strength(self, password: str) -> None:
-        """
-        Check custom password requirements.
-        
-        Same validation as signup form.
-        """
-        errors = []
-        
-        if len(password) < 12:
-            errors.append("Password must be at least 12 characters long.")
-        
-        if password.lower() == password:
-            errors.append("Include at least one uppercase letter.")
-        
-        if not any(ch.isdigit() for ch in password):
-            errors.append("Include at least one number.")
-        
-        if not PASSWORD_SPECIAL_PATTERN.search(password):
-            errors.append("Include at least one special character (!@#$%^&*).")
-        
-        if errors:
-            raise ValidationError(errors)
+        return data
 
     def save(self) -> None:
         """
@@ -436,4 +420,12 @@ class ChangePasswordForm(forms.Form):
         self.user.save(update_fields=['password'])
 
 
-__all__ = ["SignupForm", "LoginForm", "ProfileForm", "ChangeUsernameForm", "ChangePasswordForm"]
+__all__ = [
+    "SignupForm",
+    "LoginForm",
+    "ProfileForm",
+    "ChangeUsernameForm",
+    "ChangePasswordForm",
+    "validate_password_strength",
+    "PASSWORD_MIN_LENGTH",
+]

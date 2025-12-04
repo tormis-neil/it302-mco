@@ -28,15 +28,39 @@ class CartUpdateForm(forms.Form):
 
 
 class CheckoutForm(forms.Form):
-    contact_name = forms.CharField(max_length=120)
+    """
+    Form for checkout contact information.
+
+    Fields:
+    - contact_name: Customer name (required, min 2 chars)
+    - contact_phone: Phone number (required, validated format)
+    - special_instructions: Optional order notes
+    """
+    contact_name = forms.CharField(
+        max_length=120,
+        min_length=2,
+        error_messages={
+            'required': 'Contact name is required.',
+            'min_length': 'Contact name must be at least 2 characters.',
+        }
+    )
     contact_phone = forms.CharField(
         max_length=20,
-        required=False,
         validators=[
-            RegexValidator(r"^[0-9+()\-\s]*$", "Enter a valid phone number."),
+            RegexValidator(
+                r"^[0-9+()\-\s]{7,20}$",
+                "Enter a valid phone number (7-20 digits, may include +, -, spaces)."
+            ),
         ],
+        error_messages={
+            'required': 'Contact phone is required.',
+        }
     )
-    special_instructions = forms.CharField(widget=forms.Textarea(attrs={"rows": 3}), required=False)
+    special_instructions = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 3}),
+        required=False,
+        max_length=500,
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

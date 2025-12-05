@@ -460,3 +460,38 @@ ORDER_REFERENCE_PREFIX = "BC"
 
 # Maximum items per cart line (quantity limit)
 MAX_CART_ITEM_QUANTITY = 10
+
+
+# ═══════════════════════════════════════════════════════════════════
+# PAYMONGO PAYMENT CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════
+"""
+PayMongo API configuration for payment processing.
+
+Test Mode:
+- Use test API keys (pk_test_xxx, sk_test_xxx)
+- Test cards work, no real money charged
+- Webhook signatures still verified
+
+Production Mode:
+- Use live API keys (pk_live_xxx, sk_live_xxx)
+- Real payments processed
+- Must complete PayMongo KYC verification
+
+Test Card Numbers:
+- Success: 4343 4343 4343 4345
+- Declined: 4571 7360 0000 0075
+- CVV: Any 3 digits, Expiry: Any future date
+"""
+
+# PayMongo API Keys
+PAYMONGO_SECRET_KEY = os.environ.get("PAYMONGO_SECRET_KEY", "")
+PAYMONGO_PUBLIC_KEY = os.environ.get("PAYMONGO_PUBLIC_KEY", "")
+PAYMONGO_WEBHOOK_SECRET = os.environ.get("PAYMONGO_WEBHOOK_SECRET", "")
+
+# PayMongo API Base URL
+PAYMONGO_API_URL = "https://api.paymongo.com/v1"
+
+# Payment settings
+PAYMENT_CURRENCY = "PHP"
+PAYMENT_DESCRIPTION_PREFIX = "Brews & Chews Order"

@@ -699,6 +699,18 @@ button[disabled] {
     border: 1px solid rgba(33, 150, 243, 0.4);
 }
 
+.history-card__status--paid {
+    background: rgba(76, 175, 80, 0.2);
+    color: #66bb6a;
+    border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+.history-card__status--failed {
+    background: rgba(244, 67, 54, 0.2);
+    color: #ef5350;
+    border: 1px solid rgba(244, 67, 54, 0.4);
+}
+
 .history-card__items {
     list-style: none;
     display: grid;

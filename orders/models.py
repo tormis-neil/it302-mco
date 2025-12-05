@@ -209,19 +209,33 @@ class Order(models.Model):
     class Status(models.TextChoices):
         """
         Order lifecycle states.
-        
-        PENDING: Order placed, awaiting staff confirmation
+
+        PENDING: Order placed, awaiting payment
+        PAID: Payment confirmed via PayMongo webhook
         CONFIRMED: Staff confirmed, preparing order
         CANCELLED: Order cancelled (by user or staff)
-        
+        FAILED: Payment failed
+
         Future statuses (Phase 3):
         - PREPARING: Being prepared by kitchen
         - READY: Ready for pickup
         - COMPLETED: Picked up by customer
         """
-        PENDING = "pending", "Pending"
+        PENDING = "pending", "Pending Payment"
+        PAID = "paid", "Paid"
         CONFIRMED = "confirmed", "Confirmed"
         CANCELLED = "cancelled", "Cancelled"
+        FAILED = "failed", "Payment Failed"
+
+    class PaymentMethod(models.TextChoices):
+        """
+        Payment methods supported by PayMongo.
+        """
+        CARD = "card", "Credit/Debit Card"
+        GCASH = "gcash", "GCash"
+        PAYMAYA = "paymaya", "PayMaya"
+        GRAB_PAY = "grab_pay", "GrabPay"
+        UNKNOWN = "unknown", "Unknown"
 
     # Link to user who placed the order
     # CASCADE: If user deleted, keep orders for audit (consider PROTECT)
@@ -272,9 +286,31 @@ class Order(models.Model):
     
     # When order was placed
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     # When order was last modified (status change, etc.)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # ═══════════════════════════════════════════════════════════════
+    # PAYMENT FIELDS (PayMongo Integration)
+    # ═══════════════════════════════════════════════════════════════
+
+    # PayMongo Checkout Session ID
+    # Created when user clicks "Pay Now", used to track the checkout
+    checkout_session_id = models.CharField(max_length=100, blank=True)
+
+    # PayMongo Payment Intent ID
+    # Created after successful payment, contains payment details
+    payment_intent_id = models.CharField(max_length=100, blank=True)
+
+    # Payment method used (card, gcash, paymaya, etc.)
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PaymentMethod.choices,
+        blank=True,
+    )
+
+    # When payment was confirmed (from PayMongo webhook)
+    paid_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         # Show newest orders first
@@ -284,22 +320,62 @@ class Order(models.Model):
         """Human-readable representation for Django admin."""
         return f"Order #{self.pk} ({self.user.username})"
 
+    def mark_paid(self, payment_intent_id: str = "", payment_method: str = "") -> None:
+        """
+        Mark order as paid after successful payment.
+
+        Called by: PayMongo webhook handler
+
+        Updates:
+        - status: pending → paid
+        - payment_intent_id: From PayMongo
+        - payment_method: card/gcash/paymaya/etc.
+        - paid_at: Current timestamp
+        - updated_at: Current timestamp
+
+        Args:
+            payment_intent_id: PayMongo payment intent ID
+            payment_method: Payment method used (card, gcash, etc.)
+        """
+        self.status = self.Status.PAID
+        self.payment_intent_id = payment_intent_id
+        self.payment_method = payment_method or self.PaymentMethod.UNKNOWN
+        self.paid_at = timezone.now()
+        self.updated_at = timezone.now()
+        self.save(update_fields=[
+            "status", "payment_intent_id", "payment_method", "paid_at", "updated_at"
+        ])
+
     def mark_confirmed(self) -> None:
         """
         Mark order as confirmed by staff.
-        
+
         Called by: Staff dashboard (future implementation)
-        
+
         Updates:
-        - status: pending → confirmed
+        - status: paid → confirmed
         - updated_at: Current timestamp
-        
+
         Example:
             order = Order.objects.get(pk=123)
             order.mark_confirmed()
             # Status now 'confirmed', updated_at refreshed
         """
         self.status = self.Status.CONFIRMED
+        self.updated_at = timezone.now()
+        self.save(update_fields=["status", "updated_at"])
+
+    def mark_failed(self) -> None:
+        """
+        Mark order as failed due to payment failure.
+
+        Called by: PayMongo webhook handler or timeout
+
+        Updates:
+        - status: pending → failed
+        - updated_at: Current timestamp
+        """
+        self.status = self.Status.FAILED
         self.updated_at = timezone.now()
         self.save(update_fields=["status", "updated_at"])
 

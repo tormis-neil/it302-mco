@@ -2,6 +2,7 @@
 from django.urls import path
 
 from . import views
+from . import webhooks
 
 app_name = "orders"
 
@@ -15,4 +16,11 @@ urlpatterns = [
     # Checkout and history (Phase 2)
     path("checkout/", views.checkout, name="checkout"),
     path("history/", views.history, name="history"),
+
+    # Payment (Phase 4 - PayMongo Integration)
+    path("payment/success/", views.payment_success, name="payment_success"),
+    path("payment/cancel/", views.payment_cancel, name="payment_cancel"),
+
+    # Webhooks (PayMongo callbacks)
+    path("webhooks/paymongo/", webhooks.paymongo_webhook, name="paymongo_webhook"),
 ]

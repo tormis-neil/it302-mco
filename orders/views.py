@@ -546,9 +546,9 @@ def cart_view(request: HttpRequest) -> HttpResponse:
 @transaction.atomic
 def checkout(request: HttpRequest) -> HttpResponse:
     """
-    Handle checkout process - display form (GET) and create order (POST).
+    Handle checkout process - display form (GET) and create order with payment (POST).
 
-    Purpose: Convert user's cart into a completed order (Phase 2 Implementation)
+    Purpose: Convert user's cart into an order and redirect to PayMongo for payment.
 
     GET Request Flow:
     1. Get user's cart (redirect if empty)
@@ -559,10 +559,10 @@ def checkout(request: HttpRequest) -> HttpResponse:
     POST Request Flow:
     1. Validate checkout form using CheckoutForm
     2. Create Order with status='pending'
-    3. Generate unique order reference number
-    4. Copy cart items to OrderItems (with price snapshots)
+    3. Create PayMongo checkout session
+    4. Store checkout_session_id in order
     5. Clear user's cart
-    6. Redirect to order history with success message
+    6. Redirect to PayMongo checkout URL
 
     Template Context:
     - form: CheckoutForm instance
@@ -571,10 +571,12 @@ def checkout(request: HttpRequest) -> HttpResponse:
 
     Returns:
         GET: Checkout form template
-        POST: Redirect to order history (success) or form with errors
+        POST: Redirect to PayMongo checkout (success) or form with errors
 
     URL: /orders/checkout/
     """
+    from orders.payments import create_checkout_session, PayMongoError
+
     # Get user's cart with items in single query
     cart = Cart.objects.filter(user=request.user).prefetch_related('items__menu_item').first()
 
@@ -611,7 +613,7 @@ def checkout(request: HttpRequest) -> HttpResponse:
         "special_instructions": "",
     }
 
-    # Handle POST request (create order)
+    # Handle POST request (create order and payment)
     if request.method == 'POST':
         form = CheckoutForm(request.POST)
 
@@ -642,14 +644,35 @@ def checkout(request: HttpRequest) -> HttpResponse:
                     quantity=cart_item.quantity,
                 )
 
-            # Clear cart
-            cart_items.delete()
+            # Build callback URLs for PayMongo
+            # Use the request to get the full URL with ngrok domain
+            base_url = request.build_absolute_uri('/')[:-1]  # Remove trailing slash
+            success_url = f"{base_url}/orders/payment/success/?order_id={order.pk}"
+            cancel_url = f"{base_url}/orders/payment/cancel/?order_id={order.pk}"
 
-            # Success message
-            messages.success(request, f"Order {order_reference} placed successfully! Payment pending.")
+            try:
+                # Create PayMongo checkout session
+                checkout_session_id, checkout_url = create_checkout_session(
+                    order=order,
+                    success_url=success_url,
+                    cancel_url=cancel_url,
+                )
 
-            # Redirect to order history
-            return redirect('orders:history')
+                # Store checkout session ID in order
+                order.checkout_session_id = checkout_session_id
+                order.save(update_fields=['checkout_session_id'])
+
+                # Clear cart (order is created, payment pending)
+                cart_items.delete()
+
+                # Redirect to PayMongo checkout
+                return redirect(checkout_url)
+
+            except PayMongoError as e:
+                # Payment session creation failed - delete the order
+                order.delete()
+                messages.error(request, f"Payment initialization failed: {e.message}")
+
         else:
             # Form validation failed - show errors
             for field, errors in form.errors.items():
@@ -717,3 +740,144 @@ def history(request: HttpRequest) -> HttpResponse:
 
     # Render history template
     return render(request, "orders/history.html", context)
+
+
+# ============================================================================
+# PAYMENT CALLBACK VIEWS (Phase 4 - PayMongo Integration)
+# ============================================================================
+
+@login_required
+@require_GET
+def payment_success(request: HttpRequest) -> HttpResponse:
+    """
+    Handle successful payment redirect from PayMongo.
+
+    Purpose: Display success page after user completes payment on PayMongo.
+
+    IMPORTANT: This view is called when user is redirected back from PayMongo.
+    The actual payment confirmation happens via webhook (webhooks.py).
+    This view just shows a success message to the user.
+
+    Flow:
+    1. Get order_id from query string
+    2. Verify order belongs to logged-in user (security)
+    3. Display success page with order details
+    4. Order status may still be 'pending' until webhook confirms payment
+
+    Query Parameters:
+    - order_id: The Order ID (required)
+
+    Security:
+    - Requires authentication
+    - Verifies order belongs to current user
+    - Returns 404 if order not found or doesn't belong to user
+
+    URL: /orders/payment/success/?order_id=123
+
+    Template Context:
+    - order: The Order object
+    - message: Success message
+
+    Note: The order status is updated by the webhook handler, not this view.
+    User may see 'pending' status initially; it becomes 'paid' after webhook.
+    """
+    # Get order ID from query string
+    order_id = request.GET.get('order_id')
+
+    if not order_id:
+        messages.error(request, "Invalid payment callback - no order specified")
+        return redirect('orders:history')
+
+    # Get order and verify it belongs to user
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
+
+    # Check if order has a checkout session (indicates PayMongo was used)
+    if not order.checkout_session_id:
+        messages.error(request, "Invalid payment callback - order has no payment session")
+        return redirect('orders:history')
+
+    # Success! Show confirmation page
+    messages.success(
+        request,
+        f"Payment initiated for order {order.reference_number}. "
+        "You will receive confirmation once payment is processed."
+    )
+
+    context = {
+        "order": order,
+        "page_title": "Payment Successful",
+    }
+
+    return render(request, "orders/payment_success.html", context)
+
+
+@login_required
+@require_GET
+def payment_cancel(request: HttpRequest) -> HttpResponse:
+    """
+    Handle cancelled payment redirect from PayMongo.
+
+    Purpose: Display cancellation page when user cancels payment on PayMongo.
+
+    Flow:
+    1. Get order_id from query string
+    2. Verify order belongs to logged-in user (security)
+    3. Display cancellation page with options:
+       - Retry payment (go back to checkout)
+       - Cancel order completely
+
+    Note: Order remains in 'pending' status until:
+    - User retries and completes payment, OR
+    - User explicitly cancels, OR
+    - Order expires (future feature)
+
+    Query Parameters:
+    - order_id: The Order ID (required)
+
+    Security:
+    - Requires authentication
+    - Verifies order belongs to current user
+    - Returns 404 if order not found or doesn't belong to user
+
+    URL: /orders/payment/cancel/?order_id=123
+
+    Template Context:
+    - order: The Order object with items
+    - can_retry: Boolean indicating if retry is possible
+    """
+    # Get order ID from query string
+    order_id = request.GET.get('order_id')
+
+    if not order_id:
+        messages.error(request, "Invalid payment callback - no order specified")
+        return redirect('orders:history')
+
+    # Get order with items and verify it belongs to user
+    order = get_object_or_404(
+        Order.objects.prefetch_related('items'),
+        pk=order_id,
+        user=request.user
+    )
+
+    # Only allow cancellation for pending orders
+    can_retry = order.status == Order.Status.PENDING
+
+    if can_retry:
+        messages.warning(
+            request,
+            f"Payment was cancelled for order {order.reference_number}. "
+            "You can try again or cancel the order."
+        )
+    else:
+        messages.info(
+            request,
+            f"Order {order.reference_number} status: {order.get_status_display()}"
+        )
+
+    context = {
+        "order": order,
+        "can_retry": can_retry,
+        "page_title": "Payment Cancelled",
+    }
+
+    return render(request, "orders/payment_cancel.html", context)

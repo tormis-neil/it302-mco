@@ -20,6 +20,7 @@ urlpatterns = [
     # Payment (Phase 4 - PayMongo Integration)
     path("payment/success/", views.payment_success, name="payment_success"),
     path("payment/cancel/", views.payment_cancel, name="payment_cancel"),
+    path("payment/retry/<int:order_id>/", views.retry_payment, name="retry_payment"),
 
     # Webhooks (PayMongo callbacks)
     path("webhooks/paymongo/", webhooks.paymongo_webhook, name="paymongo_webhook"),

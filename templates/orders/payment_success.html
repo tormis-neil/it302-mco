@@ -92,11 +92,16 @@
     </div>
 
     <!-- Next steps info -->
-    <div style="margin-top: 2rem; padding: 1.5rem; background: var(--color-green-light, #e8f5e9); border-radius: 8px; max-width: 600px;">
-        <h3 style="margin-bottom: 0.5rem;">What happens next?</h3>
-        <ol style="margin-left: 1.5rem;">
+    <div style="margin-top: 2rem; padding: 1.5rem; background: #e8f5e9; border-radius: 8px; max-width: 600px; color: #1b5e20;">
+        <h3 style="margin-bottom: 0.5rem; color: #2e7d32;">What happens next?</h3>
+        <ol style="margin-left: 1.5rem; color: #33691e;">
+            {% if payment_confirmed %}
+            <li>Your payment has been confirmed!</li>
+            <li>Our team is now preparing your order</li>
+            {% else %}
             <li>Your payment is being verified</li>
             <li>Once confirmed, our team will prepare your order</li>
+            {% endif %}
             <li>You'll see the status update in your order history</li>
             <li>Pickup your order when it's ready!</li>
         </ol>

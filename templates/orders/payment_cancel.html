@@ -79,19 +79,25 @@
 
     <!-- Action buttons -->
     {% if can_retry %}
-    <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-        <a href="{% url 'orders:history' %}" class="btn" style="background: var(--color-espresso, #2c1810); color: white;">
+    <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <form method="post" action="{% url 'orders:retry_payment' order.pk %}" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" class="btn" style="background: #4caf50; color: white; border: none; padding: 0.75rem 1.5rem; font-weight: 600;">
+                Retry Payment
+            </button>
+        </form>
+        <a href="{% url 'orders:history' %}" class="btn" style="background: #2c1810; color: white; padding: 0.75rem 1.5rem; text-decoration: none;">
             View in Order History
         </a>
-        <a href="{% url 'menu:catalog' %}" class="btn" style="background: transparent; border: 2px solid var(--color-espresso, #2c1810); color: var(--color-espresso, #2c1810);">
+        <a href="{% url 'menu:catalog' %}" class="btn" style="background: #ffffff; border: 2px solid #2c1810; color: #2c1810; padding: 0.75rem 1.5rem; text-decoration: none;">
             Continue Shopping
         </a>
     </div>
 
-    <div style="margin-top: 2rem; padding: 1.5rem; background: var(--color-cream-light, #fff8e1); border-radius: 8px; max-width: 600px;">
-        <h3 style="margin-bottom: 0.5rem;">Need help?</h3>
-        <p>If you're having trouble completing your payment, please try the following:</p>
-        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+    <div style="margin-top: 2rem; padding: 1.5rem; background: #fff8e1; border-radius: 8px; max-width: 600px; color: #5d4037;">
+        <h3 style="margin-bottom: 0.5rem; color: #4e342e;">Need help?</h3>
+        <p style="color: #6d4c41;">If you're having trouble completing your payment, please try the following:</p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem; color: #5d4037;">
             <li>Check your internet connection</li>
             <li>Ensure your payment method has sufficient funds</li>
             <li>Try a different payment method (Card, GCash, or PayMaya)</li>
@@ -100,7 +106,7 @@
     </div>
     {% else %}
     <div style="margin-top: 2rem;">
-        <a href="{% url 'orders:history' %}" class="btn" style="background: var(--color-espresso, #2c1810); color: white;">
+        <a href="{% url 'orders:history' %}" class="btn" style="background: #2c1810; color: white; padding: 0.75rem 1.5rem; text-decoration: none;">
             View Order History
         </a>
     </div>

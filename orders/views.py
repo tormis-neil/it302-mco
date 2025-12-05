@@ -754,15 +754,12 @@ def payment_success(request: HttpRequest) -> HttpResponse:
 
     Purpose: Display success page after user completes payment on PayMongo.
 
-    IMPORTANT: This view is called when user is redirected back from PayMongo.
-    The actual payment confirmation happens via webhook (webhooks.py).
-    This view just shows a success message to the user.
-
     Flow:
     1. Get order_id from query string
     2. Verify order belongs to logged-in user (security)
-    3. Display success page with order details
-    4. Order status may still be 'pending' until webhook confirms payment
+    3. Check PayMongo API for payment status
+    4. Update order status if payment is confirmed
+    5. Display success page with order details
 
     Query Parameters:
     - order_id: The Order ID (required)
@@ -776,11 +773,10 @@ def payment_success(request: HttpRequest) -> HttpResponse:
 
     Template Context:
     - order: The Order object
-    - message: Success message
-
-    Note: The order status is updated by the webhook handler, not this view.
-    User may see 'pending' status initially; it becomes 'paid' after webhook.
+    - payment_confirmed: Boolean indicating if payment was verified
     """
+    from orders.payments import get_checkout_session, PayMongoError
+
     # Get order ID from query string
     order_id = request.GET.get('order_id')
 
@@ -789,23 +785,73 @@ def payment_success(request: HttpRequest) -> HttpResponse:
         return redirect('orders:history')
 
     # Get order and verify it belongs to user
-    order = get_object_or_404(Order, pk=order_id, user=request.user)
+    order = get_object_or_404(
+        Order.objects.prefetch_related('items'),
+        pk=order_id,
+        user=request.user
+    )
 
     # Check if order has a checkout session (indicates PayMongo was used)
     if not order.checkout_session_id:
         messages.error(request, "Invalid payment callback - order has no payment session")
         return redirect('orders:history')
 
-    # Success! Show confirmation page
-    messages.success(
-        request,
-        f"Payment initiated for order {order.reference_number}. "
-        "You will receive confirmation once payment is processed."
-    )
+    # Check PayMongo API for payment status (if order is still pending)
+    payment_confirmed = False
+    if order.status == Order.Status.PENDING:
+        try:
+            session_data = get_checkout_session(order.checkout_session_id)
+            session_attrs = session_data.get("attributes", {})
+            payment_status = session_attrs.get("payment_intent", {}).get("attributes", {}).get("status", "")
+
+            # Check if payments array has successful payment
+            payments = session_attrs.get("payments", [])
+            if payments:
+                payment = payments[0]
+                payment_attrs = payment.get("attributes", {})
+                payment_status = payment_attrs.get("status", "")
+
+                if payment_status == "paid":
+                    # Get payment method
+                    source = payment_attrs.get("source", {})
+                    payment_method = source.get("type", "unknown")
+
+                    # Mark order as paid
+                    order.mark_paid(
+                        payment_intent_id=payment.get("id", ""),
+                        payment_method=payment_method,
+                    )
+                    payment_confirmed = True
+
+            # Also check checkout session status
+            if not payment_confirmed and session_attrs.get("status") == "paid":
+                order.mark_paid()
+                payment_confirmed = True
+
+        except PayMongoError:
+            # If API call fails, just show the page without updating status
+            pass
+
+    # If order was already paid, consider it confirmed
+    if order.status == Order.Status.PAID:
+        payment_confirmed = True
+
+    # Show appropriate message
+    if payment_confirmed:
+        messages.success(
+            request,
+            f"Payment successful for order {order.reference_number}! Your order is being prepared."
+        )
+    else:
+        messages.info(
+            request,
+            f"Order {order.reference_number} received. Payment status: {order.get_status_display()}"
+        )
 
     context = {
         "order": order,
         "page_title": "Payment Successful",
+        "payment_confirmed": payment_confirmed,
     }
 
     return render(request, "orders/payment_success.html", context)
@@ -881,3 +927,65 @@ def payment_cancel(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "orders/payment_cancel.html", context)
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def retry_payment(request: HttpRequest, order_id: int) -> HttpResponse:
+    """
+    Retry payment for a pending order.
+
+    Purpose: Allow users to retry payment for orders that are still pending.
+
+    Flow:
+    1. Get order by ID and verify ownership
+    2. Check order is still pending
+    3. Create new PayMongo checkout session
+    4. Redirect to PayMongo checkout
+
+    Security:
+    - Requires authentication
+    - Requires POST method (CSRF protected)
+    - Verifies order belongs to current user
+    - Only allows retry for pending orders
+
+    URL: /orders/payment/retry/<order_id>/
+    """
+    from orders.payments import create_checkout_session, PayMongoError
+
+    # Get order and verify ownership
+    order = get_object_or_404(
+        Order.objects.prefetch_related('items'),
+        pk=order_id,
+        user=request.user
+    )
+
+    # Only allow retry for pending orders
+    if order.status != Order.Status.PENDING:
+        messages.error(request, "This order cannot be paid - it's no longer pending.")
+        return redirect('orders:history')
+
+    # Build callback URLs
+    base_url = request.build_absolute_uri('/')[:-1]
+    success_url = f"{base_url}/orders/payment/success/?order_id={order.pk}"
+    cancel_url = f"{base_url}/orders/payment/cancel/?order_id={order.pk}"
+
+    try:
+        # Create new PayMongo checkout session
+        checkout_session_id, checkout_url = create_checkout_session(
+            order=order,
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+
+        # Update checkout session ID
+        order.checkout_session_id = checkout_session_id
+        order.save(update_fields=['checkout_session_id'])
+
+        # Redirect to PayMongo checkout
+        return redirect(checkout_url)
+
+    except PayMongoError as e:
+        messages.error(request, f"Payment initialization failed: {e.message}")
+        return redirect('orders:history')

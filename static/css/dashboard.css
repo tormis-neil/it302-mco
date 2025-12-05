@@ -843,6 +843,40 @@ button[disabled] {
     padding: 1.25rem 1.5rem;
 }
 
+/* Actions Section (Payment buttons) */
+.history-card__actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.history-card__actions form {
+    display: inline-block;
+}
+
+.history-card__pay-btn {
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.history-card__pay-btn:hover {
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+.history-card__pay-btn:active {
+    transform: translateY(0);
+}
+
 /* ===================================================================
    RESPONSIVE DESIGN - MEDIA QUERIES
    =================================================================== */

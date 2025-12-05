@@ -73,6 +73,16 @@
                     <dd>{{ order.special_instructions }}</dd>
                 </dl>
                 {% endif %}
+
+                <!-- Proceed Payment button for pending orders -->
+                {% if order.status == 'pending' %}
+                <div class="history-card__actions">
+                    <form method="post" action="{% url 'orders:retry_payment' order.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn history-card__pay-btn">Proceed Payment</button>
+                    </form>
+                </div>
+                {% endif %}
             </footer>
         </li>
         {% endfor %}

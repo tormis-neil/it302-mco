@@ -281,11 +281,13 @@ recent_orders = request.user.orders.all()[:3]
 ```
 
 **What's Shown**:
-- Order number (order.id)
-- Status (pending, confirmed, cancelled)
+- Order reference (e.g., BC-251206-001)
+- Status (pending, paid, confirmed, cancelled, failed)
 - Total amount
 - Date placed
-- **Note**: Orders feature not fully implemented yet (UI placeholder)
+- Payment method (card, gcash, paymaya)
+
+**Related**: See `docs/PAYMENT_SYSTEM.md` for full order and payment documentation.
 
 ## Key Questions & Answers
 
@@ -548,7 +550,7 @@ if not self.user.check_password(password):
    - [ ] Profile form (pre-filled if data exists)
    - [ ] Username change form (empty)
    - [ ] Password change form (empty)
-   - [ ] Recent orders section (empty or sample data)
+   - [ ] Recent orders section (shows actual orders or empty if none)
 
 #### Test 2: Update Profile Info
 1. [ ] Fill in profile form:

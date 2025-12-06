@@ -833,7 +833,13 @@ python manage.py test accounts.tests
 - ✓ A07: Authentication Failures → Strong hashing, audit logs
 - ✓ A08: Software & Data Integrity → CSRF protection
 - ✓ A09: Logging & Monitoring → AuthenticationEvent model
-- ✓ A10: SSRF → Not applicable (no outbound requests)
+- ✓ A10: SSRF → PayMongo API calls validated
+
+**Payment Security (PCI DSS Compliance)**:
+- Card data never touches server (PayMongo hosted checkout)
+- Webhook signatures verified (HMAC-SHA256)
+- API keys stored as environment variables
+- HTTPS-only API communication
 
 **GDPR (General Data Protection Regulation)**:
 - ✓ Email encryption (data protection)
@@ -852,3 +858,6 @@ python manage.py test accounts.tests
 | Audit Logging | `accounts/views.py:30` | Event recording |
 | Form Validation | `accounts/forms.py:45` | Input sanitization |
 | Generic Errors | `accounts/views.py:86` | No info disclosure |
+| Webhook Verification | `orders/payments.py:224` | HMAC-SHA256 signature check |
+| Order Ownership | `orders/views.py:788` | User verification for orders |
+| PayMongo API | `orders/payments.py:89` | Secure API communication |

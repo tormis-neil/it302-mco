@@ -2,7 +2,7 @@
 
 ## What It Is
 
-The Menu System displays the café's product catalog to authenticated users, organized by categories (Espresso, Brewed Coffee, Bakery, etc.). It provides a read-only browsing interface showing menu items with descriptions, prices, and images. The system is built with query optimization to efficiently handle categories with multiple items.
+The Menu System displays the café's product catalog to authenticated users, organized by categories (Espresso, Brewed Coffee, Bakery, etc.). Users can browse items, view descriptions and prices, and **add items to their shopping cart**. The system is built with query optimization to efficiently handle categories with multiple items.
 
 ## How It Works
 
@@ -104,7 +104,13 @@ categories = Category.objects.prefetch_related('items').all()
                <h3>{{ item.name }}</h3>
                <p>{{ item.description }}</p>
                <p class="price">₱{{ item.base_price }}</p>
-               <button disabled>Add to Cart</button> <!-- Placeholder -->
+
+               <!-- Add to Cart Form (Functional) -->
+               <form method="post" action="{% url 'orders:add_to_cart' %}">
+                   {% csrf_token %}
+                   <input type="hidden" name="menu_item_id" value="{{ item.pk }}">
+                   <button type="submit" class="btn">Add to Cart</button>
+               </form>
            </div>
        {% endfor %}
    {% endfor %}
@@ -176,19 +182,51 @@ def save(self, *args, **kwargs):
 
 ## Key Questions & Answers
 
-### Q1: Why is the menu read-only?
+### Q1: How does "Add to Cart" work?
 
-**A:** **Cart functionality not implemented in MCO 1**.
+**A:** **Cart functionality is fully implemented.**
 
-**Current State**:
-- Menu items displayed with prices
-- "Add to Cart" buttons present but disabled (placeholder for UI)
-- Focus is on displaying the menu catalog, not processing orders
+**Flow**:
+1. User clicks "Add to Cart" button on menu item
+2. Form posts to `/orders/cart/add/` (`orders/views.py:109`)
+3. Cart is created for user if doesn't exist
+4. Item is added to cart (or quantity increased if already in cart)
+5. User redirected back to menu with success message
 
-**Code** (`templates/menu/catalog.html`):
+**Code** (`orders/views.py:109-184`):
+```python
+@login_required
+@require_POST
+@transaction.atomic
+def add_to_cart(request):
+    menu_item_id = request.POST.get('menu_item_id')
+    menu_item = get_object_or_404(MenuItem, pk=menu_item_id)
+
+    # Get or create cart for user
+    cart, created = Cart.objects.get_or_create(user=request.user)
+
+    # Get or create cart item
+    cart_item, item_created = CartItem.objects.get_or_create(
+        cart=cart,
+        menu_item=menu_item,
+        defaults={'quantity': 1}
+    )
+
+    # If item already exists, increase quantity
+    if not item_created:
+        cart_item.quantity += 1
+        cart_item.save()
+
+    return redirect('menu:catalog')
+```
+
+**Template** (`templates/menu/catalog.html:62-67`):
 ```django
-<button disabled class="btn-add-cart">Add to Cart</button>
-<!-- Disabled - cart backend not implemented -->
+<form method="post" action="{% url 'orders:add_to_cart' %}">
+    {% csrf_token %}
+    <input type="hidden" name="menu_item_id" value="{{ item.pk }}">
+    <button type="submit" class="btn">Add to Cart</button>
+</form>
 ```
 
 ### Q2: How does the query optimization work?
@@ -372,11 +410,18 @@ cappuccino.categories.add(espresso_category, specialty_category)
 |-----------|-----------|-------------|
 | Menu View | `menu/views.py:57` | Catalog display handler |
 | Available Categories | `menu/views.py:28` | Optimized category query |
+| Add to Cart | `orders/views.py:109` | Add item to cart handler |
+| Update Cart Item | `orders/views.py:190` | Update quantity handler |
+| Remove from Cart | `orders/views.py:255` | Remove item handler |
+| Cart View | `orders/views.py:487` | Display cart page |
 | Category Model | `menu/models.py:25` | Category data model |
 | MenuItem Model | `menu/models.py:94` | Menu item data model |
+| Cart Model | `orders/models.py:42` | Shopping cart model |
+| CartItem Model | `orders/models.py:102` | Cart line item model |
 | Menu Migration | `menu/migrations/0002_seed_menu.py` | Sample data seeding |
 | Menu URL | `menu/urls.py` | `/menu/` route |
 | Menu Template | `templates/menu/catalog.html` | Display template |
+| Cart Template | `templates/orders/cart.html` | Cart display template |
 
 ## Edge Cases
 
@@ -504,7 +549,18 @@ python manage.py migrate menu
    - [ ] Items shown under each category
    - [ ] Prices displayed (₱95.00 format)
    - [ ] Images loaded (if configured)
-   - [ ] "Add to Cart" buttons disabled
+   - [ ] "Add to Cart" buttons are clickable
+
+#### Test 1b: Add to Cart
+1. [ ] Log in and visit `/menu/`
+2. [ ] Click "Add to Cart" on any item
+3. [ ] **Expected**:
+   - Page reloads with success message
+   - Item added to cart
+4. [ ] Click "Add to Cart" on same item again
+5. [ ] **Expected**: Quantity increased (not duplicate item)
+6. [ ] Click "View Cart" button
+7. [ ] **Expected**: Cart shows items with correct quantities
 
 #### Test 2: Menu Data Verification
 1. [ ] Check categories exist:

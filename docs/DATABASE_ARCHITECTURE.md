@@ -188,7 +188,7 @@ The Brews & Chews database architecture implements a normalized relational schem
 
 **File**: `orders/models.py:42`
 
-**Status**: Model defined but not implemented in MCO 1
+**Status**: Fully implemented
 
 **Fields**:
 
@@ -220,7 +220,7 @@ The Brews & Chews database architecture implements a normalized relational schem
 
 **File**: `orders/models.py:102`
 
-**Status**: Model defined but not implemented in MCO 1
+**Status**: Fully implemented
 
 **Fields**:
 
@@ -248,11 +248,11 @@ The Brews & Chews database architecture implements a normalized relational schem
 
 ### 8. Order Model (`orders.Order`)
 
-**Purpose**: Completed checkout captured for history.
+**Purpose**: Completed checkout captured for history with payment tracking.
 
 **File**: `orders/models.py:174`
 
-**Status**: Model defined but not implemented in MCO 1
+**Status**: Fully implemented with PayMongo integration
 
 **Fields**:
 
@@ -261,19 +261,33 @@ The Brews & Chews database architecture implements a normalized relational schem
 | `id` | BigAutoField | Primary key (order number) | Auto-increment |
 | `user` | ForeignKey | Link to User | CASCADE |
 | `status` | CharField(20) | Order status | Choices, default: 'pending' |
+| `reference_number` | CharField(20) | Order reference (BC-YYMMDD-NNN) | Unique |
 | `contact_name` | CharField(120) | Customer name | Required |
 | `contact_phone` | CharField(20) | Customer phone | Optional |
 | `special_instructions` | TextField | Order notes | Optional |
 | `subtotal` | DecimalField(8,2) | Items total | Default: 0.00 |
 | `tax` | DecimalField(8,2) | Sales tax | Default: 0.00 |
 | `total` | DecimalField(8,2) | Grand total | Default: 0.00 |
+| `checkout_session_id` | CharField(100) | PayMongo session ID | Optional |
+| `payment_intent_id` | CharField(100) | PayMongo payment ID | Optional |
+| `payment_method` | CharField(20) | card/gcash/paymaya | Choices |
+| `paid_at` | DateTimeField | Payment timestamp | Nullable |
 | `created_at` | DateTimeField | Order placed time | Auto-set |
 | `updated_at` | DateTimeField | Last update time | Auto-updated |
 
-**Status Choices**:
-- `pending`: Order placed, awaiting confirmation
+**Status Choices** (`orders/models.py:209-228`):
+- `pending`: Order placed, awaiting payment
+- `paid`: Payment confirmed via PayMongo
 - `confirmed`: Staff confirmed, preparing
 - `cancelled`: Order cancelled
+- `failed`: Payment failed
+
+**Payment Method Choices** (`orders/models.py:230-238`):
+- `card`: Credit/Debit Card
+- `gcash`: GCash e-wallet
+- `paymaya`: PayMaya e-wallet
+- `grab_pay`: GrabPay
+- `unknown`: Unknown method
 
 **Relationships**:
 - ManyToOne → `User` (via `order.user`)
@@ -283,17 +297,19 @@ The Brews & Chews database architecture implements a normalized relational schem
 **Ordering**: Newest orders first (`-created_at`)
 
 **Methods**:
-- `mark_confirmed()`: Updates status to 'confirmed'
+- `mark_paid(payment_intent_id, payment_method)`: Updates status to 'paid' (`orders/models.py:323`)
+- `mark_confirmed()`: Updates status to 'confirmed' (`orders/models.py:349`)
+- `mark_failed()`: Updates status to 'failed' (`orders/models.py:368`)
 
-**Code Reference**: `orders/models.py:174-302`
+**Code Reference**: `orders/models.py:174-381`
 
 ### 9. OrderItem Model (`orders.OrderItem`)
 
 **Purpose**: Line items in a completed order (price snapshot).
 
-**File**: `orders/models.py:304`
+**File**: `orders/models.py:383`
 
-**Status**: Model defined but not implemented in MCO 1
+**Status**: Fully implemented
 
 **Fields**:
 

@@ -55,13 +55,15 @@ A Django-based web application for café ordering with secure authentication, on
 
 ---
 
-## Quick Setup Guide
+## Quick Setup Guide (For Team Members)
 
 ### Prerequisites
 
 - **Python 3.8+** installed
 - **Git** installed
 - A code editor (VS Code recommended)
+
+---
 
 ### Step 1: Clone the Repository
 
@@ -70,12 +72,20 @@ git clone https://github.com/tormis-neil/it302-mco.git
 cd it302-mco
 ```
 
+---
+
 ### Step 2: Create Virtual Environment
 
 **Windows (PowerShell):**
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
+```
+
+**Windows (Command Prompt):**
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
 ```
 
 **macOS/Linux:**
@@ -86,79 +96,115 @@ source .venv/bin/activate
 
 You should see `(.venv)` at the start of your terminal prompt.
 
+---
+
 ### Step 3: Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 4: Configure Environment Variables
+---
 
-Create a `.env` file in the project root:
+### Step 4: Create the .env File (IMPORTANT!)
 
-```bash
-# Windows
+This is the most important step. The website will NOT work without the `.env` file.
+
+**Windows (Command Prompt):**
+```cmd
 copy .env.example .env
+```
 
-# macOS/Linux
+**Windows (PowerShell):**
+```powershell
+Copy-Item .env.example .env
+```
+
+**macOS/Linux:**
+```bash
 cp .env.example .env
 ```
 
-Edit `.env` with these settings:
+---
+
+### Step 5: Configure the .env File
+
+Open the `.env` file in your code editor and fill in the values:
 
 ```env
-# Required for development
+# ========================================
+# REQUIRED SETTINGS - MUST BE SET!
+# ========================================
+
+# Set this to 1 for development (REQUIRED!)
+# If you don't set this, the system will ask for DJANGO_SECRET_KEY
 DJANGO_DEBUG=1
+
+# Secret key for security (Optional in development)
+# Leave empty if DJANGO_DEBUG=1 - it will auto-generate
+# To generate your own: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 DJANGO_SECRET_KEY=
+
+# Allowed hosts (keep as is for local development)
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Database filename (keep as is)
 DJANGO_DB_NAME=db.sqlite3
 
-# Email encryption (optional - auto-generates if empty)
+# ========================================
+# EMAIL ENCRYPTION (Optional)
+# ========================================
+
+# Leave empty - will auto-generate from SECRET_KEY
+# Only set this if you're sharing a database with other team members
 ACCOUNT_EMAIL_ENCRYPTION_KEY=
 
-# PayMongo API Keys (get from https://dashboard.paymongo.com)
-PAYMONGO_SECRET_KEY=sk_test_your_secret_key_here
-PAYMONGO_PUBLIC_KEY=pk_test_your_public_key_here
+# ========================================
+# PAYMONGO PAYMENT (Optional for testing)
+# ========================================
+
+# Get your test keys from: https://dashboard.paymongo.com/developers
+# Without these, payment features won't work
+PAYMONGO_SECRET_KEY=sk_test_your_key_here
+PAYMONGO_PUBLIC_KEY=pk_test_your_key_here
 PAYMONGO_WEBHOOK_SECRET=
 ```
 
-### Step 5: Run Database Migrations
-
-**Windows:**
-```cmd
-python manage.py migrate
-```
-
-**macOS/Linux:**
-```bash
-python3 manage.py migrate
-```
-
-### Step 6: Start the Server
-
-**Windows:**
-```cmd
-python manage.py runserver
-```
-
-**macOS/Linux:**
-```bash
-python3 manage.py runserver
-```
-
-### Step 7: Open the Website
-
-Visit: **http://127.0.0.1:8000/**
+**IMPORTANT:** The minimum required setting is `DJANGO_DEBUG=1`. Without this, you'll get an error asking for `DJANGO_SECRET_KEY`.
 
 ---
 
-## PayMongo Setup (Payment System)
+### Step 6: Run Database Migrations
 
-To enable online payments:
+```bash
+python manage.py migrate
+```
+
+This creates the database and all the tables needed for the website.
+
+---
+
+### Step 7: Start the Development Server
+
+```bash
+python manage.py runserver
+```
+
+---
+
+### Step 8: Open the Website
+
+Open your browser and go to: **http://127.0.0.1:8000/**
+
+---
+
+## PayMongo Setup (For Payment Testing)
+
+To test the payment features:
 
 1. Create a **PayMongo** account at https://paymongo.com
 2. Go to **Developers > API Keys** in the dashboard
-3. Copy your **Test** keys (for development)
+3. Copy your **Test** keys (NOT live keys!)
 4. Add them to your `.env` file:
    ```env
    PAYMONGO_SECRET_KEY=sk_test_xxxxx
@@ -167,9 +213,12 @@ To enable online payments:
 5. Restart the Django server
 
 **Test Card for Development:**
-- Card Number: `4343 4343 4343 4345`
-- Expiry: Any future date
-- CVV: Any 3 digits
+| Field | Value |
+|-------|-------|
+| Card Number | `4343 4343 4343 4345` |
+| Expiry | Any future date (e.g., 12/25) |
+| CVV | Any 3 digits (e.g., 123) |
+| Name | Any name |
 
 ---
 
@@ -177,14 +226,8 @@ To enable online payments:
 
 Run all automated tests:
 
-**Windows:**
-```cmd
-python manage.py test
-```
-
-**macOS/Linux:**
 ```bash
-python3 manage.py test
+python manage.py test
 ```
 
 Expected output: `Ran 37 tests in X.XXXs - OK`
@@ -193,28 +236,32 @@ Expected output: `Ran 37 tests in X.XXXs - OK`
 
 ## Common Issues & Solutions
 
+### Issue: "DJANGO_SECRET_KEY environment variable is required"
+
+**Cause:** `DJANGO_DEBUG=1` is NOT set in your `.env` file.
+
+**Solution:**
+1. Make sure you created the `.env` file (Step 4)
+2. Make sure `DJANGO_DEBUG=1` is in your `.env` file
+3. Make sure there's no typo (it must be exactly `DJANGO_DEBUG=1`)
+
+---
+
 ### Issue: "ModuleNotFoundError: No module named 'django'"
 
 **Cause:** Virtual environment not activated.
 
 **Solution:**
 ```bash
-# Windows
+# Windows PowerShell
 .venv\Scripts\Activate.ps1
+
+# Windows Command Prompt
+.venv\Scripts\activate.bat
 
 # macOS/Linux
 source .venv/bin/activate
 ```
-
----
-
-### Issue: "DJANGO_SECRET_KEY environment variable is required"
-
-**Cause:** Missing `.env` file or `DJANGO_DEBUG` not set.
-
-**Solution:**
-1. Create `.env` file from `.env.example`
-2. Make sure `DJANGO_DEBUG=1` is set
 
 ---
 
@@ -234,7 +281,7 @@ python manage.py migrate
 **Cause:** PayMongo keys not configured.
 
 **Solution:**
-1. Get API keys from PayMongo dashboard
+1. Get test API keys from PayMongo dashboard
 2. Add to `.env` file
 3. Restart the server
 
@@ -247,6 +294,16 @@ python manage.py migrate
 python manage.py runserver 8080
 ```
 Then visit: http://127.0.0.1:8080/
+
+---
+
+### Issue: ".env file not found" or settings not loading
+
+**Cause:** `.env` file doesn't exist or is in wrong location.
+
+**Solution:**
+1. Make sure `.env` file is in the project root (same folder as `manage.py`)
+2. Make sure the file is named exactly `.env` (not `.env.txt`)
 
 ---
 
@@ -264,6 +321,7 @@ it302-mco/
 ├── docs/                # Technical documentation
 ├── requirements.txt     # Python dependencies
 ├── .env.example         # Environment variable template
+├── .env                 # Your local settings (don't commit!)
 └── README.md            # This file
 ```
 
@@ -271,13 +329,39 @@ it302-mco/
 
 ## For Team Members
 
+### After Cloning (First Time Setup)
+
+```bash
+# 1. Create virtual environment
+python -m venv .venv
+
+# 2. Activate it
+# Windows: .venv\Scripts\activate
+# Mac/Linux: source .venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Create .env file
+# Windows: copy .env.example .env
+# Mac/Linux: cp .env.example .env
+
+# 5. Edit .env and set DJANGO_DEBUG=1
+
+# 6. Run migrations
+python manage.py migrate
+
+# 7. Start server
+python manage.py runserver
+```
+
 ### Pulling Latest Changes
 
 ```bash
 git checkout main
 git pull origin main
-pip install -r requirements.txt
-python manage.py migrate
+pip install -r requirements.txt  # In case new packages were added
+python manage.py migrate          # In case database changed
 python manage.py runserver
 ```
 
@@ -285,7 +369,27 @@ python manage.py runserver
 
 1. Run tests: `python manage.py test`
 2. Make sure all tests pass
-3. Never commit `.env` or `db.sqlite3`
+3. **NEVER commit these files:**
+   - `.env` (contains secrets)
+   - `db.sqlite3` (local database)
+   - `.venv/` (virtual environment)
+
+---
+
+## Environment Variables Summary
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DJANGO_DEBUG` | **YES** | Set to `1` for development |
+| `DJANGO_SECRET_KEY` | No* | Auto-generates if DEBUG=1 |
+| `DJANGO_ALLOWED_HOSTS` | No | Defaults to localhost |
+| `DJANGO_DB_NAME` | No | Defaults to db.sqlite3 |
+| `ACCOUNT_EMAIL_ENCRYPTION_KEY` | No | Auto-generates from SECRET_KEY |
+| `PAYMONGO_SECRET_KEY` | For payments | Get from PayMongo dashboard |
+| `PAYMONGO_PUBLIC_KEY` | For payments | Get from PayMongo dashboard |
+| `PAYMONGO_WEBHOOK_SECRET` | No | For webhook verification |
+
+*Required if DJANGO_DEBUG is not set to 1
 
 ---
 
@@ -294,6 +398,20 @@ python manage.py runserver
 - **Never commit** `.env`, `db.sqlite3`, or API keys to Git
 - Use different keys for development and production
 - Back up your `ACCOUNT_EMAIL_ENCRYPTION_KEY` - if lost, encrypted emails cannot be recovered
+
+---
+
+## Technical Documentation
+
+See the `docs/` folder for detailed documentation:
+- `DATABASE_ARCHITECTURE.md` - Database models and relationships
+- `SECURITY_IMPLEMENTATION.md` - Security features explained
+- `PAYMENT_SYSTEM.md` - PayMongo payment integration
+- `LOGIN_FEATURE.md` - Login functionality
+- `SIGNUP_FEATURE.md` - Registration process
+- `PROFILE_MANAGEMENT.md` - User profile features
+- `MENU_SYSTEM.md` - Menu and cart system
+- `TESTING_PROCEDURES.md` - Testing guide
 
 ---
 

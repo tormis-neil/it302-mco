@@ -617,6 +617,9 @@ kill <pid>
 - [ ] Can login with new user
 - [ ] Can view profile
 - [ ] Can view menu
+- [ ] Can add items to cart
+- [ ] Can view cart
+- [ ] Can proceed to checkout
 - [ ] Can logout
 
 ### Full Testing Checklist (30 minutes)
@@ -634,6 +637,13 @@ kill <pid>
 - [ ] Account deletion works
 - [ ] Logout works
 - [ ] Menu displays items with images and prices
+- [ ] Add to cart works (quantity updates)
+- [ ] Cart displays items with totals
+- [ ] Cart update/remove works
+- [ ] Checkout form pre-fills contact info
+- [ ] PayMongo payment redirect works
+- [ ] Payment success page shows order details
+- [ ] Order history shows completed orders
 
 **Security Verification:**
 - [ ] Passwords hashed with Argon2
@@ -680,8 +690,13 @@ demo.profile.save()
 2. [ ] Show login (with demo account)
 3. [ ] Show profile (with filled data)
 4. [ ] Show menu browsing
-5. [ ] Show email encryption (Django shell)
-6. [ ] Show audit logs (Django shell)
+5. [ ] Show add to cart (click "Add to Cart")
+6. [ ] Show cart page (view items, totals)
+7. [ ] Show checkout (fill contact info)
+8. [ ] Show payment (PayMongo test card)
+9. [ ] Show order history (completed order)
+10. [ ] Show email encryption (Django shell)
+11. [ ] Show audit logs (Django shell)
 
 **Backup before presentation:**
 ```bash
@@ -708,7 +723,9 @@ Expected: 37 tests pass, no warnings
 - Signup (6 test cases)
 - Login (7 test cases)
 - Profile (5 test cases)
-- Menu (1 test case)
+- Menu (3 test cases)
+- Cart (4 test cases)
+- Checkout/Payment (5 test cases)
 - Security (5 tests)
 - Browser (2 browsers)
 - Responsive (2 sizes)
@@ -719,18 +736,20 @@ Expected: 37 tests pass, no warnings
 - Test encryption roundtrip
 - Check audit logging
 
-### All Features Verified ✅
+### All Features Verified
 
 **Implemented & Tested:**
-- ✅ User signup with email encryption
-- ✅ Login (username/email, case-insensitive)
-- ✅ Profile management (view/edit/delete)
-- ✅ Password strength validation
-- ✅ Argon2 password hashing
-- ✅ AES-256-GCM email encryption
-- ✅ Audit logging
-- ✅ CSRF protection
-- ✅ Session management
-
-**UI-Only (Not Tested):**
-- Cart/Orders (Phase 2, not implemented)
+- User signup with email encryption
+- Login (username/email, case-insensitive)
+- Profile management (view/edit/delete)
+- Password strength validation
+- Argon2 password hashing
+- AES-256-GCM email encryption
+- Audit logging
+- CSRF protection
+- Session management
+- Menu browsing with categories
+- Shopping cart (add/update/remove items)
+- Checkout with contact form
+- PayMongo payment integration (Card, GCash, PayMaya)
+- Order history with status tracking

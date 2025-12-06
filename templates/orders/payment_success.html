@@ -22,10 +22,10 @@
 </section>
 
 <!-- Order confirmation details -->
-<section class="dashboard-section" aria-labelledby="order-confirmation">
-    <h2 id="order-confirmation" class="dashboard-section__title">Order Details</h2>
+<section class="dashboard-section" aria-labelledby="order-confirmation" style="display: flex; flex-direction: column; align-items: center;">
+    <h2 id="order-confirmation" class="dashboard-section__title" style="width: 100%; max-width: 600px;">Order Details</h2>
 
-    <div class="checkout-summary" style="max-width: 600px;">
+    <div class="checkout-summary" style="max-width: 600px; width: 100%;">
         <!-- Order reference -->
         <div class="cart-summary__row" style="margin-bottom: 1rem;">
             <strong>Order Reference:</strong>
@@ -92,7 +92,7 @@
     </div>
 
     <!-- Next steps info -->
-    <div style="margin-top: 2rem; padding: 1.5rem; background: #e8f5e9; border-radius: 8px; max-width: 600px; color: #1b5e20;">
+    <div style="margin-top: 2rem; padding: 1.5rem; background: #e8f5e9; border-radius: 8px; max-width: 600px; width: 100%; color: #1b5e20;">
         <h3 style="margin-bottom: 0.5rem; color: #2e7d32;">What happens next?</h3>
         <ol style="margin-left: 1.5rem; color: #33691e;">
             {% if payment_confirmed %}

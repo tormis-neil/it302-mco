@@ -848,6 +848,8 @@ button[disabled] {
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    justify-content: flex-end;
 }
 
 .history-card__actions form {

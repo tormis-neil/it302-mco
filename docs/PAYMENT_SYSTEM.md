@@ -53,7 +53,7 @@ Think of it like ordering food through a delivery app:
 ```python
 # orders/views.py:625-635
 order = Order.objects.create(
-    user=request.user,
+    user=rquest.user,
     status=Order.Status.PENDING,
     reference_number=order_reference,
     contact_name=form.cleaned_data['contact_name'],

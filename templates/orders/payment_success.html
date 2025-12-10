@@ -83,6 +83,12 @@
                 <dd>{{ order.special_instructions }}</dd>
             </dl>
             {% endif %}
+
+            <!-- Action buttons -->
+            <div class="history-card__actions">
+                <a href="{% url 'menu:catalog' %}" class="btn btn-secondary">Back to Menu</a>
+                <a href="{% url 'orders:history' %}" class="btn">View Order History</a>
+            </div>
         </footer>
     </div>
 </section>
@@ -105,11 +111,5 @@
         </ol>
     </div>
 </section>
-
-<!-- Action buttons -->
-<div class="payment-actions">
-    <a href="{% url 'menu:catalog' %}" class="btn btn-secondary">Back to Menu</a>
-    <a href="{% url 'orders:history' %}" class="btn">View Order History</a>
-</div>
 
 {% endblock %}

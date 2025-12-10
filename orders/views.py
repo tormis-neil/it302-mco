@@ -1,23 +1,28 @@
 """
-Placeholder ordering views for the authenticated dashboard.
+Order management views for the authenticated dashboard.
 
 Views:
-- cart_view(): Display cart with sample data
-- checkout(): Display checkout form with sample data
-- history(): Display order history with sample data
+- add_to_cart(): Add menu item to user's cart
+- update_cart_item(): Update item quantity in cart
+- remove_from_cart(): Remove item from cart
+- cart_view(): Display user's shopping cart
+- checkout(): Process checkout and create order
+- payment_success(): Handle successful payment return
+- payment_cancel(): Handle cancelled payment
+- retry_payment(): Retry payment for pending order
+- history(): Display user's order history
 
-Current Status: UI PROTOTYPE ONLY
-- Shows placeholder/sample data
-- Cannot actually add items to cart
-- Cannot process real orders
-- All data is generated on-the-fly for display
-
-Purpose: Demonstrate UI layout and user experience
-Future: Will connect to Cart and Order models (Phase 2)
+Current Status: FULLY IMPLEMENTED
+- Real cart functionality with database persistence
+- PayMongo payment integration (Card, GCash, PayMaya)
+- Order creation with reference numbers
+- Order history with status tracking
 
 Related Files:
-- orders/models.py: Cart and Order models (not used yet)
-- orders/forms.py: Cart and checkout forms (not used yet)
+- orders/models.py: Cart, CartItem, Order, OrderItem models
+- orders/forms.py: CheckoutForm for contact information
+- orders/payments.py: PayMongo API integration
+- orders/webhooks.py: Payment webhook handlers
 - templates/orders/*.html: Display templates
 """
 

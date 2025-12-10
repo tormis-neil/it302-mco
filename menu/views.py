@@ -68,7 +68,7 @@ def catalog(request: HttpRequest) -> HttpResponse:
     
     Access Control:
     - Requires login: @login_required redirects to /accounts/login/ if not logged in
-    - Read-only: No cart functionality yet (coming in Phase 2)
+    - Cart enabled: Users can add items to cart via POST to /orders/cart/add/
     
     Template Context:
     - categories: QuerySet of Category objects with items
@@ -81,13 +81,12 @@ def catalog(request: HttpRequest) -> HttpResponse:
         # If not logged in → Redirected to /accounts/login/
         # If logged in → See menu organized by categories
     
-    Current Limitations:
-    - "Add to Cart" buttons are disabled (UI placeholder)
-    - Cannot actually order items yet
-    - Menu is read-only display
-    
+    Features:
+    - "Add to Cart" buttons are functional
+    - Items added to cart persist in database
+    - Cart accessible via /orders/cart/
+
     Future Enhancements:
-    - Enable "Add to Cart" functionality
     - Show item availability status
     - Filter by category
     - Search menu items

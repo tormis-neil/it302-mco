@@ -16,85 +16,83 @@
     <div>
         <p class="dashboard-eyebrow">Payment Complete</p>
         <h1 class="dashboard-title">Thank you for your order!</h1>
-        <p class="dashboard-subtitle">Your payment has been initiated and your order is being processed.</p>
+        <p class="dashboard-subtitle">Your payment has been processed and your order is being prepared.</p>
     </div>
-    <a href="{% url 'orders:history' %}" class="btn dashboard-cta">View Order History</a>
+    <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Back to Menu</a>
 </section>
 
-<!-- Order confirmation details -->
-<section class="dashboard-section" aria-labelledby="order-confirmation" style="display: flex; flex-direction: column; align-items: center;">
-    <h2 id="order-confirmation" class="dashboard-section__title" style="width: 100%; max-width: 600px;">Order Details</h2>
+<!-- Order confirmation card -->
+<section class="dashboard-section" aria-labelledby="order-confirmation">
+    <h2 id="order-confirmation" class="dashboard-section__title">Order Details</h2>
 
-    <div class="checkout-summary" style="max-width: 600px; width: 100%;">
-        <!-- Order reference -->
-        <div class="cart-summary__row" style="margin-bottom: 1rem;">
-            <strong>Order Reference:</strong>
-            <span>{{ order.reference_number }}</span>
-        </div>
-
-        <!-- Order status -->
-        <div class="cart-summary__row" style="margin-bottom: 1rem;">
-            <strong>Status:</strong>
-            <span class="status-badge status-{{ order.status }}">
+    <div class="history-card">
+        <!-- Order header with status -->
+        <header class="history-card__header">
+            <div class="history-card__header-info">
+                <h3 class="history-card__title">Order {{ order.reference_number }}</h3>
+                <p class="history-card__meta">
+                    Placed on {{ order.created_at|date:"M d, Y g:i a" }}
+                </p>
+            </div>
+            <span class="history-card__status history-card__status--{{ order.status }}">
                 {{ order.get_status_display }}
             </span>
-        </div>
+        </header>
 
-        <!-- Contact info -->
-        <div class="cart-summary__row" style="margin-bottom: 1rem;">
-            <strong>Contact Name:</strong>
-            <span>{{ order.contact_name }}</span>
-        </div>
-
-        {% if order.contact_phone %}
-        <div class="cart-summary__row" style="margin-bottom: 1rem;">
-            <strong>Phone:</strong>
-            <span>{{ order.contact_phone }}</span>
-        </div>
-        {% endif %}
-
-        <!-- Items list -->
-        <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Items Ordered</h3>
-        <ul class="checkout-items">
+        <!-- Order items list -->
+        <ul class="history-card__items">
             {% for item in order.items.all %}
-            <li class="checkout-items__entry">
-                <div>
-                    <strong>{{ item.menu_item_name }}</strong>
-                    <span class="checkout-items__meta">Qty {{ item.quantity }}</span>
-                </div>
+            <li>
+                <strong>{{ item.menu_item_name }}</strong>
+                <span class="history-card__items-meta">Qty {{ item.quantity }}</span>
                 <span>&#8369;{{ item.line_total|floatformat:2 }}</span>
             </li>
             {% endfor %}
         </ul>
 
-        <!-- Totals -->
-        <dl class="cart-summary__list">
-            <div class="cart-summary__row">
-                <dt>Subtotal</dt>
-                <dd>&#8369;{{ order.subtotal|floatformat:2 }}</dd>
-            </div>
-            <div class="cart-summary__row">
-                <dt>Tax (8%)</dt>
-                <dd>&#8369;{{ order.tax|floatformat:2 }}</dd>
-            </div>
-            <div class="cart-summary__row cart-summary__total">
-                <dt>Total</dt>
-                <dd>&#8369;{{ order.total|floatformat:2 }}</dd>
-            </div>
-        </dl>
+        <!-- Order footer with totals and contact info -->
+        <footer class="history-card__footer">
+            <dl>
+                <div>
+                    <dt>Contact Name</dt>
+                    <dd>{{ order.contact_name }}</dd>
+                </div>
+                {% if order.contact_phone %}
+                <div>
+                    <dt>Phone</dt>
+                    <dd>{{ order.contact_phone }}</dd>
+                </div>
+                {% endif %}
+                <div>
+                    <dt>Subtotal</dt>
+                    <dd>&#8369;{{ order.subtotal|floatformat:2 }}</dd>
+                </div>
+                <div>
+                    <dt>Tax (8%)</dt>
+                    <dd>&#8369;{{ order.tax|floatformat:2 }}</dd>
+                </div>
+                <div class="history-card__total">
+                    <dt>Total</dt>
+                    <dd>&#8369;{{ order.total|floatformat:2 }}</dd>
+                </div>
+            </dl>
 
-        {% if order.special_instructions %}
-        <div style="margin-top: 1rem; padding: 1rem; background: var(--color-cream-light, #f5f2eb); border-radius: 8px;">
-            <strong>Special Instructions:</strong>
-            <p style="margin-top: 0.5rem;">{{ order.special_instructions }}</p>
-        </div>
-        {% endif %}
+            {% if order.special_instructions %}
+            <dl class="history-card__notes">
+                <dt>Special Instructions</dt>
+                <dd>{{ order.special_instructions }}</dd>
+            </dl>
+            {% endif %}
+        </footer>
     </div>
+</section>
 
-    <!-- Next steps info -->
-    <div style="margin-top: 2rem; padding: 1.5rem; background: #e8f5e9; border-radius: 8px; max-width: 600px; width: 100%; color: #1b5e20;">
-        <h3 style="margin-bottom: 0.5rem; color: #2e7d32;">What happens next?</h3>
-        <ol style="margin-left: 1.5rem; color: #33691e;">
+<!-- What happens next info -->
+<section class="dashboard-section" aria-labelledby="next-steps">
+    <h2 id="next-steps" class="dashboard-section__title">What happens next?</h2>
+
+    <div class="history-card">
+        <ol class="next-steps-list">
             {% if payment_confirmed %}
             <li>Your payment has been confirmed!</li>
             <li>Our team is now preparing your order</li>
@@ -103,9 +101,15 @@
             <li>Once confirmed, our team will prepare your order</li>
             {% endif %}
             <li>You'll see the status update in your order history</li>
-            <li>Pickup your order when it's ready!</li>
+            <li>Pick up your order when it's ready!</li>
         </ol>
     </div>
 </section>
+
+<!-- Action buttons -->
+<div class="payment-success-actions">
+    <a href="{% url 'menu:catalog' %}" class="btn">Back to Menu</a>
+    <a href="{% url 'orders:history' %}" class="btn btn-secondary">View Order History</a>
+</div>
 
 {% endblock %}

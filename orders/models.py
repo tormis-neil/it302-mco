@@ -7,10 +7,10 @@ Models:
 - Order: Completed checkout captured for history
 - OrderItem: Line items in a completed order
 
-Current Status:
-- Models exist but NOT connected to views yet
-- UI shows placeholder data only
-- Full implementation planned for Phase 2
+Current Status: FULLY IMPLEMENTED
+- Cart functionality with add/update/remove operations
+- Order creation with PayMongo payment integration
+- Order history with status tracking
 
 Relationships:
 - User (1) ←→ (1) Cart
@@ -19,12 +19,13 @@ Relationships:
 - Order (1) ←→ (Many) OrderItem
 
 Used by:
-- orders/views.py: Currently shows sample data (not real cart/orders)
-- Future: Will be used for actual order processing
+- orders/views.py: Cart, checkout, payment, and history views
+- orders/payments.py: PayMongo API integration
+- orders/webhooks.py: Payment webhook handlers
 
 Related Files:
-- orders/views.py: Placeholder views with sample data
-- orders/forms.py: Cart and checkout forms (ready for Phase 2)
+- orders/views.py: Order management views
+- orders/forms.py: CheckoutForm for contact information
 - menu/models.py: MenuItem referenced by CartItem and OrderItem
 """
 
@@ -53,10 +54,8 @@ class Cart(models.Model):
     - Created: When user first adds item to cart
     - Updated: When user adds/removes/updates items
     - Cleared: After successful checkout (items become OrderItems)
-    
-    Current Status: Model exists but not used yet (Phase 2)
-    
-    Example Usage (Future):
+
+    Example Usage:
         user = request.user
         cart = user.cart  # Access user's cart
         total_items = cart.total_items()  # Get item count
@@ -112,10 +111,8 @@ class CartItem(models.Model):
     Unique Together:
     - (cart, menu_item): Can't have same item twice in cart
     - If user adds same item again, update quantity instead
-    
-    Current Status: Model exists but not used yet (Phase 2)
-    
-    Example Usage (Future):
+
+    Example Usage:
         cart_item = CartItem.objects.create(
             cart=user.cart,
             menu_item=cappuccino,
@@ -192,10 +189,8 @@ class Order(models.Model):
     - OrderItems store name and price at time of order
     - Prevents issues if menu item price/name changes later
     - Order history always shows what customer actually paid
-    
-    Current Status: Model exists but not used yet (Phase 2)
-    
-    Example Usage (Future):
+
+    Example Usage:
         order = Order.objects.create(
             user=request.user,
             contact_name="John Doe",
@@ -403,10 +398,8 @@ class OrderItem(models.Model):
     PROTECT vs CASCADE:
     - PROTECT: Can't delete MenuItem if used in any order
     - Prevents: Accidentally breaking order history
-    
-    Current Status: Model exists but not used yet (Phase 2)
-    
-    Example Usage (Future):
+
+    Example Usage:
         order_item = OrderItem.objects.create(
             order=order,
             menu_item=cappuccino,

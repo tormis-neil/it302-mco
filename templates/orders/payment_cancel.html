@@ -24,93 +24,85 @@
             {% endif %}
         </p>
     </div>
-    <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Browse Menu</a>
+    <a href="{% url 'menu:catalog' %}" class="btn dashboard-cta">Back to Menu</a>
 </section>
 
-<!-- Order details -->
-<section class="dashboard-section" aria-labelledby="order-details" style="display: flex; flex-direction: column; align-items: center;">
-    <h2 id="order-details" class="dashboard-section__title" style="width: 100%; max-width: 600px;">Order Details</h2>
+<!-- Order details card -->
+<section class="dashboard-section" aria-labelledby="order-details">
+    <h2 id="order-details" class="dashboard-section__title">Order Details</h2>
 
-    <div class="checkout-summary" style="max-width: 600px; width: 100%;">
-        <!-- Order reference -->
-        <div class="cart-summary__row" style="margin-bottom: 1rem;">
-            <strong>Order Reference:</strong>
-            <span>{{ order.reference_number }}</span>
-        </div>
-
-        <!-- Order status -->
-        <div class="cart-summary__row" style="margin-bottom: 1rem;">
-            <strong>Status:</strong>
-            <span class="status-badge status-{{ order.status }}">
+    <div class="history-card">
+        <!-- Order header with status -->
+        <header class="history-card__header">
+            <div class="history-card__header-info">
+                <h3 class="history-card__title">Order {{ order.reference_number }}</h3>
+                <p class="history-card__meta">
+                    Placed on {{ order.created_at|date:"M d, Y g:i a" }}
+                </p>
+            </div>
+            <span class="history-card__status history-card__status--{{ order.status }}">
                 {{ order.get_status_display }}
             </span>
-        </div>
+        </header>
 
-        <!-- Items list -->
-        <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Items in Order</h3>
-        <ul class="checkout-items">
+        <!-- Order items list -->
+        <ul class="history-card__items">
             {% for item in order.items.all %}
-            <li class="checkout-items__entry">
-                <div>
-                    <strong>{{ item.menu_item_name }}</strong>
-                    <span class="checkout-items__meta">Qty {{ item.quantity }}</span>
-                </div>
+            <li>
+                <strong>{{ item.menu_item_name }}</strong>
+                <span class="history-card__items-meta">Qty {{ item.quantity }}</span>
                 <span>&#8369;{{ item.line_total|floatformat:2 }}</span>
             </li>
             {% endfor %}
         </ul>
 
-        <!-- Totals -->
-        <dl class="cart-summary__list">
-            <div class="cart-summary__row">
-                <dt>Subtotal</dt>
-                <dd>&#8369;{{ order.subtotal|floatformat:2 }}</dd>
-            </div>
-            <div class="cart-summary__row">
-                <dt>Tax (8%)</dt>
-                <dd>&#8369;{{ order.tax|floatformat:2 }}</dd>
-            </div>
-            <div class="cart-summary__row cart-summary__total">
-                <dt>Total</dt>
-                <dd>&#8369;{{ order.total|floatformat:2 }}</dd>
-            </div>
-        </dl>
+        <!-- Order footer with totals -->
+        <footer class="history-card__footer">
+            <dl>
+                <div>
+                    <dt>Subtotal</dt>
+                    <dd>&#8369;{{ order.subtotal|floatformat:2 }}</dd>
+                </div>
+                <div>
+                    <dt>Tax (8%)</dt>
+                    <dd>&#8369;{{ order.tax|floatformat:2 }}</dd>
+                </div>
+                <div class="history-card__total">
+                    <dt>Total</dt>
+                    <dd>&#8369;{{ order.total|floatformat:2 }}</dd>
+                </div>
+            </dl>
+        </footer>
     </div>
+</section>
 
-    <!-- Action buttons -->
-    {% if can_retry %}
-    <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; max-width: 600px; width: 100%;">
-        <form method="post" action="{% url 'orders:retry_payment' order.pk %}" style="margin: 0;">
-            {% csrf_token %}
-            <button type="submit" class="btn" style="background: #4caf50; color: white; border: none; padding: 0.75rem 1.5rem; font-weight: 600;">
-                Retry Payment
-            </button>
-        </form>
-        <a href="{% url 'orders:history' %}" class="btn" style="background: #2c1810; color: white; padding: 0.75rem 1.5rem; text-decoration: none;">
-            View in Order History
-        </a>
-        <a href="{% url 'menu:catalog' %}" class="btn" style="background: #ffffff; border: 2px solid #2c1810; color: #2c1810; padding: 0.75rem 1.5rem; text-decoration: none;">
-            Continue Shopping
-        </a>
-    </div>
+<!-- Help section (for retry-able orders) -->
+{% if can_retry %}
+<section class="dashboard-section" aria-labelledby="need-help">
+    <h2 id="need-help" class="dashboard-section__title">Need help?</h2>
 
-    <div style="margin-top: 2rem; padding: 1.5rem; background: #fff8e1; border-radius: 8px; max-width: 600px; width: 100%; color: #5d4037;">
-        <h3 style="margin-bottom: 0.5rem; color: #4e342e;">Need help?</h3>
-        <p style="color: #6d4c41;">If you're having trouble completing your payment, please try the following:</p>
-        <ul style="margin-left: 1.5rem; margin-top: 0.5rem; color: #5d4037;">
+    <div class="history-card">
+        <p class="help-intro">If you're having trouble completing your payment, please try the following:</p>
+        <ul class="help-list">
             <li>Check your internet connection</li>
             <li>Ensure your payment method has sufficient funds</li>
             <li>Try a different payment method (Card, GCash, or PayMaya)</li>
             <li>Contact your bank if the issue persists</li>
         </ul>
     </div>
-    {% else %}
-    <div style="margin-top: 2rem; max-width: 600px; width: 100%;">
-        <a href="{% url 'orders:history' %}" class="btn" style="background: #2c1810; color: white; padding: 0.75rem 1.5rem; text-decoration: none;">
-            View Order History
-        </a>
-    </div>
-    {% endif %}
 </section>
+{% endif %}
+
+<!-- Action buttons -->
+<div class="payment-actions">
+    {% if can_retry %}
+    <form method="post" action="{% url 'orders:retry_payment' order.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-pay">Retry Payment</button>
+    </form>
+    {% endif %}
+    <a href="{% url 'menu:catalog' %}" class="btn btn-secondary">Back to Menu</a>
+    <a href="{% url 'orders:history' %}" class="btn">View Order History</a>
+</div>
 
 {% endblock %}

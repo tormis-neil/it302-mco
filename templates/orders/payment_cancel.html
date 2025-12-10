@@ -72,6 +72,17 @@
                     <dd>&#8369;{{ order.total|floatformat:2 }}</dd>
                 </div>
             </dl>
+
+            <!-- Action buttons -->
+            <div class="history-card__actions">
+                {% if can_retry %}
+                <form method="post" action="{% url 'orders:retry_payment' order.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-pay">Retry Payment</button>
+                </form>
+                {% endif %}
+                <a href="{% url 'menu:catalog' %}" class="btn btn-secondary">Back to Menu</a>
+            </div>
         </footer>
     </div>
 </section>
@@ -92,17 +103,5 @@
     </div>
 </section>
 {% endif %}
-
-<!-- Action buttons -->
-<div class="payment-actions">
-    {% if can_retry %}
-    <form method="post" action="{% url 'orders:retry_payment' order.pk %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-pay">Retry Payment</button>
-    </form>
-    {% endif %}
-    <a href="{% url 'menu:catalog' %}" class="btn btn-secondary">Back to Menu</a>
-    <a href="{% url 'orders:history' %}" class="btn">View Order History</a>
-</div>
 
 {% endblock %}

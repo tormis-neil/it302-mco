@@ -905,13 +905,6 @@ button[disabled] {
     font-weight: 700;
 }
 
-.payment-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
 .btn-secondary {
     background: transparent;
     border: 2px solid var(--brand-primary);
